@@ -1,0 +1,139 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "stateforge-provider-implementation"
+version = "0.1.0"
+description = "Reference skeleton for implementing StateForge Providers."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+
+authors = [
+    { name = "StateForge" },
+]
+
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "grpcio>=1.83",
+    "stateforge-protocol>=0.1.0,<0.2.0",
+]
+
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17",
+    "pytest>=8.4",
+    "pytest-asyncio>=1",
+    "pytest-cov>=6.2",
+    "ruff>=0.12",
+    "types-grpcio",
+    "types-protobuf",
+]
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/stateforge_rpc"]
+
+
+[tool.ruff]
+target-version = "py311"
+line-length = 79
+src = ["src", "tests"]
+
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "ANN",
+    "ASYNC",
+    "B",
+    "C4",
+    "D",
+    "E",
+    "F",
+    "I",
+    "N",
+    "PERF",
+    "PIE",
+    "PL",
+    "RUF",
+    "S",
+    "SIM",
+    "T20",
+    "UP",
+    "W",
+]
+
+ignore = [
+    "ANN401",
+    "PLR0913",
+    "W191",
+    "E111",
+    "E114",
+    "E117",
+    "D203",
+    "D206",
+    "D300",
+]
+
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN", "D", "S101"]
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+
+[tool.ruff.format]
+indent-style = "space"
+quote-style = "double"
+line-ending = "auto"
+docstring-code-format = true
+
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+packages = ["stateforge_rpc"]
+pretty = true
+show_error_codes = true
+warn_unreachable = true
+warn_unused_configs = true
+
+
+[tool.pytest.ini_options]
+minversion = "8.4"
+addopts = [
+    "--strict-config",
+    "--strict-markers",
+    "--cov=stateforge_rpc",
+    "--cov-report=term-missing",
+]
+testpaths = ["tests"]
+asyncio_mode = "strict"
+
+
+[tool.coverage.run]
+branch = true
+source = ["stateforge_rpc"]
+
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+skip_covered = true
