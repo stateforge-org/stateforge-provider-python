@@ -2,7 +2,9 @@
 
 import asyncio
 import json
+import os
 import shutil
+import stat
 import tempfile
 from collections.abc import Iterator
 from pathlib import Path
@@ -24,6 +26,8 @@ from stateforge_rpc import (
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
 _UUID_VERSION = 4
 _REPLACEMENT_ENDPOINT_GENERATION = 2
+_DESCRIPTOR_MODE = 0o640
+_SOCKET_MODE = 0o660
 
 
 @pytest.fixture
@@ -84,6 +88,13 @@ async def test_publishes_endpoint_and_negotiates_highest_version(
     async with server:
         document = json.loads(server.descriptor_path.read_text())
         assert document["endpoint_generation"] == 1
+        descriptor_status = server.descriptor_path.lstat()
+        socket_status = server.socket_path.lstat()
+        assert stat.S_IMODE(descriptor_status.st_mode) == _DESCRIPTOR_MODE
+        assert stat.S_ISSOCK(socket_status.st_mode)
+        assert stat.S_IMODE(socket_status.st_mode) == _SOCKET_MODE
+        assert socket_status.st_uid == descriptor_status.st_uid
+        assert socket_status.st_gid == descriptor_status.st_gid
 
         channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
         try:
@@ -102,6 +113,26 @@ async def test_publishes_endpoint_and_negotiates_highest_version(
 
     assert not server.descriptor_path.exists()
     assert not server.socket_path.exists()
+
+
+@pytest.mark.asyncio
+async def test_endpoint_modes_do_not_depend_on_process_umask(
+    socket_directory: Path,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    previous_umask = os.umask(0o077)
+    try:
+        await server.start()
+    finally:
+        os.umask(previous_umask)
+
+    try:
+        assert stat.S_IMODE(server.descriptor_path.stat().st_mode) == (
+            _DESCRIPTOR_MODE
+        )
+        assert stat.S_IMODE(server.socket_path.stat().st_mode) == _SOCKET_MODE
+    finally:
+        await server.stop()
 
 
 def test_protocol_version_is_ordered_and_printable() -> None:
@@ -155,18 +186,24 @@ async def test_rejects_incompatible_handshakes(
     await asyncio.wait_for(channel.channel_ready(), timeout=2)
     stub = bootstrap_pb2_grpc.BootstrapServiceStub(channel)
 
-    requests = (
+    invalid_requests = (
         _request(
             provider_instance_id=UUID("00000000-0000-4000-8000-000000000000")
         ),
         _request(endpoint_generation=2),
-        _request(supported_versions=(ProtocolVersion(major=2, minor=0),)),
         _request(agent_runtime_id="not-a-uuid"),
         _request(software_version=""),
     )
-    for request in requests:
+    for request in invalid_requests:
         with pytest.raises(grpc.aio.AioRpcError):
             await stub.Handshake(request, timeout=2)
+
+    incompatible_request = _request(
+        supported_versions=(ProtocolVersion(major=2, minor=0),)
+    )
+    with pytest.raises(grpc.aio.AioRpcError) as captured_error:
+        await stub.Handshake(incompatible_request, timeout=2)
+    assert captured_error.value.code() is grpc.StatusCode.UNIMPLEMENTED
 
     await channel.close()
     await server.stop()

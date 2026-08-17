@@ -19,6 +19,8 @@ from stateforge_rpc.version import ProtocolVersion
 
 _DESCRIPTOR_SCHEMA_VERSION = "1"
 _DESCRIPTOR_SUFFIX = ".sfp.json"
+_DESCRIPTOR_MODE = 0o640
+_SOCKET_MODE = 0o660
 _MAXIMUM_ENDPOINT_GENERATION = (2**63) - 1
 _UUID_VERSION = 4
 
@@ -105,6 +107,7 @@ class ProviderServer:
 
         try:
             await self._server.start()
+            self._secure_socket()
             self._publish_descriptor()
         except BaseException:
             await self._server.stop(grace=None)
@@ -164,6 +167,54 @@ class ProviderServer:
                 f"{error}"
             ) from error
 
+    def _secure_socket(self) -> None:
+        """Apply and verify the protected SFP socket ownership contract."""
+        try:
+            directory_status = self.configuration.discovery_directory.lstat()
+            socket_status = self.socket_path.lstat()
+            if not stat.S_ISDIR(directory_status.st_mode):
+                raise ProviderServerError(
+                    "Provider discovery path is not a directory: "
+                    f"{self.configuration.discovery_directory}"
+                )
+            if not stat.S_ISSOCK(socket_status.st_mode):
+                raise ProviderServerError(
+                    f"Provider endpoint is not a socket: {self.socket_path}"
+                )
+            if socket_status.st_uid != os.geteuid():
+                raise ProviderServerError(
+                    "Provider endpoint is not owned by the Provider process: "
+                    f"{self.socket_path}"
+                )
+
+            os.chown(
+                self.socket_path,
+                -1,
+                directory_status.st_gid,
+                follow_symlinks=False,
+            )
+            os.chmod(
+                self.socket_path,
+                _SOCKET_MODE,
+                follow_symlinks=False,
+            )
+            secured_status = self.socket_path.lstat()
+        except OSError as error:
+            raise ProviderServerError(
+                f"Cannot secure Provider socket {self.socket_path}: {error}"
+            ) from error
+
+        if (
+            not stat.S_ISSOCK(secured_status.st_mode)
+            or secured_status.st_uid != os.geteuid()
+            or secured_status.st_gid != directory_status.st_gid
+            or stat.S_IMODE(secured_status.st_mode) != _SOCKET_MODE
+        ):
+            raise ProviderServerError(
+                "Provider socket ownership or permissions changed while "
+                f"securing it: {self.socket_path}"
+            )
+
     def _publish_descriptor(self) -> None:
         """Atomically publish the endpoint only after gRPC is ready."""
         configuration = self.configuration
@@ -183,9 +234,12 @@ class ProviderServer:
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
 
         try:
-            descriptor = os.open(temporary_path, flags, 0o640)
+            descriptor = os.open(temporary_path, flags, _DESCRIPTOR_MODE)
             try:
-                os.write(descriptor, content)
+                directory_status = configuration.discovery_directory.lstat()
+                os.fchown(descriptor, -1, directory_status.st_gid)
+                os.fchmod(descriptor, _DESCRIPTOR_MODE)
+                _write_all(descriptor, content)
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
@@ -296,7 +350,7 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         )
         if not selected_versions:
             await context.abort(
-                grpc.StatusCode.FAILED_PRECONDITION,
+                grpc.StatusCode.UNIMPLEMENTED,
                 "No mutually supported SFP wire version",
             )
         selected_version = max(selected_versions)
@@ -335,3 +389,13 @@ def _synchronize_directory(directory: Path) -> None:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def _write_all(descriptor: int, content: bytes) -> None:
+    """Write a complete descriptor document despite partial OS writes."""
+    offset = 0
+    while offset < len(content):
+        written = os.write(descriptor, content[offset:])
+        if written == 0:
+            raise OSError("Descriptor write returned zero bytes")
+        offset += written

@@ -1,0 +1,51 @@
+site_name: StateForge Provider Implementation
+site_description: Developer guide and Python API for implementing StateForge Providers.
+site_author: StateForge
+copyright: Copyright &copy; StateForge
+
+strict: true
+
+theme:
+  name: material
+  language: en
+  features:
+    - content.code.copy
+    - navigation.indexes
+    - navigation.sections
+    - navigation.top
+
+nav:
+  - Overview: index.md
+  - Endpoint lifecycle: endpoint-lifecycle.md
+  - Python API:
+      - Provider server: reference/server.md
+      - Protocol version: reference/version.md
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths:
+            - src
+          options:
+            members_order: source
+            separate_signature: true
+            show_root_heading: true
+            show_signature_annotations: true
+            show_source: true
+            signature_crossrefs: true
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+  - tables
+
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
