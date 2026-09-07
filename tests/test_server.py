@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import shutil
+import socket
 import stat
 import tempfile
 from collections.abc import Iterator
@@ -41,8 +42,7 @@ def socket_directory() -> Iterator[Path]:
 
 def _configuration(directory: Path) -> ProviderServerConfiguration:
     return ProviderServerConfiguration(
-        provider_instance_id=_PROVIDER_INSTANCE_ID,
-        endpoint_generation=1,
+        state_directory=directory / "state",
         discovery_directory=directory,
         supported_sfp_versions=(
             ProtocolVersion(major=1, minor=0),
@@ -52,9 +52,9 @@ def _configuration(directory: Path) -> ProviderServerConfiguration:
 
 
 def _request(
+    provider_instance_id: UUID,
+    endpoint_generation: int,
     *,
-    provider_instance_id: UUID = _PROVIDER_INSTANCE_ID,
-    endpoint_generation: int = 1,
     agent_runtime_id: str | None = None,
     software_version: str = "0.1.0",
     supported_versions: tuple[ProtocolVersion, ...] = (
@@ -101,11 +101,20 @@ async def test_publishes_endpoint_and_negotiates_highest_version(
             await asyncio.wait_for(channel.channel_ready(), timeout=2)
             response = await bootstrap_pb2_grpc.BootstrapServiceStub(
                 channel
-            ).Handshake(_request(), timeout=2)
+            ).Handshake(
+                _request(
+                    server.provider_instance_id,
+                    server.endpoint_generation,
+                ),
+                timeout=2,
+            )
         finally:
             await channel.close()
 
-        assert response.provider_instance_id == str(_PROVIDER_INSTANCE_ID)
+        assert response.provider_instance_id == str(
+            server.provider_instance_id
+        )
+        assert response.endpoint_generation == server.endpoint_generation
         assert response.selected_sfp_version.major == 1
         assert response.selected_sfp_version.minor == 1
         assert UUID(response.provider_runtime_id).version == _UUID_VERSION
@@ -143,18 +152,16 @@ def test_protocol_version_is_ordered_and_printable() -> None:
 
 
 def test_rejects_invalid_configuration(socket_directory: Path) -> None:
-    with pytest.raises(ValueError, match="positive signed 64-bit"):
+    with pytest.raises(ValueError, match="state_directory must be absolute"):
         ProviderServerConfiguration(
-            provider_instance_id=_PROVIDER_INSTANCE_ID,
-            endpoint_generation=0,
+            state_directory=Path("relative"),
             discovery_directory=socket_directory,
             supported_sfp_versions=(ProtocolVersion(major=1, minor=0),),
         )
 
     with pytest.raises(ValueError, match="duplicates"):
         ProviderServerConfiguration(
-            provider_instance_id=_PROVIDER_INSTANCE_ID,
-            endpoint_generation=1,
+            state_directory=socket_directory / "state",
             discovery_directory=socket_directory,
             supported_sfp_versions=(
                 ProtocolVersion(major=1, minor=0),
@@ -164,8 +171,7 @@ def test_rejects_invalid_configuration(socket_directory: Path) -> None:
 
     with pytest.raises(ValueError, match="must be absolute"):
         ProviderServerConfiguration(
-            provider_instance_id=_PROVIDER_INSTANCE_ID,
-            endpoint_generation=1,
+            state_directory=socket_directory / "state",
             discovery_directory=Path("relative"),
             supported_sfp_versions=(ProtocolVersion(major=1, minor=0),),
         )
@@ -188,18 +194,32 @@ async def test_rejects_incompatible_handshakes(
 
     invalid_requests = (
         _request(
-            provider_instance_id=UUID("00000000-0000-4000-8000-000000000000")
+            UUID("00000000-0000-4000-8000-000000000000"),
+            server.endpoint_generation,
         ),
-        _request(endpoint_generation=2),
-        _request(agent_runtime_id="not-a-uuid"),
-        _request(software_version=""),
+        _request(
+            server.provider_instance_id,
+            server.endpoint_generation + 1,
+        ),
+        _request(
+            server.provider_instance_id,
+            server.endpoint_generation,
+            agent_runtime_id="not-a-uuid",
+        ),
+        _request(
+            server.provider_instance_id,
+            server.endpoint_generation,
+            software_version="",
+        ),
     )
     for request in invalid_requests:
         with pytest.raises(grpc.aio.AioRpcError):
             await stub.Handshake(request, timeout=2)
 
     incompatible_request = _request(
-        supported_versions=(ProtocolVersion(major=2, minor=0),)
+        server.provider_instance_id,
+        server.endpoint_generation,
+        supported_versions=(ProtocolVersion(major=2, minor=0),),
     )
     with pytest.raises(grpc.aio.AioRpcError) as captured_error:
         await stub.Handshake(incompatible_request, timeout=2)
@@ -214,19 +234,25 @@ async def test_replacement_descriptor_is_not_removed_by_old_server(
     socket_directory: Path,
 ) -> None:
     first_server = ProviderServer(_configuration(socket_directory))
-    second_server = ProviderServer(
-        ProviderServerConfiguration(
-            provider_instance_id=_PROVIDER_INSTANCE_ID,
-            endpoint_generation=_REPLACEMENT_ENDPOINT_GENERATION,
-            discovery_directory=socket_directory,
-            supported_sfp_versions=(ProtocolVersion(major=1, minor=0),),
-        )
-    )
+    second_server = ProviderServer(_configuration(socket_directory))
 
     await first_server.start()
+    first_provider_instance_id = first_server.provider_instance_id
     with pytest.raises(RuntimeError, match="already running"):
         await first_server.start()
     await second_server.start()
+
+    assert second_server.provider_instance_id == first_provider_instance_id
+    assert first_server.endpoint_generation == 1
+    assert (
+        second_server.endpoint_generation == _REPLACEMENT_ENDPOINT_GENERATION
+    )
+    with pytest.raises(
+        RuntimeError,
+        match="equal or newer Provider endpoint generation",
+    ):
+        first_server._publish_descriptor()
+
     await first_server.stop()
 
     current = json.loads(second_server.descriptor_path.read_text())
@@ -234,3 +260,27 @@ async def test_replacement_descriptor_is_not_removed_by_old_server(
 
     await first_server.stop()
     await second_server.stop()
+
+
+@pytest.mark.asyncio
+async def test_does_not_remove_an_occupied_generation_socket(
+    socket_directory: Path,
+) -> None:
+    first_server = ProviderServer(_configuration(socket_directory))
+    await first_server.start()
+    provider_instance_id = first_server.provider_instance_id
+    await first_server.stop()
+
+    occupied_path = socket_directory / (
+        f"{provider_instance_id}.{_REPLACEMENT_ENDPOINT_GENERATION}.sock"
+    )
+    occupied_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    occupied_socket.bind(str(occupied_path))
+    second_server = ProviderServer(_configuration(socket_directory))
+    try:
+        with pytest.raises(RuntimeError, match="already occupied by a socket"):
+            await second_server.start()
+        assert occupied_path.exists()
+    finally:
+        occupied_socket.close()
+        occupied_path.unlink(missing_ok=True)

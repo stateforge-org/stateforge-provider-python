@@ -13,10 +13,12 @@ wire compatibility, or recovery behavior.
 Before changing code:
 
 1. Read the repository's `CLAUDE.md` and `.claude/MVP_PLAN.md`.
-2. Read the specification page for the active SFP procedure.
-3. Inspect the existing protobuf, generated contracts, Provider runtime, and
+2. Read `.claude/PROVIDER_AUTHORING_VISION.md` and preserve its public API
+   direction.
+3. Read the specification page for the active SFP procedure.
+4. Inspect the existing protobuf, generated contracts, Provider runtime, and
    Agent integration that directly precede it.
-4. State which repository owns each required change and which upstream contract
+5. State which repository owns each required change and which upstream contract
    must land first.
 
 Do not treat designed documentation as implemented code. Do not implement the
@@ -79,6 +81,11 @@ regenerate with the repository's checked-in Buf configuration.
 
 The default Provider operation registry is in memory. Persistence is optional
 and Provider-controlled; do not make it a universal runtime requirement.
+
+Implement Provider-side protocol behavior behind the author-facing `Provider`
+framework described in `.claude/PROVIDER_AUTHORING_VISION.md`. Generated stubs,
+servicers, endpoint descriptors, instance identity storage, and generation
+allocation are runtime details, not the normal public Provider API.
 
 ## Verify the result
 

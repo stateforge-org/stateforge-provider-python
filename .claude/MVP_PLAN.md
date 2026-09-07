@@ -4,6 +4,11 @@ This ledger tracks implementation of the Provider side of SFP in the Developer
 RPC Library and reference Provider skeleton. All eleven procedures are already
 designed; statuses refer only to executable runtime behavior.
 
+All implementation items must converge on the public author experience in
+`.claude/PROVIDER_AUTHORING_VISION.md`: a `Provider` base class, lifecycle
+hooks, typed models, operation decorators, and simple synchronous or
+asynchronous startup. Low-level SFP construction is not the final public API.
+
 ## Product-level MVP sequence
 
 | Phase | Status | Exit condition |
@@ -72,3 +77,7 @@ For each PR: keep the public authoring API small and typed; preserve the
 standalone process boundary; add behavioral and failure tests; update MkDocs
 and docstrings; pass Ruff, strict mypy, pytest, package build, and strict MkDocs
 build; update this ledger; prepare the PR draft; and stop for human review.
+
+Review each public API addition against
+`.claude/PROVIDER_AUTHORING_VISION.md`. An implementation is incomplete when
+it exposes protocol plumbing that the vision assigns to the runtime.

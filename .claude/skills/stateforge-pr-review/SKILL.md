@@ -10,10 +10,11 @@ the next procedure or redesign unrelated code.
 
 ## Establish the review basis
 
-Read `CLAUDE.md`, `.claude/MVP_PLAN.md`, applicable repository skills, and
-the active issue or requested outcome. Determine the intended base and inspect
-the actual diff. If the base is ambiguous, report the assumption rather than
-silently reviewing an arbitrary comparison.
+Read `CLAUDE.md`, `.claude/MVP_PLAN.md`, applicable repository skills,
+`.claude/PROVIDER_AUTHORING_VISION.md`, and the active issue or requested
+outcome. Determine the intended base and inspect the actual diff. If the base
+is ambiguous, report the assumption rather than silently reviewing an
+arbitrary comparison.
 
 The user owns GitHub state. Do not create issues, open pull requests, push,
 merge, or change remote state unless explicitly instructed.

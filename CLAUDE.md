@@ -2,6 +2,8 @@
 
 Read `.claude/MVP_PLAN.md` before planning or changing this repository. It is
 the delivery ledger and identifies the next reviewable Provider-runtime change.
+Read `.claude/PROVIDER_AUTHORING_VISION.md` immediately afterward. It is the
+authoritative contract for the intended Provider-developer experience.
 
 Use `stateforge-python-development` for Python, packaging, tests, and docs;
 `stateforge-protocol-development` for SFP server behavior; and
@@ -51,6 +53,23 @@ Provider reference.
 The default runtime state, including operation admission state, is in memory.
 Do not force every Provider to use persistent storage. A Provider may add its
 own persistence deliberately when its guarantees require it.
+
+## Public authoring direction
+
+The Developer RPC Library must combine a PyTorch Lightning-style `Provider`
+base class and overridable lifecycle hooks with FastAPI-style decorators for
+typed, namespaced operations. Provider authors implement asynchronous Python
+behavior and start it with `Provider.run()` or `await Provider.serve()`.
+
+Provider identity persistence, endpoint generations, Unix sockets,
+descriptors, protobuf adaptation, gRPC services, SFP negotiation, manifest
+construction, dispatch, and error translation belong to the runtime. Do not
+make authors pass or manipulate those internal values through the normal
+public API.
+
+Backup and disaster-recovery support remains an explicit compliance claim over
+generic decorated operations. Never infer compliance from method names and
+never move BackupEngine behavior into a Provider.
 
 ## Python and review standards
 
