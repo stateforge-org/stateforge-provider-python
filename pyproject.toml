@@ -100,7 +100,7 @@ ignore = [
 
 
 [tool.ruff.lint.pydocstyle]
-convention = "pep257"
+convention = "google"
 
 
 [tool.ruff.format]
