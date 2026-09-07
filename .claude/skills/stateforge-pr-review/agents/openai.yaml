@@ -1,0 +1,4 @@
+interface:
+  display_name: "StateForge PR Review"
+  short_description: "Review one StateForge MVP pull request"
+  default_prompt: "Use $stateforge-pr-review to review this StateForge change against its active MVP plan item and repository standards."

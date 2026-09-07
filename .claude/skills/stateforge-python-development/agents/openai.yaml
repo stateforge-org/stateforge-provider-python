@@ -1,0 +1,4 @@
+interface:
+  display_name: "StateForge Python Development"
+  short_description: "Python engineering and documentation standards"
+  default_prompt: "Use $stateforge-python-development to implement this Python change according to StateForge standards."

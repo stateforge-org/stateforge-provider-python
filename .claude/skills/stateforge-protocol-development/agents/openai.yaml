@@ -1,0 +1,4 @@
+interface:
+  display_name: "StateForge Protocol Development"
+  short_description: "SFP protobuf and gRPC engineering rules"
+  default_prompt: "Use $stateforge-protocol-development to implement this SFP change within the correct repository and compatibility boundaries."
