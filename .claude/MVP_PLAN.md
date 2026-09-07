@@ -26,7 +26,7 @@ does not implement either boundary.
 
 | # | Procedure | Status | Evidence or remaining work |
 | ---: | --- | --- | --- |
-| 1 | Endpoint Discovery and Channel Establishment | `IMPLEMENTED` | Stable identity loading, endpoint creation, gRPC startup, atomic descriptor publication, generation replacement, and cleanup exist. |
+| 1 | Endpoint Discovery and Channel Establishment | `IMPLEMENTED` | Stable identity loading, endpoint creation, gRPC startup, atomic descriptor publication, generation replacement, and cleanup exist behind the public `Provider` base class; the private `_server`/`_identity` runtime modules are no longer exported or documented as author-facing API. |
 | 2 | Handshake and Version Negotiation | `IMPLEMENTED` | The Provider validates discovered identity/generation and negotiates a supported SFP version. |
 | 3 | Provider Manifest Exchange | `BLOCKED` | Awaiting the manifest contract in `stateforge-protocol`. |
 | 4 | Health and Availability Monitoring | `BLOCKED` | Standard gRPC health lifecycle is not exposed. |

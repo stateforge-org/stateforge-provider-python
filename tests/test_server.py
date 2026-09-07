@@ -1,4 +1,4 @@
-"""Integration tests for the Provider-side SFP bootstrap server."""
+"""Integration tests for the private Provider-side SFP bootstrap runtime."""
 
 import asyncio
 import json
@@ -18,11 +18,8 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2_grpc,
 )
 
-from stateforge_rpc import (
-    ProtocolVersion,
-    ProviderServer,
-    ProviderServerConfiguration,
-)
+from stateforge_rpc import ProtocolVersion
+from stateforge_rpc._server import ProviderServer, ProviderServerConfiguration
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
 _UUID_VERSION = 4

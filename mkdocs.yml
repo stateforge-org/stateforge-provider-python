@@ -18,7 +18,7 @@ nav:
   - Overview: index.md
   - Endpoint lifecycle: endpoint-lifecycle.md
   - Python API:
-      - Provider server: reference/server.md
+      - Provider: reference/provider.md
       - Protocol version: reference/version.md
 
 plugins:

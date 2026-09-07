@@ -1,10 +1,16 @@
-"""Run the Provider side of the SFP bootstrap protocol."""
+"""Run the Provider side of the SFP bootstrap protocol.
+
+This module is a private runtime implementation detail. Provider authors use
+the public :class:`stateforge_rpc.Provider` base class; they must not import
+or configure anything here directly.
+"""
 
 from __future__ import annotations
 
 import json
 import os
 import stat
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -107,8 +113,17 @@ class ProviderServer:
             )
         return self._endpoint_identity
 
-    async def start(self) -> None:
-        """Start gRPC and atomically advertise the ready endpoint."""
+    async def start(
+        self,
+        *,
+        on_identity_allocated: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
+        """Start gRPC and atomically advertise the ready endpoint.
+
+        ``on_identity_allocated`` runs after the stable identity and endpoint
+        generation are allocated but before gRPC binds, matching the runtime
+        lifecycle order the Provider-author framework depends on.
+        """
         if self._started:
             raise ProviderServerError("Provider server is already running")
 
@@ -118,6 +133,9 @@ class ProviderServer:
             raise ProviderServerError(
                 f"Cannot allocate Provider endpoint identity: {error}"
             ) from error
+
+        if on_identity_allocated is not None:
+            await on_identity_allocated()
 
         server = grpc.aio.server()
         bootstrap_pb2_grpc.add_BootstrapServiceServicer_to_server(
