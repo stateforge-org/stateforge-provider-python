@@ -1,0 +1,6 @@
+interface:
+  display_name: "StateForge DPT Milestone"
+  short_description: "Implement one Issue; hand delivery back to humans"
+  default_prompt: "Use $stateforge-dpt-milestone to implement the requested StateForge Issue, verify its prerequisites and result, make scoped local commits, and hand it back for a human-owned PR, review, and merge."
+policy:
+  allow_implicit_invocation: true
