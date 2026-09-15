@@ -1,25 +1,41 @@
 # StateForge Provider Implementation repository instructions
 
-Read `.claude/MVP_PLAN.md` before planning or changing this repository. It is
-the delivery ledger and identifies the next reviewable Provider-runtime change.
+Read root `STATEFORGE_DPT.md` for the shared milestone declaration and
+generated delivery snapshot, not an editable local implementation ledger.
+For every milestone assignment, read and follow
+`.agents/skills/stateforge-dpt-milestone/SKILL.md`. It applies equally to
+agents reached through `AGENTS.md` or `CLAUDE.md`.
+
 Read `.claude/PROVIDER_AUTHORING_VISION.md` immediately afterward. It is the
 authoritative contract for the intended Provider-developer experience.
 
 Use `stateforge-python-development` for Python, packaging, tests, and docs;
-`stateforge-protocol-development` for SFP server behavior; and
-`stateforge-pr-review` when reviewing or drafting a pull request. Their
-instructions live under `.claude/skills/`.
+`stateforge-protocol-development` for SFP contracts or integrations; and
+`stateforge-pr-review` when drafting a PR description or assisting a review.
+Those engineering skills live under `.claude/skills/`.
 
 ## Delivery discipline
 
-- Work on one plan item at a time and do not implement future procedures
-  opportunistically.
-- Target `mvp/implementation`. Use `mvp/<issue-slug>` for issue branches and
-  `[TASK][MVP] Title` for issue and pull-request titles.
-- The user owns GitHub mutations. Do not create issues, open pull requests,
-  push, or merge unless explicitly instructed.
-- End each completed item with a human-readable PR draft and stop for review.
-- Update `.claude/MVP_PLAN.md` only when implementation evidence changes.
+- Work only on the human-selected Issue and its mapped DPT step. Use the
+  Issue's acceptance criteria for implementation and DPT for ownership,
+  prerequisites, and the declared result. Ask about material disagreements.
+- Follow `stateforge-dpt-milestone` for dependency checks, branch context,
+  verification, scoped local commits, and the human handoff. Never infer the
+  assignment from queue order or start a later milestone opportunistically.
+- Humans own pushing, Issue/PR mutations, PR creation, formal review, and
+  merging. Local implementation commits are allowed; they do not complete a
+  step. End with verification evidence and a human-readable PR draft.
+- Do not edit `STATEFORGE_DPT.md`, its manifest/revision/statuses, or SQLite to
+  record implementation progress. Plan changes are managed through DPT in a
+  separate human-requested workflow.
+- A step is delivered only after its correctly associated PR has been
+  reviewed by a human and merged into the intended integration branch.
+  DPT reconciliation records the GitHub-derived state. A local commit,
+  passing tests, an approval, or a closed Issue alone is not completion.
+- This project's current source/integration branch is `mvp/implementation`.
+  Prefer the human-selected Issue branch and DPT's declared branch; never use
+  descriptive placeholders such as "Existing work" as branch names.
+  Issue and PR titles currently use `[TASK][MVP] Title`.
 
 ## MVP boundary
 
@@ -29,6 +45,13 @@ phases, but SF-AOP is not yet designed. The completed SFP path will inform that
 design. Never describe those phases as optional, post-MVP, or excluded.
 
 Do not implement SF-AOP or Control Plane behavior in this repository.
+
+The local SFP phase must work across Protocol, Provider, and Agent, including
+backup-engine-backed backup and disaster recovery. Only afterward are the
+SF-AOP contracts and Control Plane milestones defined from that proven
+behavior. The end-to-end MVP must let a trigger create a coordinated snapshot
+and use that snapshot for disaster recovery. These are product-level exit
+conditions, not permission to implement additional milestones.
 
 ## Repository boundary
 

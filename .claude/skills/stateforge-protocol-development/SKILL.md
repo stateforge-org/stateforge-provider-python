@@ -12,7 +12,7 @@ wire compatibility, or recovery behavior.
 
 Before changing code:
 
-1. Read the repository's `CLAUDE.md` and `.claude/MVP_PLAN.md`.
+1. Read the repository's `CLAUDE.md` and root `STATEFORGE_DPT.md`.
 2. Read `.claude/PROVIDER_AUTHORING_VISION.md` and preserve its public API
    direction.
 3. Read the specification page for the active SFP procedure.
@@ -67,7 +67,15 @@ their semantics fit.
 Do not duplicate the standard gRPC health protocol. Do not add a protobuf solely
 to make every documented procedure appear structurally identical.
 
-## Implement across repositories in order
+## Respect cross-repository delivery order
+
+Use `.agents/skills/stateforge-dpt-milestone/SKILL.md` for the specifically
+requested Issue and its DPT gates. The stages below are separate milestones,
+not permission for one agent to implement all three repositories. Read the
+required contracts in sibling repositories as context, but change only the
+repository and milestone placed in scope by the human.
+
+## Contract-to-runtime sequence
 
 For a custom SFP procedure:
 

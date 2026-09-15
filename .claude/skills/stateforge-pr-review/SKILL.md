@@ -1,23 +1,26 @@
 ---
 name: stateforge-pr-review
-description: Prepare or review one StateForge pull request against its MVP plan item, architecture boundary, Python and protocol standards, tests, documentation, and packaging. Use when drafting a PR, reviewing a branch or diff, addressing review comments, or deciding whether a StateForge change is ready for human review.
+description: Prepare or review one StateForge pull request against its DPT milestone and GitHub Issue, architecture boundary, Python and protocol standards, tests, documentation, and packaging. Use when drafting a PR, reviewing a branch or diff, addressing review comments, or deciding whether a StateForge change is ready for human review.
 ---
 
 # StateForge Pull Request Review
 
-Review one explicitly selected MVP plan item. Do not broaden the review into
-the next procedure or redesign unrelated code.
+Assist with one explicitly selected DPT milestone and its GitHub Issue. Do
+not broaden the review into the next procedure or redesign unrelated code.
 
 ## Establish the review basis
 
-Read `CLAUDE.md`, `.claude/MVP_PLAN.md`, applicable repository skills,
+Read `CLAUDE.md`, root `STATEFORGE_DPT.md`, applicable repository skills,
 `.claude/PROVIDER_AUTHORING_VISION.md`, and the active issue or requested
 outcome. Determine the intended base and inspect the actual diff. If the base
 is ambiguous, report the assumption rather than silently reviewing an
 arbitrary comparison.
 
-The user owns GitHub state. Do not create issues, open pull requests, push,
-merge, or change remote state unless explicitly instructed.
+Follow `.agents/skills/stateforge-dpt-milestone/SKILL.md` for assignment
+mapping and the human handoff. Local implementation commits are allowed.
+Humans own GitHub mutations, PR creation, formal review/approval, and merging.
+An agent's review findings are advisory and do not substitute for that human
+review. Do not submit a formal GitHub review or approval as part of this skill.
 
 ## Review in priority order
 
@@ -69,6 +72,9 @@ When asked to prepare a pull request, draft:
 - verification performed;
 - deliberate non-goals or follow-up dependencies.
 
-Update the local MVP ledger when implementation evidence changes, but do not
-claim that a GitHub PR was opened or merged. Stop for human review before
-starting another plan item.
+Report implementation and verification evidence in the handoff, not by
+editing `STATEFORGE_DPT.md` or SQLite or invoking DPT to change status.
+A local implementation, commit, passing check, review, or PR draft does not
+complete the DPT step. Humans open, review, and merge the correctly associated
+PR; DPT reconciliation derives the delivered state from GitHub evidence.
+Stop at the handoff without pushing or beginning another milestone.
