@@ -10,7 +10,7 @@ from pathlib import Path
 import grpc
 import pytest
 
-from stateforge_rpc import Provider, ProviderServerError
+from stateforge_rpc import Platform, Provider, ProviderServerError
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")
@@ -26,7 +26,11 @@ def endpoint_directory() -> Iterator[Path]:
 
 
 class _RecordingProvider(Provider):
-    identity = "stateforge.test-recorder"
+    identity = "stateforge.test_recorder"
+    display_name = "Test recorder"
+    version = "1.0.0"
+    target_kinds = ("stateforge.test/recorder@1",)
+    platforms = (Platform("linux", "x86_64"),)
 
     def __init__(
         self,

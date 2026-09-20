@@ -8,21 +8,30 @@ import signal
 from pathlib import Path
 from typing import ClassVar, final
 
+from stateforge_rpc._manifest import ManifestDeclaration
 from stateforge_rpc._server import (
     ProviderServer,
     ProviderServerConfiguration,
     ProviderServerError,
 )
+from stateforge_rpc.declarations import (
+    Platform,
+    ProviderModel,
+    RuntimeRequirement,
+    Trigger,
+)
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")
+_SHUTDOWN_TIMEOUT_SECONDS = 5.0
 
 
 class Provider:
     """Implement a standalone Provider by subclassing and overriding hooks.
 
-    Set the ``identity`` class attribute to a namespaced Provider type
-    identifier, override the lifecycle hooks a Provider needs, and start the
+    Set ``identity``, ``display_name``, ``version``, ``target_kinds``, and
+    ``platforms``. Add typed models, requirements, triggers, and decorated
+    operations as needed. Override lifecycle hooks and start the
     result with :meth:`run` or :meth:`serve`. The runtime owns Provider
     identity persistence, endpoint-generation allocation, Unix sockets,
     descriptors, protobuf adaptation, gRPC services, and SFP negotiation; a
@@ -30,6 +39,13 @@ class Provider:
     """
 
     identity: ClassVar[str]
+    display_name: ClassVar[str]
+    version: ClassVar[str]
+    target_kinds: ClassVar[tuple[str, ...]]
+    platforms: ClassVar[tuple[Platform, ...]]
+    configuration_model: ClassVar[type[ProviderModel]] = ProviderModel
+    runtime_requirements: ClassVar[tuple[RuntimeRequirement, ...]] = ()
+    triggers: ClassVar[tuple[Trigger, ...]] = ()
 
     def __init__(
         self,
@@ -53,8 +69,7 @@ class Provider:
             )
         if "/" in identity or "\\" in identity or identity in {".", ".."}:
             raise ProviderServerError(
-                f"{type(self).__name__}.identity must be a single path "
-                f"segment, not {identity!r}"
+                f"{type(self).__name__}.identity must be a single path segment"
             )
         self._configuration = ProviderServerConfiguration(
             state_directory=(
@@ -75,7 +90,11 @@ class Provider:
         """Override to initialize Provider resources before publication."""
 
     async def on_shutdown(self) -> None:
-        """Override to release Provider resources during shutdown."""
+        """Release resources within five seconds, including partial startup.
+
+        Runs if startup was entered, even if startup or publication failed.
+        Must tolerate partially initialized resources and no ready endpoint.
+        """
 
     @final
     def run(self) -> None:
@@ -84,14 +103,34 @@ class Provider:
 
     @final
     async def serve(self) -> None:
-        """Run this Provider to completion on the caller's event loop."""
-        await self._server.start(on_identity_allocated=self.on_startup)
-        self._install_signal_handlers()
+        """Validate declarations and serve on the caller's event loop.
+
+        Raises:
+            ManifestError: Declarations violate the P1 manifest contract.
+            ProviderServerError: Endpoint allocation/publication fails.
+        """
+        declaration = ManifestDeclaration.discover(type(self))
+        startup_entered = False
+
+        async def startup() -> None:
+            nonlocal startup_entered
+            startup_entered = True
+            await self.on_startup()
+
         try:
+            await self._server.start(
+                on_identity_allocated=startup,
+                manifest=declaration,
+            )
+            self._install_signal_handlers()
             await self._shutdown_requested.wait()
         finally:
-            await self.on_shutdown()
-            await self._server.stop()
+            try:
+                if startup_entered:
+                    async with asyncio.timeout(_SHUTDOWN_TIMEOUT_SECONDS):
+                        await self.on_shutdown()
+            finally:
+                await self._server.stop()
 
     @final
     def request_shutdown(self) -> None:

@@ -20,12 +20,20 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
+from stateforge_protocol.sfp.manifest.v1 import manifest_pb2_grpc
 
 from stateforge_rpc._identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,
 )
+from stateforge_rpc._manifest import ManifestDeclaration
+from stateforge_rpc._manifest_service import (
+    ManifestService,
+    SessionRegistry,
+    SessionRegistryClosedError,
+)
+from stateforge_rpc._schema import MAX_REQUEST_BYTES, MAX_RESPONSE_BYTES
 from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 _DESCRIPTOR_SCHEMA_VERSION = "1"
@@ -68,6 +76,7 @@ class ProviderServer:
         self._runtime_id = uuid4()
         self._server: grpc.aio.Server | None = None
         self._started = False
+        self._sessions: SessionRegistry | None = None
 
     @property
     def provider_instance_id(self) -> UUID:
@@ -108,6 +117,7 @@ class ProviderServer:
         self,
         *,
         on_identity_allocated: Callable[[], Awaitable[None]] | None = None,
+        manifest: ManifestDeclaration | None = None,
     ) -> None:
         """Start gRPC and atomically advertise the ready endpoint.
 
@@ -128,14 +138,32 @@ class ProviderServer:
         if on_identity_allocated is not None:
             await on_identity_allocated()
 
-        server = grpc.aio.server()
+        snapshot = (
+            manifest.snapshot(self._allocated_identity)
+            if manifest is not None
+            else None
+        )
+        sessions = SessionRegistry(self._allocated_identity)
+        server = grpc.aio.server(
+            options=(
+                ("grpc.max_receive_message_length", MAX_REQUEST_BYTES),
+                ("grpc.max_send_message_length", MAX_RESPONSE_BYTES),
+            )
+        )
         bootstrap_pb2_grpc.add_BootstrapServiceServicer_to_server(
             _BootstrapService(
                 endpoint_identity=self._allocated_identity,
                 provider_runtime_id=self._runtime_id,
+                sessions=sessions,
             ),
             server,
         )
+        if snapshot is not None:
+            manifest_pb2_grpc.add_ManifestServiceServicer_to_server(
+                ManifestService(snapshot, sessions),
+                server,
+            )
+        self._sessions = sessions
         self._server = server
         owns_socket = False
         try:
@@ -152,8 +180,10 @@ class ProviderServer:
             self._secure_socket()
             self._publish_descriptor()
         except BaseException:
+            sessions.clear()
             await server.stop(grace=None)
             if owns_socket:
+                self._remove_descriptor_if_owned()
                 self._remove_socket()
             self._server = None
             raise
@@ -165,6 +195,8 @@ class ProviderServer:
         if not self._started or server is None:
             return
         self._remove_descriptor_if_owned()
+        if self._sessions is not None:
+            self._sessions.clear()
         await server.stop(grace=grace_seconds)
         self._remove_socket()
         self._server = None
@@ -386,9 +418,11 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         *,
         endpoint_identity: ProviderEndpointIdentity,
         provider_runtime_id: UUID,
+        sessions: SessionRegistry,
     ) -> None:
         self._endpoint_identity = endpoint_identity
         self._provider_runtime_id = provider_runtime_id
+        self._sessions = sessions
 
     async def Handshake(  # noqa: N802
         self,
@@ -450,6 +484,12 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
                 "No mutually supported SFP wire version",
             )
         selected_version = max(selected_versions)
+        try:
+            session_id = self._sessions.negotiate(selected_version)
+        except SessionRegistryClosedError:
+            await context.abort(
+                grpc.StatusCode.UNAVAILABLE, "Provider endpoint is stopping"
+            )
 
         return bootstrap_pb2.HandshakeResponse(
             provider_instance_id=str(endpoint_identity.provider_instance_id),
@@ -459,7 +499,7 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
                 minor=selected_version.minor,
             ),
             provider_runtime_id=str(self._provider_runtime_id),
-            session_id=str(uuid4()),
+            session_id=session_id,
         )
 
 

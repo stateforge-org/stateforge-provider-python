@@ -1,0 +1,3 @@
+# Landed P1 session binding (Protocol PR #14). The pre-release distribution
+# version remains 0.1.0, so use this source pin until a release distinguishes it.
+stateforge-protocol @ git+https://github.com/stateforge-org/stateforge-protocol.git@437828a92bd30ff763ca6cc4cd1c93443985c113
