@@ -94,6 +94,41 @@ Backup and disaster-recovery support remains an explicit compliance claim over
 generic decorated operations. Never infer compliance from method names and
 never move BackupEngine behavior into a Provider.
 
+## Provider runtime invariants
+
+Apply these rules whenever shared endpoint, lifecycle, session, discovery, or
+service code changes:
+
+- `Provider.run()` may own its event loop and process signal handlers.
+  `Provider.serve()` runs inside a caller-owned loop and must not replace
+  caller-owned signal handlers or other process-global state unless the caller
+  explicitly opts in and the prior state is restored.
+- Treat shutdown as a phased state transition. Prevent new discovery and
+  admission before author resources are released; then drain or cancel
+  accepted work, perform bounded author cleanup, and finish transport and
+  filesystem cleanup. Exceptions and cancellation must not skip later cleanup.
+- Keep cleanup failures observable while attempting every independent cleanup
+  step. A missing artifact or ownership mismatch may be an intentional no-op;
+  lock, parse, permission, unlink, synchronization, and transport failures are
+  operational failures. Preserve the primary failure when reporting cleanup
+  problems encountered during rollback.
+- Treat identity, descriptor, socket, and other discovery artifacts as a
+  filesystem trust boundary. Use bounded descriptor-based I/O, avoid following
+  symbolic links, validate file type, ownership, mode, and filesystem identity,
+  and never remove an entry merely because it has an expected pathname.
+- One Provider endpoint multiplexes multiple SFP procedures. Configure its
+  transport ceiling to carry every registered procedure, while each RPC
+  independently enforces its own versioned request and response limits at the
+  correct boundary.
+- Fixed wire and identity invariants have one authoritative, version-specific
+  contract owner and are not configuration. Operational capacity, concurrency,
+  and timeout policy belong in typed runtime configuration when operators may
+  legitimately tune them. Do not collect unrelated values in a generic
+  constants module.
+- Normalize dependency-specific exceptions at the runtime boundary. Keep
+  remote errors and logs bounded and sanitized without hiding actionable local
+  failures.
+
 ## Python and review standards
 
 - Follow the Python Packaging User Guide, PEP 8, PEP 257, PEP 484, and the

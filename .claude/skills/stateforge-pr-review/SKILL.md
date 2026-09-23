@@ -41,6 +41,30 @@ Tests are automated behavioral gates. Inspect them as evidence for changed
 behavior, but do not conduct a separate stylistic review of test files unless
 the user requests it.
 
+## Review runtime boundaries explicitly
+
+When a diff touches endpoint, lifecycle, session, discovery, persistence, or
+RPC service code, trace more than the successful path:
+
+- Identify who owns the event loop, signals, global state, files, locks, and
+  each lifecycle transition. An embedded API must not silently take ownership
+  from its caller.
+- Trace startup, normal shutdown, rollback, cancellation, timeout, and partial
+  failure. Confirm new admission closes before author resources are released,
+  accepted work has a defined drain/cancel policy, independent cleanup still
+  runs, and real cleanup failures remain observable.
+- Review filesystem operations for bounded reads, no-follow behavior, file
+  type/ownership/mode checks, replacement races, and identity-checked removal.
+- Distinguish the multiplexed endpoint's transport safety ceiling from every
+  RPC's exact request and response limits. Adding one procedure must not impose
+  its limits on unrelated services.
+- Distinguish fixed protocol invariants from configurable operational limits
+  and verify that each value has one clear owner.
+- Check dependency exception normalization and ensure remote diagnostics do not
+  expose declarations, schemas, configured values, credentials, or tracebacks.
+- Require behavioral evidence for the affected failure and cancellation paths;
+  a happy-path test is not sufficient evidence for lifecycle or recovery code.
+
 ## Report actionable findings
 
 Lead with concrete findings ordered by severity:
