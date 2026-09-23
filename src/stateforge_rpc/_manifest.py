@@ -15,7 +15,6 @@ from stateforge_protocol.sfp.manifest.v1 import manifest_pb2
 from stateforge_rpc._identity import ProviderEndpointIdentity
 from stateforge_rpc._schema import (
     MAX_DEPTH,
-    MAX_PREIMAGE_BYTES,
     MAX_RESPONSE_BYTES,
     ManifestError,
     bounded_json,
@@ -37,30 +36,19 @@ _MAX_ROLES = 64
 _MAX_PLATFORMS = 256
 
 
-@dataclass
-class _SchemaBuilder:
-    # Bound the combined schema allocation, not only each individual model.
-    used_bytes: int = 0
-
-    def build(
-        self, model: object, path: str, mode: JsonSchemaMode
-    ) -> dict[str, Any]:
-        if not isinstance(model, type) or not issubclass(model, ProviderModel):
-            raise ManifestError(f"{path}: must be a ProviderModel subclass")
-        try:
-            schema = model.model_json_schema(mode=mode)
-        except (TypeError, ValueError, RecursionError):
-            raise ManifestError(
-                f"{path}: cannot derive model schema"
-            ) from None
-        schema.setdefault("$schema", _DRAFT)
-        schema.setdefault("type", "object")
-        bounded_json(schema, path)
-        self.used_bytes += len(canonical_bytes(schema))
-        if self.used_bytes > MAX_PREIMAGE_BYTES:
-            raise ManifestError(f"{path}: combined schema size limit exceeded")
-        validate_schema(schema, path)
-        return schema
+def _model_schema(
+    model: object, path: str, mode: JsonSchemaMode
+) -> dict[str, Any]:
+    if not isinstance(model, type) or not issubclass(model, ProviderModel):
+        raise ManifestError(f"{path}: must be a ProviderModel subclass")
+    try:
+        schema = model.model_json_schema(mode=mode)
+    except (TypeError, ValueError, RecursionError):
+        raise ManifestError(f"{path}: cannot derive model schema") from None
+    schema.setdefault("$schema", _DRAFT)
+    schema.setdefault("type", "object")
+    validate_schema(schema, path)
+    return schema
 
 
 def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
@@ -71,7 +59,7 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
 
 
 # Keep discovery and its rejection rules adjacent.
-def _operations(owner: type, schemas: _SchemaBuilder) -> dict[str, Any]:  # noqa: PLR0912
+def _operations(owner: type) -> dict[str, Any]:  # noqa: PLR0912
     methods: dict[str, Any] = {}
     for base in reversed(owner.__mro__):
         for name, method in vars(base).items():
@@ -85,22 +73,14 @@ def _operations(owner: type, schemas: _SchemaBuilder) -> dict[str, Any]:  # noqa
                     "operations: overrides must redeclare metadata"
                 )
             methods[name] = method
-    if (
-        sum(
-            isinstance(
-                getattr(method, "__stateforge_operation__", None), _Operation
-            )
-            for method in methods.values()
-        )
-        > _MAX_ENTRIES
-    ):
-        raise ManifestError("operations: entry limit exceeded")
     declarations: dict[str, Any] = {}
     for method in methods.values():
         metadata = getattr(method, "__stateforge_operation__", None)
         if not isinstance(metadata, _Operation):
             continue
         path = f"operations[{len(declarations)}]"
+        if len(declarations) >= _MAX_ENTRIES:
+            raise ManifestError("operations: entry limit exceeded")
         validate_structure(metadata.identifier, "identifier", path)
         if metadata.identifier in declarations:
             raise ManifestError(f"{path}: duplicate operation identifier")
@@ -123,10 +103,10 @@ def _operations(owner: type, schemas: _SchemaBuilder) -> dict[str, Any]:  # noqa
         if len(set(roles)) != len(roles):
             raise ManifestError(f"{path}.implements: duplicate role")
         declarations[metadata.identifier] = {
-            "inputSchema": schemas.build(
+            "inputSchema": _model_schema(
                 annotations.get("request"), f"{path}.input", "validation"
             ),
-            "resultSchema": schemas.build(
+            "resultSchema": _model_schema(
                 annotations.get("return"), f"{path}.result", "serialization"
             ),
             "implements": sorted(roles),
@@ -143,7 +123,6 @@ class ManifestDeclaration:
     @classmethod
     def discover(cls, owner: type) -> ManifestDeclaration:
         """Inspect class metadata without invoking business methods."""
-        schemas = _SchemaBuilder()
         targets = _sequence(owner, "target_kinds", _MAX_ENTRIES)
         for target in targets:
             validate_structure(target, "identifier", "target_kinds")
@@ -188,7 +167,7 @@ class ManifestDeclaration:
             if trigger.identifier in triggers:
                 raise ManifestError(f"{path}: duplicate trigger identifier")
             triggers[trigger.identifier] = {
-                "payloadSchema": schemas.build(
+                "payloadSchema": _model_schema(
                     trigger.payload, path, "serialization"
                 )
             }
@@ -206,8 +185,8 @@ class ManifestDeclaration:
             ),
             "runtimeRequirements": requirements,
             "triggers": triggers,
-            "operations": _operations(owner, schemas),
-            "configurationSchema": schemas.build(
+            "operations": _operations(owner),
+            "configurationSchema": _model_schema(
                 getattr(owner, "configuration_model", ProviderModel),
                 "configuration_schema",
                 "validation",
