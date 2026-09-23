@@ -67,6 +67,23 @@ their semantics fit.
 Do not duplicate the standard gRPC health protocol. Do not add a protobuf solely
 to make every documented procedure appear structurally identical.
 
+## Preserve the shared Provider endpoint
+
+- Keep the endpoint-wide gRPC receive/send ceilings separate from procedure
+  limits. The shared ceiling must carry the largest registered procedure;
+  individual handlers enforce their exact versioned contract limits.
+- Put each procedure's service, validation, and limits under that procedure's
+  ownership. Do not import one procedure's limits as shared runtime policy.
+- Source fixed wire limits and identity rules from one authoritative,
+  version-specific contract surface or verify them mechanically against it.
+  Do not turn protocol invariants into operator configuration.
+- Fence shutdown before releasing Provider-authored resources: stop discovery
+  and new admission, define drain/cancellation for accepted work, and preserve
+  deterministic session and generation behavior throughout cleanup.
+- Keep dependency exceptions behind the service boundary and map them to the
+  procedure's documented status or domain result without leaking sensitive
+  diagnostics.
+
 ## Respect cross-repository delivery order
 
 Use `.agents/skills/stateforge-dpt-milestone/SKILL.md` for the specifically

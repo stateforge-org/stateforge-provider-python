@@ -39,6 +39,27 @@ change that leaves the project in a verified state.
 - Apply these rules automatically whenever production code is created or
   changed. The user must not need to request a separate structural review.
 
+## Preserve lifecycle and resource ownership
+
+- Make ownership explicit for event loops, signals, tasks, locks, files,
+  sockets, and mutable process state. APIs running inside caller-owned runtimes
+  must not silently install or retain global handlers.
+- Model startup, admission, draining, author cleanup, transport shutdown, and
+  final cleanup as explicit phases when their ordering affects correctness.
+  Use `finally` or an equivalent structured boundary so cancellation and
+  intermediate failures cannot skip required cleanup.
+- Attempt independent cleanup steps even after one fails. Distinguish expected
+  absence or ownership mismatch from operational failure, preserve the primary
+  exception during rollback, and make incomplete cleanup observable.
+- At filesystem trust boundaries, prefer bounded descriptor-based access with
+  no-follow, `fstat`, ownership, mode, and regular-file checks. Verify the
+  filesystem identity of an entry before removing it after a long-lived
+  operation.
+- Normalize third-party exceptions at the owning abstraction boundary. Keep
+  diagnostics useful locally and sanitized across public or remote boundaries.
+- Keep tunable capacities and timeouts in typed configuration when appropriate;
+  fixed protocol and identity invariants remain owned by their contract.
+
 ## Follow this workflow
 
 1. Inspect `pyproject.toml`, the source layout, tests, documentation, and CI
