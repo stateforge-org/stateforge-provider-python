@@ -28,6 +28,5 @@ class ProtocolVersion:
 
 SUPPORTED_SFP_VERSIONS: tuple[ProtocolVersion, ...] = (
     ProtocolVersion(major=1, minor=0),
-    ProtocolVersion(major=1, minor=1),
 )
 """SFP wire versions this Developer RPC Library release negotiates."""

@@ -13,7 +13,6 @@ from stateforge_rpc._server import (
     ProviderServerConfiguration,
     ProviderServerError,
 )
-from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")
@@ -37,7 +36,6 @@ class Provider:
         *,
         discovery_directory: Path | None = None,
         state_directory: Path | None = None,
-        supported_sfp_versions: tuple[ProtocolVersion, ...] | None = None,
     ) -> None:
         """Bind this Provider to its default or overridden endpoint paths.
 
@@ -68,11 +66,6 @@ class Provider:
                 discovery_directory
                 if discovery_directory is not None
                 else _DEFAULT_DISCOVERY_DIRECTORY
-            ),
-            supported_sfp_versions=(
-                supported_sfp_versions
-                if supported_sfp_versions is not None
-                else SUPPORTED_SFP_VERSIONS
             ),
         )
         self._server = ProviderServer(self._configuration)

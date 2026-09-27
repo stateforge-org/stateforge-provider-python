@@ -26,7 +26,7 @@ from stateforge_rpc._identity import (
     ProviderIdentityError,
     ProviderIdentityStore,
 )
-from stateforge_rpc.version import ProtocolVersion
+from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 _DESCRIPTOR_SCHEMA_VERSION = "1"
 _DESCRIPTOR_SUFFIX = ".sfp.json"
@@ -46,18 +46,9 @@ class ProviderServerConfiguration:
 
     state_directory: Path
     discovery_directory: Path
-    supported_sfp_versions: tuple[ProtocolVersion, ...]
 
     def __post_init__(self) -> None:
         """Validate values used to construct the local endpoint."""
-        if not self.supported_sfp_versions:
-            raise ValueError("At least one SFP version must be supported")
-        if len(set(self.supported_sfp_versions)) != len(
-            self.supported_sfp_versions
-        ):
-            raise ValueError(
-                "supported_sfp_versions must not contain duplicates"
-            )
         if not self.discovery_directory.is_absolute():
             raise ValueError("discovery_directory must be absolute")
         if not self.state_directory.is_absolute():
@@ -142,9 +133,6 @@ class ProviderServer:
             _BootstrapService(
                 endpoint_identity=self._allocated_identity,
                 provider_runtime_id=self._runtime_id,
-                supported_sfp_versions=(
-                    self.configuration.supported_sfp_versions
-                ),
             ),
             server,
         )
@@ -398,11 +386,9 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         *,
         endpoint_identity: ProviderEndpointIdentity,
         provider_runtime_id: UUID,
-        supported_sfp_versions: tuple[ProtocolVersion, ...],
     ) -> None:
         self._endpoint_identity = endpoint_identity
         self._provider_runtime_id = provider_runtime_id
-        self._supported_sfp_versions = supported_sfp_versions
 
     async def Handshake(  # noqa: N802
         self,
@@ -456,7 +442,7 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
                 "supported_sfp_versions contains an invalid wire version",
             )
         selected_versions = offered_versions.intersection(
-            self._supported_sfp_versions
+            SUPPORTED_SFP_VERSIONS
         )
         if not selected_versions:
             await context.abort(

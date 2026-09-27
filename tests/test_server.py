@@ -20,6 +20,7 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
 
 from stateforge_rpc import ProtocolVersion
 from stateforge_rpc._server import ProviderServer, ProviderServerConfiguration
+from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
 _UUID_VERSION = 4
@@ -41,10 +42,6 @@ def _configuration(directory: Path) -> ProviderServerConfiguration:
     return ProviderServerConfiguration(
         state_directory=directory / "state",
         discovery_directory=directory,
-        supported_sfp_versions=(
-            ProtocolVersion(major=1, minor=0),
-            ProtocolVersion(major=1, minor=1),
-        ),
     )
 
 
@@ -56,7 +53,6 @@ def _request(
     software_version: str = "0.1.0",
     supported_versions: tuple[ProtocolVersion, ...] = (
         ProtocolVersion(major=1, minor=0),
-        ProtocolVersion(major=1, minor=1),
     ),
 ) -> bootstrap_pb2.HandshakeRequest:
     return bootstrap_pb2.HandshakeRequest(
@@ -77,7 +73,7 @@ def _request(
 
 
 @pytest.mark.asyncio
-async def test_publishes_endpoint_and_negotiates_highest_version(
+async def test_publishes_endpoint_and_negotiates_sfp_1_0(
     socket_directory: Path,
 ) -> None:
     server = ProviderServer(_configuration(socket_directory))
@@ -113,7 +109,7 @@ async def test_publishes_endpoint_and_negotiates_highest_version(
         )
         assert response.endpoint_generation == server.endpoint_generation
         assert response.selected_sfp_version.major == 1
-        assert response.selected_sfp_version.minor == 1
+        assert response.selected_sfp_version.minor == 0
         assert UUID(response.provider_runtime_id).version == _UUID_VERSION
         assert UUID(response.session_id).version == _UUID_VERSION
 
@@ -148,29 +144,21 @@ def test_protocol_version_is_ordered_and_printable() -> None:
     assert version > ProtocolVersion(major=1, minor=1)
 
 
+def test_sdk_advertises_only_implemented_sfp_versions() -> None:
+    assert (ProtocolVersion(major=1, minor=0),) == SUPPORTED_SFP_VERSIONS
+
+
 def test_rejects_invalid_configuration(socket_directory: Path) -> None:
     with pytest.raises(ValueError, match="state_directory must be absolute"):
         ProviderServerConfiguration(
             state_directory=Path("relative"),
             discovery_directory=socket_directory,
-            supported_sfp_versions=(ProtocolVersion(major=1, minor=0),),
-        )
-
-    with pytest.raises(ValueError, match="duplicates"):
-        ProviderServerConfiguration(
-            state_directory=socket_directory / "state",
-            discovery_directory=socket_directory,
-            supported_sfp_versions=(
-                ProtocolVersion(major=1, minor=0),
-                ProtocolVersion(major=1, minor=0),
-            ),
         )
 
     with pytest.raises(ValueError, match="must be absolute"):
         ProviderServerConfiguration(
             state_directory=socket_directory / "state",
             discovery_directory=Path("relative"),
-            supported_sfp_versions=(ProtocolVersion(major=1, minor=0),),
         )
 
     with pytest.raises(ValueError, match="positive uint32"):
@@ -213,14 +201,33 @@ async def test_rejects_incompatible_handshakes(
         with pytest.raises(grpc.aio.AioRpcError):
             await stub.Handshake(request, timeout=2)
 
-    incompatible_request = _request(
-        server.provider_instance_id,
-        server.endpoint_generation,
-        supported_versions=(ProtocolVersion(major=2, minor=0),),
+    for unsupported_version in (
+        ProtocolVersion(major=1, minor=1),
+        ProtocolVersion(major=2, minor=0),
+    ):
+        incompatible_request = _request(
+            server.provider_instance_id,
+            server.endpoint_generation,
+            supported_versions=(unsupported_version,),
+        )
+        with pytest.raises(grpc.aio.AioRpcError) as captured_error:
+            await stub.Handshake(incompatible_request, timeout=2)
+        assert captured_error.value.code() is grpc.StatusCode.UNIMPLEMENTED
+
+    compatible_response = await stub.Handshake(
+        _request(
+            server.provider_instance_id,
+            server.endpoint_generation,
+            supported_versions=(
+                ProtocolVersion(major=1, minor=0),
+                ProtocolVersion(major=1, minor=1),
+            ),
+        ),
+        timeout=2,
     )
-    with pytest.raises(grpc.aio.AioRpcError) as captured_error:
-        await stub.Handshake(incompatible_request, timeout=2)
-    assert captured_error.value.code() is grpc.StatusCode.UNIMPLEMENTED
+    assert compatible_response.selected_sfp_version == (
+        bootstrap_pb2.ProtocolVersion(major=1, minor=0)
+    )
 
     await channel.close()
     await server.stop()

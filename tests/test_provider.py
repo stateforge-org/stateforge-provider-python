@@ -1,6 +1,7 @@
 """Tests for the author-facing Provider base class and its lifecycle."""
 
 import asyncio
+import inspect
 import shutil
 import tempfile
 from collections.abc import Iterator
@@ -10,7 +11,6 @@ import grpc
 import pytest
 
 from stateforge_rpc import Provider, ProviderServerError
-from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")
@@ -33,13 +33,11 @@ class _RecordingProvider(Provider):
         *,
         discovery_directory: Path | None = None,
         state_directory: Path | None = None,
-        supported_sfp_versions: tuple[ProtocolVersion, ...] | None = None,
     ) -> None:
         """Wrap Provider.__init__ to also track lifecycle-hook events."""
         super().__init__(
             discovery_directory=discovery_directory,
             state_directory=state_directory,
-            supported_sfp_versions=supported_sfp_versions,
         )
         self.events: list[str] = []
         self.started = asyncio.Event()
@@ -94,9 +92,12 @@ def test_uses_reference_defaults_when_not_overridden() -> None:
         provider._configuration.state_directory
         == _DEFAULT_STATE_ROOT / "stateforge.defaulted"
     )
+
+
+def test_wire_version_support_is_not_provider_configurable() -> None:
     assert (
-        provider._configuration.supported_sfp_versions
-        == SUPPORTED_SFP_VERSIONS
+        "supported_sfp_versions"
+        not in inspect.signature(Provider.__init__).parameters
     )
 
 
