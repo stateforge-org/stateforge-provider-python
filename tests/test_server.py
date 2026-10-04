@@ -17,32 +17,32 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
-from stateforge_protocol.sfp.capability_assessment.v1 import (
-    contract as capability_assessment_contract,
-)
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
-from stateforge_protocol.sfp.operation_admission.v1 import (
-    contract as operation_admission_contract,
-)
-from stateforge_protocol.sfp.operation_lifecycle.v1 import (
-    contract as operation_lifecycle_contract,
-)
-from stateforge_protocol.sfp.trigger_publication.v1 import (
-    contract as trigger_publication_contract,
-)
 
 from stateforge_rpc import ProtocolVersion
-from stateforge_rpc._configuration import (
+from stateforge_rpc._runtime.configuration import (
     ProviderRuntimeConfiguration,
     ProviderRuntimeLimits,
 )
-from stateforge_rpc._server import (
-    _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES,
-    _ENDPOINT_MAX_SEND_MESSAGE_BYTES,
+from stateforge_rpc._runtime.descriptor import (
     _MAXIMUM_DESCRIPTOR_BYTES,
+    _read_descriptor,
+)
+from stateforge_rpc._runtime.grpc import endpoint_message_limits
+from stateforge_rpc._runtime.identity import ProviderEndpointIdentity
+from stateforge_rpc._runtime.server import (
     ProviderServer,
     ProviderServerError,
-    _read_descriptor,
+)
+from stateforge_rpc._runtime.sessions import SessionRegistry
+from stateforge_rpc._services.bootstrap import limits as bootstrap_limits
+from stateforge_rpc._services.bootstrap.service import (
+    registration as bootstrap_registration,
+)
+from stateforge_rpc._services.manifest import limits as manifest_limits
+from stateforge_rpc._services.manifest.declaration import ManifestSnapshot
+from stateforge_rpc._services.manifest.service import (
+    registration as manifest_registration,
 )
 from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS
 
@@ -96,6 +96,58 @@ def _request(
     )
 
 
+def _varint(value: int) -> bytes:
+    maximum_single_byte_value = 0x7F
+    encoded = bytearray()
+    while value > maximum_single_byte_value:
+        encoded.append((value & maximum_single_byte_value) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _with_serialized_size(message, target_size: int):
+    """Pad a protobuf with one preserved unknown field to an exact size."""
+    content = message.SerializeToString()
+    tag = _varint((2_047 << 3) | 2)
+    payload_size = target_size - len(content) - len(tag) - 1
+    while True:
+        encoded_size = _varint(payload_size)
+        adjusted = target_size - len(content) - len(tag) - len(encoded_size)
+        if adjusted == payload_size:
+            break
+        payload_size = adjusted
+    assert payload_size >= 0
+    result = type(message).FromString(
+        content + tag + encoded_size + (b"x" * payload_size)
+    )
+    assert result.ByteSize() == target_size
+    return result
+
+
+def _session_id_for_response_size(
+    server: ProviderServer,
+    target_size: int,
+) -> str:
+    length = target_size
+    while True:
+        session_id = "x" * length
+        response = bootstrap_pb2.HandshakeResponse(
+            provider_instance_id=str(server.provider_instance_id),
+            endpoint_generation=server.endpoint_generation,
+            selected_sfp_version=bootstrap_pb2.ProtocolVersion(
+                major=1,
+                minor=0,
+            ),
+            provider_runtime_id=str(server._runtime_id),
+            session_id=session_id,
+        )
+        adjusted = length + target_size - response.ByteSize()
+        if adjusted == length:
+            return session_id
+        length = adjusted
+
+
 @pytest.mark.asyncio
 async def test_publishes_endpoint_and_negotiates_sfp_1_0(
     socket_directory: Path,
@@ -142,6 +194,74 @@ async def test_publishes_endpoint_and_negotiates_sfp_1_0(
 
 
 @pytest.mark.asyncio
+async def test_bootstrap_request_exact_limit_and_limit_plus_one(
+    socket_directory: Path,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
+    await asyncio.wait_for(channel.channel_ready(), timeout=2)
+    stub = bootstrap_pb2_grpc.BootstrapServiceStub(channel)
+    try:
+        exact = _with_serialized_size(
+            _request(server.provider_instance_id, server.endpoint_generation),
+            bootstrap_limits.MAX_REQUEST_BYTES,
+        )
+        assert (await stub.Handshake(exact, timeout=2)).session_id
+
+        oversized = _with_serialized_size(
+            _request(server.provider_instance_id, server.endpoint_generation),
+            bootstrap_limits.MAX_REQUEST_BYTES + 1,
+        )
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await stub.Handshake(oversized, timeout=2)
+        assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
+    finally:
+        await channel.close()
+        await server.stop()
+
+
+@pytest.mark.asyncio
+async def test_bootstrap_response_exact_limit_and_limit_plus_one(
+    socket_directory: Path,
+    monkeypatch,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
+    await asyncio.wait_for(channel.channel_ready(), timeout=2)
+    stub = bootstrap_pb2_grpc.BootstrapServiceStub(channel)
+    target_size = bootstrap_limits.MAX_RESPONSE_BYTES
+
+    def negotiate(sessions, version):
+        del sessions, version
+        return _session_id_for_response_size(server, target_size)
+
+    monkeypatch.setattr(SessionRegistry, "negotiate", negotiate)
+    try:
+        response = await stub.Handshake(
+            _request(server.provider_instance_id, server.endpoint_generation),
+            timeout=2,
+        )
+        assert response.ByteSize() == bootstrap_limits.MAX_RESPONSE_BYTES
+
+        target_size = bootstrap_limits.MAX_RESPONSE_BYTES + 1
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await stub.Handshake(
+                _request(
+                    server.provider_instance_id,
+                    server.endpoint_generation,
+                ),
+                timeout=2,
+            )
+        assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
+        assert error.value.details() == "Bootstrap response limit exceeded"
+    finally:
+        await channel.close()
+        await server.stop()
+
+
+@pytest.mark.asyncio
 async def test_endpoint_modes_do_not_depend_on_process_umask(
     socket_directory: Path,
 ) -> None:
@@ -172,28 +292,31 @@ def test_sdk_advertises_only_implemented_sfp_versions() -> None:
     assert (ProtocolVersion(major=1, minor=0),) == SUPPORTED_SFP_VERSIONS
 
 
-def test_shared_endpoint_ceiling_covers_every_versioned_procedure() -> None:
-    contracts = (
-        capability_assessment_contract,
-        manifest_contract,
-        operation_admission_contract,
-        operation_lifecycle_contract,
-        trigger_publication_contract,
+def test_shared_endpoint_ceiling_uses_only_registered_procedures() -> None:
+    identity = ProviderEndpointIdentity(_PROVIDER_INSTANCE_ID, 1)
+    sessions = SessionRegistry(identity)
+    registrations = (
+        bootstrap_registration(
+            endpoint_identity=identity,
+            provider_runtime_id=uuid4(),
+            sessions=sessions,
+        ),
+        manifest_registration(ManifestSnapshot(b""), sessions),
     )
 
-    assert max(
-        contract.MAX_REQUEST_BYTES for contract in contracts
-    ) == _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES
-    assert max(
-        contract.MAX_RESPONSE_BYTES for contract in contracts
-    ) == _ENDPOINT_MAX_SEND_MESSAGE_BYTES
-    assert (
-        _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES
-        > manifest_contract.MAX_REQUEST_BYTES
+    assert endpoint_message_limits(registrations) == (
+        max(
+            bootstrap_limits.MAX_REQUEST_BYTES,
+            manifest_limits.MAX_REQUEST_BYTES,
+        ),
+        max(
+            bootstrap_limits.MAX_RESPONSE_BYTES,
+            manifest_limits.MAX_RESPONSE_BYTES,
+        ),
     )
     assert (
-        _ENDPOINT_MAX_SEND_MESSAGE_BYTES
-        > manifest_contract.MAX_RESPONSE_BYTES
+        endpoint_message_limits(registrations)[0]
+        > manifest_contract.MAX_REQUEST_BYTES
     )
 
 
@@ -423,7 +546,7 @@ def test_rejects_descriptor_not_owned_by_provider(
     descriptor_path.chmod(_DESCRIPTOR_MODE)
     owner = descriptor_path.stat().st_uid
     monkeypatch.setattr(
-        "stateforge_rpc._server.os.geteuid", lambda: owner + 1
+        "stateforge_rpc._runtime.descriptor.os.geteuid", lambda: owner + 1
     )
 
     with pytest.raises(ProviderServerError, match="must be owned"):

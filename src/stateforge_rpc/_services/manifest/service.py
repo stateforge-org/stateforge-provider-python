@@ -1,76 +1,26 @@
-"""Serve bounded, session-bound manifest reads on the shared SFP endpoint."""
+"""Serve bounded, session-bound Manifest reads on the shared SFP endpoint."""
 
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
-from uuid import uuid4
 
 import grpc
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import DecodeError
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
 
-from stateforge_rpc._configuration import (
-    DEFAULT_RUNTIME_LIMITS,
-    ProviderRuntimeLimits,
+from stateforge_rpc._runtime.grpc import ProcedureRegistration
+from stateforge_rpc._runtime.sessions import SessionRegistry
+from stateforge_rpc._services.manifest.declaration import ManifestSnapshot
+from stateforge_rpc._services.manifest.limits import (
+    MAX_REQUEST_BYTES,
+    MAX_RESPONSE_BYTES,
 )
-from stateforge_rpc._identity import ProviderEndpointIdentity
-from stateforge_rpc._manifest import ManifestSnapshot
-from stateforge_rpc._manifest_schema import (
-    MANIFEST_MAX_REQUEST_BYTES,
+from stateforge_rpc._services.manifest.schema import (
     ManifestError,
     contract_validator,
 )
 from stateforge_rpc.version import ProtocolVersion
-
-
-class SessionRegistryClosedError(RuntimeError):
-    """Reject new handshakes after generation shutdown begins."""
-
-
-@dataclass(frozen=True, slots=True)
-class _Session:
-    endpoint: ProviderEndpointIdentity
-    version: ProtocolVersion
-
-
-class SessionRegistry:
-    """Own a bounded set of negotiated sessions for one generation.
-
-    Oldest sessions are invalidated on capacity pressure. Affected clients
-    must handshake again. Reads do not refresh or mutate session state.
-    All access runs on the server event loop, with no await during mutation.
-    """
-
-    def __init__(
-        self,
-        endpoint: ProviderEndpointIdentity,
-        limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
-    ) -> None:
-        self._endpoint = endpoint
-        self._max_sessions = limits.max_sessions
-        self._sessions: dict[str, _Session] = {}
-        self._closed = False
-
-    def negotiate(self, version: ProtocolVersion) -> str:
-        """Retain a session after successful bootstrap negotiation."""
-        if self._closed:
-            raise SessionRegistryClosedError("Provider endpoint is stopping")
-        identifier = str(uuid4())
-        if len(self._sessions) >= self._max_sessions:
-            del self._sessions[next(iter(self._sessions))]
-        self._sessions[identifier] = _Session(self._endpoint, version)
-        return identifier
-
-    def get(self, identifier: str) -> _Session | None:
-        """Resolve an exact opaque ID without normalization or fallback."""
-        return self._sessions.get(identifier)
-
-    def clear(self) -> None:
-        """Invalidate all sessions when this generation stops."""
-        self._closed = True
-        self._sessions.clear()
 
 
 class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
@@ -91,7 +41,7 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
         ],
     ) -> manifest_pb2.GetManifestResponse:
         """Check syntax, session, and compatibility before copying."""
-        if request.ByteSize() > MANIFEST_MAX_REQUEST_BYTES:
+        if request.ByteSize() > MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Manifest request limit exceeded",
@@ -132,8 +82,35 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
                 "Manifest session is no longer active",
             )
         try:
-            return self._snapshot.response(request.expected_session_id)
+            response = self._snapshot.response(request.expected_session_id)
         except (DecodeError, ManifestError, ValueError):
             await context.abort(
                 grpc.StatusCode.INTERNAL, "Manifest snapshot is unavailable"
             )
+        if response.ByteSize() > MAX_RESPONSE_BYTES:
+            await context.abort(
+                grpc.StatusCode.RESOURCE_EXHAUSTED,
+                "Manifest response limit exceeded",
+            )
+        return response
+
+
+def registration(
+    snapshot: ManifestSnapshot,
+    sessions: SessionRegistry,
+) -> ProcedureRegistration:
+    """Build the bounded Manifest registration for one generation."""
+    service = ManifestService(snapshot, sessions)
+
+    def install(server: grpc.aio.Server) -> None:
+        manifest_pb2_grpc.add_ManifestServiceServicer_to_server(
+            service,
+            server,
+        )
+
+    return ProcedureRegistration(
+        name="stateforge.sfp.manifest.v1.ManifestService",
+        max_request_bytes=MAX_REQUEST_BYTES,
+        max_response_bytes=MAX_RESPONSE_BYTES,
+        install=install,
+    )

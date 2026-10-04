@@ -6,7 +6,9 @@ For each Provider process generation, the runtime follows this order:
 2. Load the stable Provider instance ID and allocate a new endpoint generation.
 3. Call the Provider author's `on_startup()` hook.
 4. Build and validate the complete immutable manifest and revision.
-5. Register bootstrap and ManifestService on one gRPC server.
+5. Compose the Bootstrap and Manifest procedure registrations on one gRPC
+   server. The endpoint derives its transport ceilings from those registrations
+   while each RPC retains its exact procedure limit.
 6. Create the generation-specific Unix socket and start gRPC.
 7. Secure the socket ownership and permissions.
 8. Atomically publish the descriptor, with both services ready.
@@ -42,3 +44,5 @@ generation's descriptor.
 Manifest declarations are static for a generation; see
 [Manifest declarations](manifest-authoring.md) for session lifetime, limits,
 revision stability, and schema safety rules.
+See [Runtime package ownership](runtime-architecture.md) for the boundary
+between the shared endpoint and procedure-specific services.

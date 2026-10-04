@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from stateforge_rpc._identity import (
+from stateforge_rpc._runtime.identity import (
     ProviderIdentityError,
     ProviderIdentityStore,
 )

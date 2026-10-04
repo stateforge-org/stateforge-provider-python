@@ -1,4 +1,4 @@
-"""Validate bounded manifest JSON and embedded schemas without retrieval."""
+"""Validate bounded Manifest JSON and embedded schemas without retrieval."""
 
 from __future__ import annotations
 
@@ -14,19 +14,16 @@ from jsonschema import Draft202012Validator
 from referencing import Registry
 from referencing.exceptions import Unresolvable
 from referencing.jsonschema import DRAFT202012
-from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
-from stateforge_rpc._configuration import (
+from stateforge_rpc._runtime.configuration import (
     DEFAULT_RUNTIME_LIMITS,
     ProviderRuntimeLimits,
 )
-
-MANIFEST_MAX_PREIMAGE_BYTES = (
-    manifest_contract.MAX_CANONICAL_REVISION_PREIMAGE_BYTES
+from stateforge_rpc._services.manifest.limits import (
+    MAX_CANONICAL_REVISION_PREIMAGE_BYTES,
+    MAX_EMBEDDED_JSON_DEPTH,
 )
-MANIFEST_MAX_RESPONSE_BYTES = manifest_contract.MAX_RESPONSE_BYTES
-MANIFEST_MAX_REQUEST_BYTES = manifest_contract.MAX_REQUEST_BYTES
-MANIFEST_MAX_DEPTH = manifest_contract.MAX_EMBEDDED_JSON_DEPTH
+
 JSON_SCHEMA_DRAFT_2020_12_URI = str(Draft202012Validator.META_SCHEMA["$id"])
 _SCHEMA_MAPS = (
     "$defs",
@@ -71,7 +68,7 @@ def bounded_json(  # noqa: PLR0912
     value: object,
     path: str,
     *,
-    depth_limit: int = MANIFEST_MAX_DEPTH,
+    depth_limit: int = MAX_EMBEDDED_JSON_DEPTH,
     limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
 ) -> None:
     """Reject excessive/non-JSON content before schema or protobuf work."""
@@ -83,7 +80,7 @@ def bounded_json(  # noqa: PLR0912
         nodes += 1
         if (
             nodes > limits.max_json_nodes
-            or size > MANIFEST_MAX_PREIMAGE_BYTES
+            or size > MAX_CANONICAL_REVISION_PREIMAGE_BYTES
         ):
             raise ManifestError(f"{path}: JSON resource limit exceeded")
         if isinstance(item, (dict, list)):
@@ -104,7 +101,7 @@ def bounded_json(  # noqa: PLR0912
             else:
                 pending.extend((child, depth) for child in item)
         elif isinstance(item, str):
-            if len(item) > MANIFEST_MAX_PREIMAGE_BYTES:
+            if len(item) > MAX_CANONICAL_REVISION_PREIMAGE_BYTES:
                 raise ManifestError(f"{path}: JSON resource limit exceeded")
             try:
                 size += len(item.encode("utf-8")) + 2
@@ -114,14 +111,14 @@ def bounded_json(  # noqa: PLR0912
             size += 1
         else:
             raise ManifestError(f"{path}: non-JSON value")
-    if size > MANIFEST_MAX_PREIMAGE_BYTES:
+    if size > MAX_CANONICAL_REVISION_PREIMAGE_BYTES:
         raise ManifestError(f"{path}: JSON resource limit exceeded")
 
 
 class _BoundedBuffer(io.BytesIO):
     def write(self, data: bytes, /) -> int:  # type: ignore[override]
         # RFC 8785 writes bytes; enforce the limit while canonicalizing.
-        if self.tell() + len(data) > MANIFEST_MAX_PREIMAGE_BYTES:
+        if self.tell() + len(data) > MAX_CANONICAL_REVISION_PREIMAGE_BYTES:
             raise ManifestError("manifest: canonical preimage limit exceeded")
         return super().write(data)
 
