@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TypeGuard
 from uuid import UUID, uuid4
 
-from stateforge_rpc._filesystem import (
+from stateforge_rpc._runtime.filesystem import (
     SecureFileError,
     read_owned_regular_file,
     synchronize_directory,
@@ -216,9 +216,7 @@ class ProviderIdentityStore:
                 resource="Provider identity state",
             )
         except SecureFileError as error:
-            raise ProviderIdentityError(
-                str(error)
-            ) from error
+            raise ProviderIdentityError(str(error)) from error
         if content is None:
             return None
 

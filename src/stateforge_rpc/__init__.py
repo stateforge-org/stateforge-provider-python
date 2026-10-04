@@ -1,7 +1,7 @@
 """Provider-side runtime for StateForge Protocol."""
 
-from stateforge_rpc._manifest_schema import ManifestError
-from stateforge_rpc._server import ProviderServerError
+from stateforge_rpc._runtime.errors import ProviderServerError
+from stateforge_rpc._services.manifest.schema import ManifestError
 from stateforge_rpc.declarations import (
     Platform,
     ProviderModel,

@@ -17,6 +17,7 @@ theme:
 nav:
   - Overview: index.md
   - Endpoint lifecycle: endpoint-lifecycle.md
+  - Runtime architecture: runtime-architecture.md
   - Manifest declarations: manifest-authoring.md
   - Python API:
       - Provider: reference/provider.md

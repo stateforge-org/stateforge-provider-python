@@ -25,9 +25,15 @@ from stateforge_rpc import (
     ProviderModel,
     operation,
 )
-from stateforge_rpc._manifest import ManifestDeclaration, ManifestSnapshot
-from stateforge_rpc._manifest_schema import MANIFEST_MAX_REQUEST_BYTES
-from stateforge_rpc._manifest_service import ManifestService
+from stateforge_rpc._services.manifest.declaration import (
+    ManifestDeclaration,
+    ManifestSnapshot,
+)
+from stateforge_rpc._services.manifest.limits import (
+    MAX_REQUEST_BYTES,
+    MAX_RESPONSE_BYTES,
+)
+from stateforge_rpc._services.manifest.service import ManifestService
 
 
 class _Request(ProviderModel):
@@ -132,6 +138,92 @@ def _request(handshake, **overrides):
             **overrides,
         }
     )
+
+
+def _varint(value: int) -> bytes:
+    maximum_single_byte_value = 0x7F
+    encoded = bytearray()
+    while value > maximum_single_byte_value:
+        encoded.append((value & maximum_single_byte_value) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _with_serialized_size(message, target_size: int):
+    """Pad a protobuf with one preserved unknown field to an exact size."""
+    content = message.SerializeToString()
+    tag = _varint((2_047 << 3) | 2)
+    payload_size = target_size - len(content) - len(tag) - 1
+    while True:
+        encoded_size = _varint(payload_size)
+        adjusted = target_size - len(content) - len(tag) - len(encoded_size)
+        if adjusted == payload_size:
+            break
+        payload_size = adjusted
+    assert payload_size >= 0
+    result = type(message).FromString(
+        content + tag + encoded_size + (b"x" * payload_size)
+    )
+    assert result.ByteSize() == target_size
+    return result
+
+
+@pytest.mark.asyncio
+async def test_manifest_request_exact_limit_and_limit_plus_one(directory):
+    async with _running(_Provider(directory)) as (
+        manifest,
+        bootstrap,
+        descriptor,
+    ):
+        handshake = await _handshake(bootstrap, descriptor)
+        exact = _with_serialized_size(
+            _request(handshake),
+            MAX_REQUEST_BYTES,
+        )
+        assert (await manifest.GetManifest(exact, timeout=2)).session_id == (
+            handshake.session_id
+        )
+
+        oversized = _with_serialized_size(
+            _request(handshake),
+            MAX_REQUEST_BYTES + 1,
+        )
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await manifest.GetManifest(oversized, timeout=2)
+        assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
+        assert error.value.details() == "Manifest request limit exceeded"
+
+
+@pytest.mark.asyncio
+async def test_manifest_response_exact_limit_and_limit_plus_one(
+    directory,
+    monkeypatch,
+):
+    target_size = MAX_RESPONSE_BYTES
+    original = ManifestSnapshot.response
+
+    def sized_response(snapshot, session_id):
+        return _with_serialized_size(
+            original(snapshot, session_id),
+            target_size,
+        )
+
+    monkeypatch.setattr(ManifestSnapshot, "response", sized_response)
+    async with _running(_Provider(directory)) as (
+        manifest,
+        bootstrap,
+        descriptor,
+    ):
+        handshake = await _handshake(bootstrap, descriptor)
+        response = await manifest.GetManifest(_request(handshake), timeout=2)
+        assert response.ByteSize() == MAX_RESPONSE_BYTES
+
+        target_size = MAX_RESPONSE_BYTES + 1
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await manifest.GetManifest(_request(handshake), timeout=2)
+        assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
+        assert error.value.details() == "Manifest response limit exceeded"
 
 
 @pytest.mark.asyncio
@@ -245,7 +337,7 @@ async def test_manifest_is_ready_on_publication_and_binds_each_session(
             grpc.StatusCode.INVALID_ARGUMENT,
         ),
         (
-            {"expected_session_id": "x" * MANIFEST_MAX_REQUEST_BYTES},
+            {"expected_session_id": "x" * MAX_REQUEST_BYTES},
             grpc.StatusCode.RESOURCE_EXHAUSTED,
         ),
     ],

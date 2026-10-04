@@ -2,4 +2,4 @@
 
 ::: stateforge_rpc.provider.Provider
 
-::: stateforge_rpc._server.ProviderServerError
+::: stateforge_rpc.ProviderServerError

@@ -8,7 +8,6 @@ class; they must not import or configure anything here directly.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import stat
@@ -18,70 +17,34 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import grpc
-from stateforge_protocol.sfp.bootstrap.v1 import (
-    bootstrap_pb2,
-    bootstrap_pb2_grpc,
-)
-from stateforge_protocol.sfp.capability_assessment.v1 import (
-    contract as capability_assessment_contract,
-)
-from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
-from stateforge_protocol.sfp.manifest.v1 import manifest_pb2_grpc
-from stateforge_protocol.sfp.operation_admission.v1 import (
-    contract as operation_admission_contract,
-)
-from stateforge_protocol.sfp.operation_lifecycle.v1 import (
-    contract as operation_lifecycle_contract,
-)
-from stateforge_protocol.sfp.trigger_publication.v1 import (
-    contract as trigger_publication_contract,
-)
 
-from stateforge_rpc._configuration import ProviderRuntimeConfiguration
-from stateforge_rpc._filesystem import (
-    SecureFileError,
-    read_owned_regular_file,
+from stateforge_rpc._runtime.configuration import ProviderRuntimeConfiguration
+from stateforge_rpc._runtime.descriptor import EndpointDescriptor
+from stateforge_rpc._runtime.errors import ProviderServerError
+from stateforge_rpc._runtime.filesystem import (
     synchronize_directory,
-    write_all,
 )
-from stateforge_rpc._identity import (
+from stateforge_rpc._runtime.grpc import (
+    ProcedureRegistration,
+    create_server,
+)
+from stateforge_rpc._runtime.identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,
-    is_allocated_endpoint_generation,
-    is_canonical_uuid4,
 )
-from stateforge_rpc._manifest import ManifestDeclaration
-from stateforge_rpc._manifest_service import (
-    ManifestService,
-    SessionRegistry,
-    SessionRegistryClosedError,
+from stateforge_rpc._runtime.sessions import SessionRegistry
+from stateforge_rpc._services.bootstrap.service import (
+    registration as bootstrap_registration,
 )
-from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
-_DESCRIPTOR_SCHEMA_VERSION = "1"
-_DESCRIPTOR_SUFFIX = ".sfp.json"
-_DESCRIPTOR_MODE = 0o640
-_MAXIMUM_DESCRIPTOR_BYTES = 4096
 _SOCKET_MODE = 0o660
-_SFP_PROCEDURE_CONTRACTS = (
-    capability_assessment_contract,
-    manifest_contract,
-    operation_admission_contract,
-    operation_lifecycle_contract,
-    trigger_publication_contract,
-)
-_ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES = max(
-    contract.MAX_REQUEST_BYTES for contract in _SFP_PROCEDURE_CONTRACTS
-)
-_ENDPOINT_MAX_SEND_MESSAGE_BYTES = max(
-    contract.MAX_RESPONSE_BYTES for contract in _SFP_PROCEDURE_CONTRACTS
-)
 _LOGGER = logging.getLogger(__name__)
 
-
-class ProviderServerError(RuntimeError):
-    """Report failure to start or publish a Provider SFP server."""
+ProcedureFactory = Callable[
+    [ProviderEndpointIdentity, SessionRegistry],
+    Sequence[ProcedureRegistration],
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +72,7 @@ class ProviderServer:
         )
         self._endpoint_identity: ProviderEndpointIdentity | None = None
         self._runtime_id = uuid4()
+        self._descriptor: EndpointDescriptor | None = None
         self._server: grpc.aio.Server | None = None
         self._started = False
         self._sessions: SessionRegistry | None = None
@@ -135,9 +99,13 @@ class ProviderServer:
     @property
     def descriptor_path(self) -> Path:
         """Return the stable descriptor path for this Provider instance."""
-        return self.configuration.discovery_directory / (
-            f"{self.provider_instance_id}{_DESCRIPTOR_SUFFIX}"
-        )
+        descriptor = self._descriptor
+        if descriptor is None:
+            raise ProviderServerError(
+                "Provider endpoint descriptor has not been allocated; start "
+                "the server first"
+            )
+        return descriptor.path
 
     @property
     def _allocated_identity(self) -> ProviderEndpointIdentity:
@@ -153,7 +121,7 @@ class ProviderServer:
         self,
         *,
         on_identity_allocated: Callable[[], Awaitable[None]] | None = None,
-        manifest: ManifestDeclaration | None = None,
+        procedure_factory: ProcedureFactory | None = None,
     ) -> None:
         """Start gRPC and atomically advertise the ready endpoint.
 
@@ -171,43 +139,32 @@ class ProviderServer:
                 f"Cannot allocate Provider endpoint identity: {error}"
             ) from error
 
+        self._descriptor = EndpointDescriptor(
+            configuration=self.configuration,
+            identity_store=self._identity_store,
+            endpoint_identity=self._allocated_identity,
+            runtime_id=self._runtime_id,
+        )
+
         if on_identity_allocated is not None:
             await on_identity_allocated()
 
-        snapshot = (
-            manifest.snapshot(self._allocated_identity)
-            if manifest is not None
-            else None
-        )
         sessions = SessionRegistry(
             self._allocated_identity,
             self.configuration.limits,
         )
-        server = grpc.aio.server(
-            options=(
-                (
-                    "grpc.max_receive_message_length",
-                    _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES,
-                ),
-                (
-                    "grpc.max_send_message_length",
-                    _ENDPOINT_MAX_SEND_MESSAGE_BYTES,
-                ),
-            )
-        )
-        bootstrap_pb2_grpc.add_BootstrapServiceServicer_to_server(
-            _BootstrapService(
+        registrations = [
+            bootstrap_registration(
                 endpoint_identity=self._allocated_identity,
                 provider_runtime_id=self._runtime_id,
                 sessions=sessions,
-            ),
-            server,
-        )
-        if snapshot is not None:
-            manifest_pb2_grpc.add_ManifestServiceServicer_to_server(
-                ManifestService(snapshot, sessions),
-                server,
             )
+        ]
+        if procedure_factory is not None:
+            registrations.extend(
+                procedure_factory(self._allocated_identity, sessions)
+            )
+        server = create_server(registrations)
         self._sessions = sessions
         self._server = server
         owns_socket = False
@@ -421,100 +378,18 @@ class ProviderServer:
 
     def _publish_descriptor(self) -> None:
         """Atomically publish the endpoint only after gRPC is ready."""
-        configuration = self.configuration
-        document = {
-            "schema_version": _DESCRIPTOR_SCHEMA_VERSION,
-            "provider_instance_id": str(self.provider_instance_id),
-            "endpoint_generation": self.endpoint_generation,
-            "transport": {
-                "type": "unix",
-                "socket_path": str(self.socket_path),
-            },
-        }
-        content = (json.dumps(document, indent=2) + "\n").encode()
-        temporary_path = self.descriptor_path.with_name(
-            f".{self.descriptor_path.name}.{self._runtime_id}.tmp"
-        )
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_CLOEXEC
-
-        with self._identity_store.locked():
-            published_generation = self._published_generation()
-            if (
-                published_generation is not None
-                and published_generation >= self.endpoint_generation
-            ):
-                raise ProviderServerError(
-                    "Cannot replace an equal or newer Provider endpoint "
-                    f"generation: published={published_generation} "
-                    f"candidate={self.endpoint_generation}"
-                )
-
-            try:
-                descriptor = os.open(temporary_path, flags, _DESCRIPTOR_MODE)
-                try:
-                    directory_status = (
-                        configuration.discovery_directory.lstat()
-                    )
-                    os.fchown(descriptor, -1, directory_status.st_gid)
-                    os.fchmod(descriptor, _DESCRIPTOR_MODE)
-                    write_all(descriptor, content, resource="Descriptor")
-                    os.fsync(descriptor)
-                finally:
-                    os.close(descriptor)
-                os.replace(temporary_path, self.descriptor_path)
-                synchronize_directory(configuration.discovery_directory)
-            except OSError as error:
-                temporary_path.unlink(missing_ok=True)
-                raise ProviderServerError(
-                    f"Cannot publish Provider descriptor "
-                    f"{self.descriptor_path}: {error}"
-                ) from error
-
-    def _published_generation(self) -> int | None:
-        """Return the currently published generation for this identity."""
-        document = _read_descriptor(self.descriptor_path)
-        if document is None:
-            return None
-        if document.get("provider_instance_id") != str(
-            self.provider_instance_id
-        ):
+        descriptor = self._descriptor
+        if descriptor is None:
             raise ProviderServerError(
-                "Existing Provider descriptor has a different identity: "
-                f"{self.descriptor_path}"
+                "Provider endpoint descriptor has not been allocated"
             )
-        generation = document.get("endpoint_generation")
-        if not is_allocated_endpoint_generation(generation):
-            raise ProviderServerError(
-                "Existing Provider descriptor has an invalid generation: "
-                f"{self.descriptor_path}"
-            )
-        return generation
+        descriptor.publish(self.socket_path)
 
     def _remove_descriptor_if_owned(self) -> None:
         """Withdraw only a descriptor that still names this generation."""
-        try:
-            with self._identity_store.locked():
-                document = _read_descriptor(self.descriptor_path)
-                if document is None:
-                    return
-                if (
-                    document.get("provider_instance_id")
-                    != str(self.provider_instance_id)
-                    or document.get("endpoint_generation")
-                    != self.endpoint_generation
-                ):
-                    return
-                self.descriptor_path.unlink()
-                synchronize_directory(self.configuration.discovery_directory)
-        except ProviderIdentityError as error:
-            raise ProviderServerError(
-                f"Cannot lock Provider descriptor cleanup: {error}"
-            ) from error
-        except OSError as error:
-            raise ProviderServerError(
-                f"Cannot remove Provider descriptor {self.descriptor_path}: "
-                f"{error}"
-            ) from error
+        descriptor = self._descriptor
+        if descriptor is not None:
+            descriptor.remove_if_owned()
 
     def _remove_socket(self) -> None:
         """Remove only the exact generation-specific socket we secured."""
@@ -547,99 +422,6 @@ class ProviderServer:
             ) from error
 
 
-class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
-    """Implement version-neutral SFP session negotiation."""
-
-    def __init__(
-        self,
-        *,
-        endpoint_identity: ProviderEndpointIdentity,
-        provider_runtime_id: UUID,
-        sessions: SessionRegistry,
-    ) -> None:
-        self._endpoint_identity = endpoint_identity
-        self._provider_runtime_id = provider_runtime_id
-        self._sessions = sessions
-
-    async def Handshake(  # noqa: N802
-        self,
-        request: bootstrap_pb2.HandshakeRequest,
-        context: grpc.aio.ServicerContext[
-            bootstrap_pb2.HandshakeRequest,
-            bootstrap_pb2.HandshakeResponse,
-        ],
-    ) -> bootstrap_pb2.HandshakeResponse:
-        """Validate discovery identity and select the highest wire version."""
-        endpoint_identity = self._endpoint_identity
-        if not request.HasField("agent_runtime"):
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime is required",
-            )
-        if not is_canonical_uuid4(request.agent_runtime.runtime_id):
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime.runtime_id must be a canonical UUIDv4",
-            )
-        if not request.agent_runtime.software_version:
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime.software_version is required",
-            )
-        if request.expected_provider_instance_id != str(
-            endpoint_identity.provider_instance_id
-        ):
-            await context.abort(
-                grpc.StatusCode.FAILED_PRECONDITION,
-                "Expected Provider identity does not match this endpoint",
-            )
-        if (
-            request.expected_endpoint_generation
-            != endpoint_identity.endpoint_generation
-        ):
-            await context.abort(
-                grpc.StatusCode.FAILED_PRECONDITION,
-                "Expected endpoint generation does not match this endpoint",
-            )
-
-        try:
-            offered_versions = {
-                ProtocolVersion(major=version.major, minor=version.minor)
-                for version in request.supported_sfp_versions
-            }
-        except ValueError:
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "supported_sfp_versions contains an invalid wire version",
-            )
-        selected_versions = offered_versions.intersection(
-            SUPPORTED_SFP_VERSIONS
-        )
-        if not selected_versions:
-            await context.abort(
-                grpc.StatusCode.UNIMPLEMENTED,
-                "No mutually supported SFP wire version",
-            )
-        selected_version = max(selected_versions)
-        try:
-            session_id = self._sessions.negotiate(selected_version)
-        except SessionRegistryClosedError:
-            await context.abort(
-                grpc.StatusCode.UNAVAILABLE, "Provider endpoint is stopping"
-            )
-
-        return bootstrap_pb2.HandshakeResponse(
-            provider_instance_id=str(endpoint_identity.provider_instance_id),
-            endpoint_generation=endpoint_identity.endpoint_generation,
-            selected_sfp_version=bootstrap_pb2.ProtocolVersion(
-                major=selected_version.major,
-                minor=selected_version.minor,
-            ),
-            provider_runtime_id=str(self._provider_runtime_id),
-            session_id=session_id,
-        )
-
-
 def _annotate_failure(
     primary: BaseException,
     failures: Sequence[tuple[str, BaseException]],
@@ -663,31 +445,6 @@ def _raise_cleanup_failures(
     for phase, cause in failures:
         error.add_note(f"{phase}: {cause}")
     raise error from failures[0][1]
-
-
-def _read_descriptor(path: Path) -> dict[str, object] | None:
-    """Read one bounded, Provider-owned regular descriptor without links."""
-    try:
-        content = read_owned_regular_file(
-            path,
-            expected_mode=_DESCRIPTOR_MODE,
-            maximum_bytes=_MAXIMUM_DESCRIPTOR_BYTES,
-            resource="Provider descriptor",
-        )
-    except SecureFileError as error:
-        raise ProviderServerError(str(error)) from error
-    if content is None:
-        return None
-
-    try:
-        document = json.loads(content)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise ProviderServerError(
-            f"Cannot parse Provider descriptor {path}: {error}"
-        ) from error
-    if not isinstance(document, dict):
-        raise ProviderServerError(f"Provider descriptor is invalid: {path}")
-    return document
 
 
 def _unix_channel_target(path: Path) -> str:
