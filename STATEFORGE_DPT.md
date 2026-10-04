@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "4da65924ee045550f9409e6cce74542509ceffb6e7d3b63a7641223324fdf797",
+  "fingerprint": "181274564f614cba1b0f82dfc13f1e30030610c8c7b12881e99413d421f525ee",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 14,
+      "revision": 16,
       "slug": "stateforge"
     },
     "repositories": [
@@ -36,16 +36,54 @@
     "steps": [
       {
         "branch_name": "Existing work",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-98ad6546-2e2f-4091-9f24-7e734f1b2032",
+            "explanation": "Read all tests",
+            "path": "tests",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-f54d73b6-92a0-4e00-b367-2198c42a1c41",
+            "explanation": "This is the seesion",
+            "path": "src/stateforge_agent/_sfp/session.py",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
         "depends_on": [],
         "release": "MVP",
         "repository_alias": "protocol",
         "required_result": "Bootstrap v1 selects one mutually supported wire version and binds discovered Provider identity and generation.",
         "sort_order": 1,
         "step_id": "P0",
-        "title": "[TASK][MVP] Define SFP Handshake and Version Negotiation"
+        "title": "[TASK][MVP] Define SFP Handshake and Version Negotiation",
+        "verification_requirements": [
+          {
+            "explanation": "test",
+            "kind": "test",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 0,
+            "target": "test",
+            "verification_id": "verify-680fb7ec-6b33-4a8c-b36d-6539d4e6f027"
+          }
+        ]
       },
       {
         "branch_name": "mvp/provider-manifest-exchange",
+        "context_resources": [],
         "depends_on": [
           "P0"
         ],
@@ -54,10 +92,22 @@
         "required_result": "Version the effective manifest, Provider identity, runtime requirements, configuration schema, namespaced operation identifiers, trigger declarations, and explicit backup/DR compliance profiles. Do not encode a closed operation enum.",
         "sort_order": 2,
         "step_id": "P1",
-        "title": "[TASK][MVP] Define Provider Manifest Exchange Contract"
+        "title": "[TASK][MVP] Define Provider Manifest Exchange Contract",
+        "verification_requirements": [
+          {
+            "explanation": "Listing of files",
+            "kind": "test",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 0,
+            "target": "ls -al",
+            "verification_id": "verify-4bb3f27e-4bfb-4e23-9675-6a9934e548b8"
+          }
+        ]
       },
       {
         "branch_name": "mvp/capability-assessment",
+        "context_resources": [],
         "depends_on": [
           "P1"
         ],
@@ -66,10 +116,12 @@
         "required_result": "Assess a declared operation identifier against a target and return normalized support, requirements, reasons, and assessment identity.",
         "sort_order": 3,
         "step_id": "P2",
-        "title": "[TASK][MVP] Define Capability Assessment Contract"
+        "title": "[TASK][MVP] Define Capability Assessment Contract",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/trigger-publication",
+        "context_resources": [],
         "depends_on": [
           "P1"
         ],
@@ -78,10 +130,12 @@
         "required_result": "## Outcome and ownership\n\nDefine the Protocol-only SFP contract for Provider-originated, manifest-declared trigger publication and acknowledgements on an Agent-initiated bidirectional stream over the existing channel. See `docs/procedures/triggers.md` and the SFP Trigger Publication and Acknowledgement specification.\n\n## Required behavior\n\n- Define a bounded envelope with stable publication ID, versioned trigger identifier, schema-bound payload, and event time. Bind the publisher to the authenticated Provider instance and active SFP session; do not add a generic target, source, or resource identity to the envelope. Trigger-specific source/resource identity, when required, belongs in the declared trigger payload schema.\n- Specify field ownership, presence/defaults, schema validation, limits, ordering, and canonical content equality. A retransmission keeps the same ID and semantic content; ID reuse with different content is a conflict.\n- Define ACCEPTED_NEW, ACCEPTED_DUPLICATE, and REJECTED acknowledgements, rejection reasons, correlation, retryability, and stream termination/backpressure. Separate event-delivery identity from any later policy-run identity.\n- ACCEPTED_NEW means the Agent durably assumed delivery responsibility before acknowledging. How the Agent satisfies that responsibility locally or later hands work downstream is outside P3 and is not exposed to the Provider. Losing an acknowledgement permits replay, not a second logical publication.\n- State retention/replay limitations explicitly, including reconnect and optional Provider persistence. Do not promise exactly-once business execution from delivery deduplication.\n\n## Acceptance evidence\n\nShip versioned protobuf sources, generated bindings, contract documentation, and reusable valid/invalid fixtures. Cover serialization, authenticated service/session identity, unknown or undeclared trigger IDs, invalid payload/envelope/session, duplicate versus conflicting content, lost-ack replay, bounded messages, acknowledgement correlation, and the absence of generic target/source/resource fields. Describe independent Agent/Provider implementation behavior without implementing either runtime.\n\n## Non-goals\n\nNo generic target/source/resource abstraction, SF-AOP transport, Control Plane mapping, policy evaluation, trigger-to-component inference, or mandatory persistent Provider database.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 4,
         "step_id": "P3",
-        "title": "[TASK][MVP] Define Trigger Publication and Acknowledgement Contract"
+        "title": "[TASK][MVP] Define Trigger Publication and Acknowledgement Contract",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-admission",
+        "context_resources": [],
         "depends_on": [
           "P1",
           "P2"
@@ -91,10 +145,12 @@
         "required_result": "## Outcome and ownership\n\nDefine the Protocol-only generic operation-admission contract. Any manifest-declared operation may be invoked; backup/DR are explicit profiles, not a closed list of transport commands. See `docs/procedures/operation-admission.md` and the SFP admission specification.\n\n## Required behavior\n\n- Define an immutable invocation: Agent-assigned operation ID before contact, versioned operation identifier, normalized target, validated payload, deadline, pinned schema/profile context where applicable, and execution context. Specify field ownership, presence, limits, and current-session validation.\n- Define the canonical fingerprint projection and golden vectors. Distinguish semantic invocation fields from transport/session fields so reconnecting does not turn an identical retry into a different execution.\n- Admission is atomic before author/vendor behavior starts. A new ID creates one record and dispatch; matching ID/fingerprint resolves the existing state/result; the same ID with different content conflicts. Concurrent duplicate submissions must not dispatch twice.\n- Keep ACCEPTED_NEW and RESOLVED_EXISTING as successful admission dispositions. Invalid, undeclared, incompatible, busy, or conflicting requests use specified gRPC statuses and structured reasons; rejection creates no accepted record.\n- Define deadline boundaries, retry guidance, and externally observable retention/expiry behavior. Lost responses can be resolved with the same immutable request while state is retained; lost/expired admitted state is unresolved, not permission for automatic redispatch. A genuinely new authorized attempt needs a new ID.\n- Separate SFP delivery idempotency from the underlying action's business idempotency. Do not add execution metadata by silently changing P1 schema 1.\n\n## Acceptance evidence\n\nShip versioned sources/bindings, explicit status/reason tables, fingerprints, and contract fixtures covering defaults, invalid IDs/payloads, unknown operations, equivalent retry, changed target/payload/context, concurrent duplicate semantics, deadline-before-admission, replay of terminal records, and retention/state-loss boundaries. Contract tests do not implement a registry.\n\n## Non-goals\n\nNo Provider scheduler, Agent dispatch implementation, universal persistent registry, automatic retry of indeterminate side effects, arbitrary shell execution, SF-AOP, or policy engine.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 5,
         "step_id": "P4",
-        "title": "[TASK][MVP] Define Operation Admission and Idempotency Contract"
+        "title": "[TASK][MVP] Define Operation Admission and Idempotency Contract",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-lifecycle",
+        "context_resources": [],
         "depends_on": [
           "P4"
         ],
@@ -103,10 +159,12 @@
         "required_result": "## Outcome and ownership\n\nDefine generic operation observation, terminal outcomes, and cancellation in Protocol, building on P4. See `docs/procedures/progress-results-cancellation.md` and the SFP lifecycle specification.\n\n## Required behavior\n\n- Specify ACCEPTED, RUNNING, CANCELLATION_REQUESTED, SUCCEEDED, FAILED, and CANCELLED, their legal transitions, presence rules, and the difference between wire status and operation outcome.\n- Observation attaches only to an already admitted operation; it never dispatches work. Replay current state/latest retained progress immediately and the immutable result when terminal.\n- Define per-operation monotonic sequence/cursor semantics, bounded retention and coalescing, gap handling, reconnect behavior, and slow-observer backpressure. Do not promise unlimited history; never discard a terminal result while its record is retained.\n- Success contains a schema-valid typed result. Failure contains structured, sanitized reasons and relevant partial-side-effect/cleanup metadata without secrets or remote tracebacks. Define invalid author-result handling.\n- Specify cancellation accepted/requested, unsupported, and already-terminal outcomes. CANCELLED means execution actually stopped, not that a request arrived. The first terminal outcome wins a completion/cancellation race and remains immutable.\n- Cancelling a Watch or losing transport does not cancel business execution. Cancellation is operation-scoped; it must not terminate the shared Provider process or unrelated streams. An RPC deadline is not proof that side effects stopped.\n\n## Acceptance evidence\n\nShip schemas/bindings, transition and error tables, and fixtures/tests for initial/late Watch, sequence replay/gaps, terminal immutability, result-schema errors, failure metadata, cancellation races, unsupported cancellation, unknown IDs, and stream termination. Document what is retained versus indeterminate.\n\n## Non-goals\n\nNo runtime task manager, full event-log service, process-kill cancellation, backup-specific transport command, or invented Control Plane response to uncertainty.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 6,
         "step_id": "P5",
-        "title": "[TASK][MVP] Define Operation Progress Results and Cancellation Contract"
+        "title": "[TASK][MVP] Define Operation Progress Results and Cancellation Contract",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/sfp-reconciliation",
+        "context_resources": [],
         "depends_on": [
           "P3",
           "P5"
@@ -116,10 +174,12 @@
         "required_result": "## Outcome and ownership\n\nComplete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.\n\n## Required behavior\n\n- Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority.\n- Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry.\n- A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger.\n- Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID.\n- Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries.\n- Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.\n\n## Acceptance evidence\n\nContract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.\n\n## Non-goals\n\nNo runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 9,
         "step_id": "P8",
-        "title": "[TASK][MVP] Define SFP Disconnection Recovery Contracts"
+        "title": "[TASK][MVP] Define SFP Disconnection Recovery Contracts",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/sfp-contract-verification",
+        "context_resources": [],
         "depends_on": [
           "P1",
           "P2",
@@ -133,10 +193,12 @@
         "required_result": "## Outcome and ownership\n\nVerify that the complete local SFP transport and generic-operation contract package can be consumed independently by Agent and Provider developers. This is Protocol integration/conformance work, not business-operation or runtime implementation.\n\n## Required behavior\n\n- Verify bootstrap, manifest, capability assessment, triggers, generic operation admission, lifecycle/progress/results/cancellation, and reconnect/recovery compose coherently. Identifier ownership, session/generation validation, versioning, error taxonomy, retention, and replay semantics must agree.\n- Prove SFP transports arbitrary declared operations through their own typed payload/result schemas without interpreting application meaning. Backup preparation, restore, disaster recovery, and BackupEngine behavior are not SFP procedures or Protocol-owned schemas.\n- Preserve landed bootstrap and manifest contracts. Keep operations as versioned namespaced strings, retain generic `implements` declarations without assigning Protocol-owned backup/DR meaning, and document only the current active contract.\n- Supply reusable conformance fixtures for ordinary operations, invalid schemas/results, duplicate/conflicting admission, progress/cancellation, trigger replay, channel loss, and state-loss recovery.\n- Check Buf lint, reproducible generation, generated-source freshness and compatibility. Generated modules must never be hand-edited. Ensure required protobuf/schema fixtures, typing markers, and documentation are included in wheel and sdist.\n- Verify clean installation/imports and dependency compatibility for supported Python versions/platforms. Separate build tooling from runtime dependencies and build strict documentation.\n\n## Acceptance evidence\n\nAll configured Protocol gates pass, installed-package consumers load every generic SFP service/schema/fixture, and independent Agent/Provider test peers make the same transport, validation, identity, idempotency, and recovery decisions. No fixture requires knowledge of BackupEngine or a predefined backup/DR operation.\n\n## Non-goals\n\nNo Agent/Provider runtime, business-operation catalogue, backup/DR schema, BackupEngine implementation, SF-AOP design, or Control Plane contract.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 10,
         "step_id": "P9",
-        "title": "[TASK][MVP] Verify the Complete SFP Contract Surface"
+        "title": "[TASK][MVP] Verify the Complete SFP Contract Surface",
+        "verification_requirements": []
       },
       {
         "branch_name": "Existing work",
+        "context_resources": [],
         "depends_on": [
           "P0"
         ],
@@ -145,10 +207,97 @@
         "required_result": "Publish a ready local endpoint and negotiate one SFP session on the Agent-established channel.",
         "sort_order": 11,
         "step_id": "R0",
-        "title": "[TASK][MVP] Implement Provider Discovery and Handshake Foundation"
+        "title": "[TASK][MVP] Implement Provider Discovery and Handshake Foundation",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/provider-manifest-exchange",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-bf9f122c-a865-4955-9085-aa4675a9ba40",
+            "explanation": "Update docs respectfully to the change.",
+            "path": "docs",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-a73b6239-9754-4b58-a839-7938b7279f1c",
+            "explanation": "Dependencies probably.",
+            "path": "pyproject.toml",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-5cb6e462-b651-4d95-8b99-a298eec596ca",
+            "explanation": "Where implementation would live.",
+            "path": "src/stateforge_rpc",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-a54dff67-e9e1-4a51-b8a0-b354a347d9e0",
+            "explanation": "Manifest exchange protocol buffers.",
+            "path": "proto/stateforge_protocol/sfp/manifest",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-2dab1372-1cc5-4403-a1f5-18e1483d59de",
+            "explanation": "Manifest change diagram.",
+            "path": "docs/assets/diagrams/provider-manifest-exchange.png",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-1cf95e1e-acc4-4335-9b2c-b04c977e82f3",
+            "explanation": "Generate protobuf python binding.",
+            "path": "src/stateforge_protocol/sfp/manifest",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 5
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-1039e246-ebb8-4829-99fa-c3f8aa7d1997",
+            "explanation": "Manifest exchange docs.",
+            "path": "docs/procedures/provider-manifest.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 6
+          }
+        ],
         "depends_on": [
           "P1"
         ],
@@ -157,10 +306,22 @@
         "required_result": "Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles.",
         "sort_order": 12,
         "step_id": "R1",
-        "title": "[TASK][MVP] Implement Provider Manifest Exchange"
+        "title": "[TASK][MVP] Implement Provider Manifest Exchange",
+        "verification_requirements": [
+          {
+            "explanation": "Human In The loop involved.",
+            "kind": "human",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 0,
+            "target": "Review passed?",
+            "verification_id": "verify-8a5477ed-8022-42e4-ab75-c16fc079311c"
+          }
+        ]
       },
       {
         "branch_name": "mvp/provider-health-monitoring",
+        "context_resources": [],
         "depends_on": [
           "R1"
         ],
@@ -169,10 +330,12 @@
         "required_result": "## Outcome and ownership\n\nExpose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.\n\n## Required behavior\n\n- Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior.\n- Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors.\n- Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch.\n- Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability.\n- Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.\n\n## Acceptance evidence\n\nExercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.\n\n## Non-goals\n\nNo Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 13,
         "step_id": "R2",
-        "title": "[TASK][MVP] Implement Provider Health and Availability Reporting"
+        "title": "[TASK][MVP] Implement Provider Health and Availability Reporting",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/capability-assessment",
+        "context_resources": [],
         "depends_on": [
           "P2",
           "R1",
@@ -183,10 +346,12 @@
         "required_result": "## Outcome and ownership\n\nImplement the locked P2 capability-assessment contract behind a typed, overridable Provider capability hook, compatible with R1 manifest declarations and R2 readiness. P2's issued requirements remain unchanged.\n\n## Required behavior\n\n- Validate negotiated session/generation, target kind, requested versioned operation IDs, configuration/execution context, payload limits, and current declarations before invoking author code.\n- Perform only bounded read-only inspection. Return the contract's normalized SUPPORTED, SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED, or INDETERMINATE findings and correlation identity, with explicit reasons/requirements for each requested operation as the landed contract permits.\n- Preserve the difference between declared support, runtime/target compatibility, temporary unavailability, and proven satisfaction of prerequisites. Unknown requirements or a manifest declaration alone are not evidence of support.\n- Keep capability findings operation-generic: never add or echo backup-preparation result variants, storage-tool choices, or other operation-specific result fields. Profile conformance belongs to the declared versioned operation schemas and later admission/execution paths. Keep target-specific business inspection in author code; the runtime never assigns logical StateForge component IDs.\n- Negative assessment is a valid domain result, not automatically an RPC failure. Invalid protocol input and hook/transport failures follow P2's error mapping; sanitize remote diagnostics and honor finite deadlines/cancellation of the read.\n- Reuse the Provider framework and existing schema/model facilities. Do not independently reinterpret or redesign P2 while implementing its consumer.\n\n## Acceptance evidence\n\nCover generic and profile-related assessment, all support statuses, conditional/unknown requirements, undeclared IDs/kinds, malformed context, correlation, stale session, hook exception/deadline, absence of operation-specific result fields, and absence of target mutation. Verify public hook documentation and configured gates.\n\n## Non-goals\n\nNo operation dispatch, target mutation, mandatory persistence, Agent/Control Plane mapping, policy evaluation, or universal vendor-version evaluator.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 14,
         "step_id": "R3",
-        "title": "[TASK][MVP] Implement Provider Capability Assessment"
+        "title": "[TASK][MVP] Implement Provider Capability Assessment",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/trigger-publication",
+        "context_resources": [],
         "depends_on": [
           "P3",
           "R1",
@@ -197,10 +362,12 @@
         "required_result": "## Outcome and ownership\n\nImplement P3 Provider publication with a simple typed author-facing trigger API on the existing Provider framework. The runtime owns envelopes, stream adaptation, acknowledgement, and retries.\n\n## Required behavior\n\n- Publish only manifest-declared versioned trigger IDs and schema-valid payloads. Derive authenticated installation/session identity internally. Do not accept a generic target, source, or resource identity; any trigger-specific resource/source information is ordinary schema-validated payload data.\n- Allocate/preserve stable publication identity and canonical semantic content. Keep bounded pending state until accepted/rejected, correlate acknowledgements, handle new/duplicate/rejected dispositions, and surface rejection safely to authors.\n- Lost acknowledgements and transient streams replay the original ID/content with bounded backoff/backpressure. Conflicting content under one ID is never silently accepted. Stop retrying non-retryable rejection as defined by P3.\n- Respect startup/shutdown, generation/session fencing, deadlines and pending-queue limits without blocking unrelated channel services. Document queue-full and disconnected publication behavior.\n- Baseline pending state may be in memory. Provider-controlled persistence is optional; document what a process crash can lose rather than promising durable delivery from stable installation identity alone.\n- Keep generated messages, gRPC streams, canonical envelope construction and secret redaction private. A trigger does not by itself prove a policy ran or a backup completed.\n\n## Acceptance evidence\n\nTest public publication and real stream transport, payload/ID rejection, accepted new/duplicate, lost-ack replay, content conflict, rejection retryability, bounded queue, disconnect/reconnect, optional-state limitations, shutdown, and the absence of generic source/target parameters. No human-facing author example requires protobuf or session/generation management.\n\n## Non-goals\n\nNo generic target/source/resource abstraction, Control Plane connection, policy executor, StateForge binding assignment, mandatory persistent Provider event log, or backup-only trigger taxonomy.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 15,
         "step_id": "R4",
-        "title": "[TASK][MVP] Implement Trigger Publication and Acknowledgement"
+        "title": "[TASK][MVP] Implement Trigger Publication and Acknowledgement",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-admission",
+        "context_resources": [],
         "depends_on": [
           "P4",
           "R2",
@@ -211,10 +378,12 @@
         "required_result": "## Outcome and ownership\n\nImplement P4 admission and generic typed operation dispatch behind the public Provider framework. Providers can expose arbitrary declared operations; no backup/DR claim is required for ordinary operations.\n\n## Required behavior\n\n- Provide compatible typed request/result models and async `@operation()` registration on Provider subclasses, reusing R1 facilities. Use landed `namespace/name@major` IDs, not legacy unversioned dotted examples; reject duplicate/invalid declarations and align derived schemas with the manifest.\n- Keep installation/session/generation, protobuf adaptation, fingerprints and registry management private. Provide a typed OperationContext carrying operation identity, deadline and approved execution context; extend it for P5 lifecycle in R6.\n- Validate active session, R2 readiness, declared operation/target and input schema before author behavior. Use P4's canonical fingerprint and atomic admission record before dispatch. Matching concurrent retries resolve one execution; changed content conflicts.\n- Return P4's successful dispositions and rejection statuses/reasons. Busy/invalid/deadline-before-admission requests create no accepted record. Terminal IDs are not repurposed; document bounded retention/expiry and lost-state limitations.\n- Default accepted-operation state is in memory; optional stronger persistence remains Provider-controlled. Delivery deduplication does not guarantee the vendor action is idempotent or justify retry after a process lost admitted state.\n- Validate author outputs and sanitize exceptions using the established lifecycle/error boundary; do not opportunistically implement full progress/Watch/cancellation or backup profiles in this step.\n\n## Acceptance evidence\n\nCover a typed non-backup operation, schema derivation, duplicate registrations, invalid requests, readiness rejection, concurrency, identical lost-response retry, changed content, terminal replay/ID immutability, deadlines, safe exceptions, and expiry. Prove author examples require no gRPC/protobuf plumbing and dispatch occurs once per accepted identity.\n\n## Non-goals\n\nNo arbitrary shell-command API, vendor integration, mandatory persistent operation database, backup/DR requirement for generic operations, SF-AOP, or policy-run scheduling.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 16,
         "step_id": "R5",
-        "title": "[TASK][MVP] Implement Operation Admission and Idempotency"
+        "title": "[TASK][MVP] Implement Operation Admission and Idempotency",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-lifecycle",
+        "context_resources": [],
         "depends_on": [
           "P5",
           "R5"
@@ -224,10 +393,12 @@
         "required_result": "## Outcome and ownership\n\nImplement P5 generic operation progress, results, and cancellation behind Provider/OperationContext, extending R5's accepted registry rather than adding a second execution ledger.\n\n## Required behavior\n\n- Enforce the contract's state transitions and one immutable terminal result. Validate typed result schemas; translate expected/unexpected author exceptions into sanitized structured errors with relevant side-effect/cleanup evidence.\n- Offer author progress reporting and cooperative cancellation state/checkpoints without exposing gRPC. Keep per-operation sequence monotonic and replay current/latest retained state on Watch attachment; Watch never dispatches an operation.\n- Bound progress retention and slow-watcher queues, coalesce only permitted progress, and preserve terminal replay while records are retained. Isolate concurrent operations/observers on the shared server.\n- Cancellation request and execution stopped are distinct. Handle unsupported and already-terminal outcomes; first terminal outcome wins races. Set CANCELLED only when actual author execution stopped according to the contract.\n- Watch cancellation, client deadline, transport loss and health changes do not implicitly stop business execution. Never kill the whole Provider process or unrelated tasks to cancel one operation.\n- Shutdown stops new admission, performs bounded graceful handling, and reports unresolved work honestly. Preserve R5 in-memory baseline and optional Provider persistence; no crash-proof result promise without evidence.\n\n## Acceptance evidence\n\nExercise progress/terminal replay, late/slow/disconnected watchers, sequence/cursor behavior, invalid author results, sanitized failure, parallel operations, cancellation completion/races, unsupported/already-terminal cancellation, Watch-only cancellation, shutdown, and no redispatch. Update typed author examples and configured checks.\n\n## Non-goals\n\nNo unbounded history service, process-level force kill, invented operation states, backup-specific lifecycle implementation, or automatic remediation after unknown side effects.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 17,
         "step_id": "R6",
-        "title": "[TASK][MVP] Implement Operation Progress Results and Cancellation"
+        "title": "[TASK][MVP] Implement Operation Progress Results and Cancellation",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/sfp-reconciliation",
+        "context_resources": [],
         "depends_on": [
           "P8",
           "R4",
@@ -238,10 +409,12 @@
         "required_result": "## Outcome and ownership\n\nImplement P8 Provider reconnect/state-reconciliation behavior by composing existing runtime identity, manifest, health, trigger and operation facilities.\n\n## Required behavior\n\n- Separate channel loss from process death: accepted work may continue while the server process survives. Rebind new channels to validated handshake/session/generation before serving operational state.\n- Retain current operations/terminal results and pending trigger IDs/content for their documented in-process retention; replay existing state/results/acknowledgement work without redispatching author operations.\n- Keep installation identity/generation storage independent from execution persistence. Baseline process restart may lose operation/trigger state; optional Provider persistence may recover only verifiable records.\n- Return the contract's explicit indeterminate/lost/expired outcome for unresolved admitted identities. Never manufacture FAILED/SUCCEEDED, silently create a new record for reconciliation, or claim executions belonging to a replaced instance.\n- Fence stale sessions/watchers/acknowledgements, respect cursor gaps and backpressure, and coordinate bounded shutdown/restart. Remove only descriptor/socket/resources owned by the current generation.\n- Document exactly what survives transport interruption versus process restart and how callers detect limitations. Business/operator remediation belongs above SFP, not in the generic runtime.\n\n## Acceptance evidence\n\nCross-process scenarios cover lost admission reply, ongoing execution during transport loss, terminal replay, pending-trigger replay, generation replacement, stable-installation restart with state loss, new-instance replacement, stale stream responses, retention expiry, and supported optional persistence. Prove no author redispatch on reconciliation.\n\n## Non-goals\n\nNo mandatory persistent Provider registry, Agent reconnect manager, Control Plane remediation, automatic re-execution, or broader process-supervision redesign.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 20,
         "step_id": "R9",
-        "title": "[TASK][MVP] Complete Provider Disconnection and Recovery"
+        "title": "[TASK][MVP] Complete Provider Disconnection and Recovery",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/provider-runtime-verification",
+        "context_resources": [],
         "depends_on": [
           "R2",
           "R3",
@@ -255,10 +428,12 @@
         "required_result": "## Outcome and ownership\n\nVerify the generic Provider framework/runtime against an independent Agent-side SFP test peer using installed contracts. The real Agent-daemon integration gate is A12.\n\n## Required behavior\n\n- Run the reference Provider in a separate process through public `Provider.run()` and `serve()` paths. Exercise discovery/handshake, manifest, standard health, read-only capability assessment, triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect.\n- Prove Provider authors can expose unrelated namespaced operations with their own request/result models. The runtime must not recognize backup, restore, disaster recovery, BackupEngine, or other business-operation categories.\n- Exercise concurrent streams/operations and the safety matrix: lost replies/acknowledgements, duplicate/conflicting IDs, invalid author results, cancellation races, slow observers, deadlines, stale generations, restart, and indeterminate state. No scenario may silently redispatch unresolved work.\n- Verify authored models/decorators, hook lifecycle, schema derivation, generic `implements` declaration transport, and sanitized exceptions. Normal public examples must not require servicers, protobufs, descriptors, instance storage, or generation allocation.\n- Build wheel/sdist, verify packaged typing/resources and clean installed startup, and pass Ruff, strict mypy, pytest, package, and strict documentation gates. Use reusable Protocol conformance fixtures where available.\n\n## Acceptance evidence\n\nAutomated bounded subprocess coverage and a documented generic SFP coverage matrix. Include multiple unrelated operation schemas and prove the Provider runtime dispatches them without operation-specific branches. Report actual supported operating-system/runtime limits.\n\n## Non-goals\n\nNo production vendor Provider, Agent daemon, Agent workspace, BackupEngine, backup/DR workflow, SF-AOP/Control Plane, or unreviewed public API redesign.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 21,
         "step_id": "R10",
-        "title": "[TASK][MVP] Verify the Complete Provider Runtime"
+        "title": "[TASK][MVP] Verify the Complete Provider Runtime",
+        "verification_requirements": []
       },
       {
         "branch_name": "Existing work",
+        "context_resources": [],
         "depends_on": [
           "P0",
           "R0"
@@ -268,10 +443,12 @@
         "required_result": "Procedures 1 and 2, daemon lifecycle, channel reuse, and reconnection foundation.",
         "sort_order": 22,
         "step_id": "A0",
-        "title": "[TASK][MVP] Implement SFP Discovery and Handshake Foundation"
+        "title": "[TASK][MVP] Implement SFP Discovery and Handshake Foundation",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/provider-manifest-exchange",
+        "context_resources": [],
         "depends_on": [
           "P1",
           "R1"
@@ -281,10 +458,12 @@
         "required_result": "## Outcome and ownership\n\nIntegrate the landed P1/R1 manifest exchange into the Agent's existing session manager/channel. See the Protocol manifest procedure and checked-in schema/revision conformance vector.\n\n## Required behavior\n\n- Retrieve only after successful handshake with expected installation/generation, finite deadlines, bounded read retry and an explicit supported-schema offer. Accept only an offered/understood version and a complete atomic response.\n- Enforce current P1 ProtoJSON/schema rules, embedded local-reference validation, size/nesting bounds and safe secret handling. Preserve versioned string IDs, target kinds, role claims, requirements and explicit platform pairs.\n- Compute the exact schema-1 revision preimage `{manifest, manifestSchemaVersion, providerInstanceId}` using RFC 8785 with ProtoJSON defaults emitted. Exclude generation/revision, not installation identity; do not substitute deterministic protobuf bytes or older DOCX hashing rules.\n- Cache only validated declarations under installation/SFP version/schema/revision. Reuse an unchanged declaration without merging unvalidated fields, but always check current generation/session. A digest is a change detector, not authentication.\n- Invalid/incompatible manifest blocks operational use independently of healthy transport. Replace valid changed declarations atomically and invalidate dependent local decisions; stale responses cannot activate a superseded session.\n- Transport/session connection state is not full operational availability. Compose with the upcoming A2 health gate rather than treating bootstrap success alone as sufficient. Preserve existing connection replacement behavior.\n\n## Acceptance evidence\n\nTest a real manifest peer, conformance hash, unchanged cache reuse, changed/new-installation revision, complete-response validation, bad header/digest/schema/reference, offered-version mismatch, limits/secrets, stale generation, transport retry and invalid-manifest gating. Ensure no extra channel or vendor-specific interpretation.\n\n## Non-goals\n\nNo modification of locked P1/R1, new schema-1 fields, health implementation, capability/admission dispatch, mandatory inventory redesign, SF-AOP or Control Plane reporting.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 23,
         "step_id": "A1",
-        "title": "[TASK][MVP] Integrate Provider Manifest Exchange"
+        "title": "[TASK][MVP] Integrate Provider Manifest Exchange",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/provider-health-monitoring",
+        "context_resources": [],
         "depends_on": [
           "A1",
           "R2"
@@ -294,10 +473,12 @@
         "required_result": "## Outcome and ownership\n\nWatch standard `grpc.health.v1` on the current Agent-established Provider channel and maintain coherent local operational eligibility with A1's manifest acceptance.\n\n## Required behavior\n\n- Watch the proper versioned operational service on the existing channel; Check is diagnostic. Initial/unknown/NOT_SERVING states block new operation admission.\n- Availability requires current transport, validated handshake/session/generation, compatible valid manifest, and SERVING health. Keep connection state and eligibility distinguishable using existing state boundaries, not parallel unsynchronized ledgers.\n- On Watch end/failure, mark health unknown/unavailable and stop new admission while reconnect/Watch retry is bounded. Resume only after current-session prerequisites are valid again.\n- Fence stale Watch updates after generation replacement, manifest rejection or shutdown. Changes affect new-work eligibility, not the truth of already admitted operations or their terminal results.\n- Expose local status/reasons for diagnostics and later internal consumers without inventing Control Plane reporting. Do not embed vendor-specific health probes.\n\n## Acceptance evidence\n\nExercise initial replay, SERVING/NOT_SERVING, unknown service, Watch loss/recovery, invalid manifest despite SERVING, generation replacement/stale update, concurrent channel streams, and shutdown. Verify readiness transitions are coherent and admitted work is not automatically cancelled by health loss.\n\n## Non-goals\n\nNo custom health protobuf, second channel, remote Control Plane status, business-operation retry/cancellation, or wholesale replacement of landed session-management APIs.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 24,
         "step_id": "A2",
-        "title": "[TASK][MVP] Integrate Provider Health and Availability Monitoring"
+        "title": "[TASK][MVP] Integrate Provider Health and Availability Monitoring",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/capability-assessment",
+        "context_resources": [],
         "depends_on": [
           "A1",
           "A2",
@@ -309,10 +490,12 @@
         "required_result": "## Outcome and ownership\n\nConsume locked P2/R3 capability assessment using only normalized SFP data, A1 declarations and A2 current eligibility. Preserve P2's issued contract/requirements.\n\n## Required behavior\n\n- Validate current session/generation, declared versioned operation/target kind and bounded request/context before a finite read-only RPC. Reject unsupported declarations locally without assuming vendor knowledge.\n- Normalize/correlate the contract's per-operation support, requirements, reasons and assessment identity. Preserve SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED and INDETERMINATE distinctions; negative support is a domain finding, not successful eligibility.\n- A manifest advertises potential support, not current target compatibility or satisfied runtime prerequisites. Unknown requirements remain unresolved; do not infer Backup/DR compliance from operation names, capability findings, or operation-specific result shapes.\n- Any reusable assessment is bound to the relevant target/context and active declaration/session; invalidate stale decisions when identity/generation/manifest changes. Read-only retry may inspect a newer state and does not authorize business execution.\n- Surface temporary unavailability, malformed responses, deadline/transport errors and sanitized reasons distinctly. Keep a clean internal boundary for later authorized dispatch, not a policy interpreter.\n\n## Acceptance evidence\n\nCover generic non-backup and profile-related assessment, all support findings, unmet/unknown prerequisites, invalid/undeclared IDs/kinds, malformed/correlation-mismatched reply, readiness gate, stale cache/context, changed generation/manifest and read-only retry. Verify no target mutation or Provider/vendor imports.\n\n## Non-goals\n\nNo P2 redesign, operation dispatch, StateForge component assignment, policy selection, Control Plane connection or universal vendor requirement evaluator.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 25,
         "step_id": "A3",
-        "title": "[TASK][MVP] Integrate Provider Capability Assessment"
+        "title": "[TASK][MVP] Integrate Provider Capability Assessment",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/trigger-publication",
+        "context_resources": [],
         "depends_on": [
           "A1",
           "A2",
@@ -324,10 +507,12 @@
         "required_result": "## Outcome and ownership\n\nReceive P3/R4 Provider triggers, durably accept delivery responsibility, deduplicate, and acknowledge on the existing SFP stream. Keep an internal forwarding boundary for the later SF-AOP phase.\n\n## Required behavior\n\n- Validate the authenticated Provider/session/generation, declared versioned trigger, schema-bound payload, stable publication ID, canonical content equality, and limits. SFP has no generic target/source/resource identity; any trigger-specific resource/source identity remains payload data and is not interpreted as a StateForge project/component assignment.\n- Commit an accepted event and Agent-owned responsibility state durably before ACCEPTED_NEW. A matching replay returns ACCEPTED_DUPLICATE without duplicate logical delivery; same ID/different semantic content rejects as a conflict.\n- Acknowledgement loss and Agent restart must recover the accepted event/responsibility without forcing a new ID or dropping it silently. A local durable acceptance is not proof that the Control Plane processed it, and downstream handoff is not part of the P3 wire acknowledgement.\n- Retain a bounded, recoverable pending-forward boundary with explicit queue-full/backpressure, rejection/retryability and retention behavior. Until SF-AOP exists, retain accepted events rather than pretending remote forwarding succeeded.\n- Fence stale streams/acks and handle reconnect/shutdown without acknowledging uncommitted work. Keep persistence implementation aligned with the current Agent; no prescribed database engine or new transport architecture.\n- This Provider-originated SFP route remains distinct from any legacy application/developer local-trigger interface; avoid conflating their identifiers or permissions.\n\n## Acceptance evidence\n\nTest valid/invalid publication, commit-before-ack, crash before commit/after commit-before-ack, lost acknowledgement, durable restart, matching duplicate, conflicting content, queue pressure, reconnect, stale generation, absent downstream transport, and the absence of generic source/target handling. Prove one retained logical event and honest forwarding status.\n\n## Non-goals\n\nNo generic target/source/resource abstraction, SF-AOP wire protocol, Control Plane policy evaluation/component mapping, legacy Local API redesign, or exactly-once policy execution claim.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 26,
         "step_id": "A4",
-        "title": "[TASK][MVP] Integrate Trigger Publication and Acknowledgement"
+        "title": "[TASK][MVP] Integrate Trigger Publication and Acknowledgement",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-admission",
+        "context_resources": [],
         "depends_on": [
           "A2",
           "A3",
@@ -339,10 +524,12 @@
         "required_result": "## Outcome and ownership\n\nSubmit immutable P4/R5 generic operations behind the Agent's local coordination boundary using active declarations, A2 readiness and A3 findings. Do not select policy business actions here.\n\n## Required behavior\n\n- Allocate an operation ID before contact; keep the versioned identifier, target, schema-valid payload, deadline and authorized execution context immutable for that attempt. Track attempted/accepted/rejected/unresolved state using current Agent persistence patterns where recovery requires it.\n- Validate manifest declaration and relevant requirements/explicit profiles, current session/generation and readiness before submission. An arbitrary operation remains usable without Backup/DR compliance; an operation identifier is not an arbitrary shell command.\n- Handle ACCEPTED_NEW and RESOLVED_EXISTING, terminal resolution and structured rejection exactly as P4. Rejection does not create a successful execution; busy retry guidance does not authorize changing the request under the same ID.\n- A lost response uses the same semantic request/ID to resolve retained Provider state. Do not create a fresh ID because transport failed; retain uncertainty when admission/external effects cannot be established.\n- Keep delivery deduplication separate from vendor-action idempotency. Document retention/expiry and safe-retry boundaries; unresolved admitted work cannot be automatically repeated after Provider state loss.\n- Fence stale replies/session replacement and prevent concurrent local submissions from becoming duplicate attempts. Keep an internal authority/context boundary ready for future SF-AOP commands without designing that protocol.\n\n## Acceptance evidence\n\nTest a generic non-backup invocation, invalid/undeclared input, readiness/requirement rejection, successful new/replayed/terminal admission, changed-request conflict, lost-response resolution, concurrent submission, deadline-before-admission, stale generation and retention/state-loss uncertainty. Prove no new execution identity is silently substituted.\n\n## Non-goals\n\nNo policy engine, vendor code, automatic remediation/new attempt, SF-AOP schema, full lifecycle Watch implementation or BackupEngine invocation.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 27,
         "step_id": "A5",
-        "title": "[TASK][MVP] Integrate Operation Admission and Idempotency"
+        "title": "[TASK][MVP] Integrate Operation Admission and Idempotency",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/operation-lifecycle",
+        "context_resources": [],
         "depends_on": [
           "A5",
           "P5",
@@ -353,10 +540,12 @@
         "required_result": "## Outcome and ownership\n\nObserve P5/R6 admitted operations, normalize progress/results, and request race-safe operation-scoped cancellation without redispatch.\n\n## Required behavior\n\n- Attach Watch only to known admitted identities; consume current-state/latest-progress replay, monotonic sequences and contract cursor/gap rules. Bound local buffering and fence stale responses from replaced sessions.\n- Validate typed terminal results against pinned declaration/profile context and accept one immutable terminal outcome. Preserve structured failure/partial-side-effect/cleanup evidence and sanitized diagnostics.\n- Request cancellation using the contract, distinguishing accepted/requested, unsupported and already-terminal. Record CANCELLED only after confirmed execution stopped; a successful request or RPC deadline is not confirmation.\n- Completion/cancellation races resolve to the first valid terminal outcome. Cancelling an observer, disconnecting, health loss or timeout does not fabricate FAILED/CANCELLED or stop unrelated work on the channel.\n- Persist/retain the evidence needed to reconcile outstanding attempts using current Agent facilities. Resume observation after interruption without resubmitting business work; P8/A11 provide complete state-loss reconciliation later.\n- Expose normalized local operation status through a clean coordination boundary, not direct vendor hooks or invented Control Plane reporting.\n\n## Acceptance evidence\n\nTest initial/late/terminal replay, progress coalescing/gaps, slow observer, invalid result/correlation, terminal immutability, cancellation races, unsupported/already-terminal cases, interrupted Watch, stale session, partial effects and Agent restart of observation. Prove Watch and cancellation never cause a second dispatch.\n\n## Non-goals\n\nNo unlimited event-history system, process-wide cancellation, guessed rollback, generic auto-retry of side effects, policy executor or SF-AOP transport.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 28,
         "step_id": "A6",
-        "title": "[TASK][MVP] Integrate Operation Progress Results and Cancellation"
+        "title": "[TASK][MVP] Integrate Operation Progress Results and Cancellation",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/backup-workspaces",
+        "context_resources": [],
         "depends_on": [
           "A6"
         ],
@@ -365,10 +554,12 @@
         "required_result": "## Outcome and ownership\n\nImplement protected Agent-owned workspaces used as BackupEngine sources and restore destinations. Workspaces are Agent tooling, not SFP resources or Provider-owned storage.\n\n## Required behavior\n\n- Allocate scoped source/restore workspace identities and paths with safe permissions, quotas, lifetime, ownership, and crash-recovery cleanup state. Reject traversal, unsafe symlink escape, and access outside authorized roots.\n- Let an Agent workflow expose an authorized workspace path to an ordinary Provider operation only through that operation's declared payload when configured. SFP treats the payload as operation data and assigns no backup meaning to it.\n- Support engine-only workflows where the managed entity needs no Provider preparation or native backup/restore API. A Provider preparation or post-restore operation is optional workflow behavior, not a prerequisite for using a BackupEngine.\n- Keep workspaces alive while an operation or BackupEngine still owns them. Cleanup may remove only Agent-owned workspace resources after all consumers release them.\n- Record enough local provenance and lifecycle state to associate later engine results with the selected source/destination without turning an ordinary Provider response into standardized backup evidence.\n- Keep repository credentials and BackupEngine configuration out of Provider payloads, SFP metadata, and workspace-visible files unless an engine-specific secure mechanism explicitly requires them.\n\n## Acceptance evidence\n\nTest allocation, isolation, paths with spaces, traversal/symlink escape, permissions, quotas, concurrent workspaces, lifecycle handoff, cancellation, Agent interruption/recovery, in-use retention, and safe cleanup. Demonstrate both an engine-only workspace and a workspace path passed through an ordinary test operation payload.\n\n## Non-goals\n\nNo Protocol backup/DR contract, predefined operation identifier/schema/role, BackupEngine implementation, Restic adapter, Control Plane Snapshot, policy scheduling, or arbitrary filesystem deletion.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 29,
         "step_id": "A7",
-        "title": "[TASK][MVP] Implement Agent-Managed Backup Workspaces"
+        "title": "[TASK][MVP] Implement Agent-Managed Backup Workspaces",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/backup-engine-layer",
+        "context_resources": [],
         "depends_on": [
           "A7"
         ],
@@ -377,10 +568,12 @@
         "required_result": "## Outcome and ownership\n\nImplement a typed, stable in-process Agent BackupEngine extension layer over A7 workspaces. Engines are Agent tools/plugins, never Providers, operations, or SFP peers.\n\n## Required behavior\n\n- Discover engines through documented Python entry points and validate plugin identity, version, capabilities, and configuration. Keep plugin packaging independent from the Agent distribution and runtime construction explicit.\n- Define normalized create, restore, verify, inspect, and remove behavior with typed handles/results, finite deadlines, cooperative cancellation, bounded progress, errors, and cleanup ownership. Choose exact Python signatures from current Agent patterns and document them.\n- Create backups only from authorized Agent-selected sources/workspaces and restore only into authorized destinations/workspaces. The engine must not require the managed entity or its Provider to expose a native backup/restore operation.\n- Keep repository credentials/configuration inside the Agent/engine boundary and redact them from SFP, Provider operation payloads/results, CLI output, logs, and public diagnostics.\n- Make unsupported operation, capability, version, and configuration failures explicit before unsafe work. Isolate plugin failure without corrupting workspace ownership or durable backup evidence.\n- Distinguish a successful physical engine backup from any optional Provider preparation operation and from a future coordinated Control Plane Snapshot.\n\n## Acceptance evidence\n\nUse an independently packaged test engine to exercise discovery, capabilities, create/restore/verify/inspect/remove, invalid/missing/duplicate plugin, incompatible version/configuration, errors, deadlines, cancellation, scoped paths/handles, credential redaction, concurrent isolation, and an entity with no native backup API. Verify installed-package discovery and configured gates.\n\n## Non-goals\n\nNo BackupEngine RPC, Provider-side storage code, Protocol backup schema, concrete Restic adapter, vendor Provider, Control Plane retention scheduler, or mandatory native-language migration.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 30,
         "step_id": "A8",
-        "title": "[TASK][MVP] Implement the BackupEngine Extension Layer"
+        "title": "[TASK][MVP] Implement the BackupEngine Extension Layer",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/restic-backup-engine",
+        "context_resources": [],
         "depends_on": [
           "A8"
         ],
@@ -389,10 +582,12 @@
         "required_result": "## Outcome and ownership\n\nImplement `ResticBackupEngine` through A8's Agent-only extension contract. It provides physical backup and restoration for Agent-authorized data independently of Provider vendor behavior or native backup support.\n\n## Required behavior\n\n- Resolve an explicit trusted executable and validate the supported Restic version/capabilities. Build argument arrays without a shell; validate configuration and prevent executable/argument injection.\n- Keep repository credentials in controlled environment/files/input according to supported Restic interfaces, never command-line arguments, SFP, Provider payloads/results, or logs. Bound output, redact diagnostics, parse machine-readable output, and validate normalized handles/results.\n- Implement create from an authorized A7 source, restore into an authorized A7 destination, inspect, verify, and removal of an explicitly authorized engine-owned snapshot.\n- Preserve durable backup identity, provenance, and integrity evidence only after storage success. Never convert partial/nonzero-exit work into successful backup evidence.\n- Honor finite deadlines and cooperative/process-scoped cancellation with bounded subprocess termination/reaping and honest partial-effect reporting. Never terminate the Agent or unrelated engine work.\n- Support clean plugin packaging/configuration and diagnose a missing binary or incompatible version safely.\n\n## Acceptance evidence\n\nAutomated fixture/subprocess tests plus a bounded real-Restic local-repository create/inspect/verify/restore/remove round trip. Cover paths with spaces, no-shell execution, malformed output/nonzero exit, credential/log redaction, corrupt/missing backup, unauthorized handle/path, timeout/cancellation, concurrency, and an engine-only backup with no Provider operation.\n\n## Non-goals\n\nNo Restic service/RPC, Provider operation or vendor consistency logic, automatic retention/prune scheduler, unconstrained repository deletion, cloud credential provisioning, or platform-wide Snapshot coordination.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 31,
         "step_id": "A9",
-        "title": "[TASK][MVP] Implement ResticBackupEngine"
+        "title": "[TASK][MVP] Implement ResticBackupEngine",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/backup-restore-orchestration",
+        "context_resources": [],
         "depends_on": [
           "A6",
           "A9",
@@ -403,10 +598,12 @@
         "required_result": "## Outcome and ownership\n\nCompose Agent-owned BackupEngine work with optional ordinary Provider operations. The Agent performs physical backup/restore; Providers only execute explicitly configured generic operations through SFP.\n\n## Required behavior\n\n- Implement a local orchestration boundary that can create an engine backup from an authorized source and restore it to an authorized destination without requiring any Provider-native backup or restore feature.\n- Allow workflow configuration to invoke an ordinary declared Provider operation before backup, after backup, before restore, or after restore when the managed system needs quiesce, export, resume, import, reload, reconstruction, or verification behavior.\n- Send those calls through normal P4/P5 operation admission/lifecycle using each operation's own identifier and typed payload/result schema. The Agent and SFP must not recognize a predefined backup/DR role, operation name, payload, or result.\n- When configured, allocate an A7 workspace and place its authorized path and operation-specific data in the ordinary operation payload. The Agent already owns the path; it does not discover a standardized backup source from the Provider response.\n- Keep BackupEngine handles, repository credentials, physical storage results, and integrity checks inside the Agent. Validate restored data before any configured Provider post-restore operation and retain staging until all consumers release it.\n- Preserve immutable invocation identity, cancellation, deadlines, partial effects, and indeterminate outcomes. Do not automatically repeat a Provider operation or engine action after an ambiguous result.\n\n## Acceptance evidence\n\nTest an engine-only create/restore flow for an entity with no native backup API; a prepare-operation-to-engine-create flow; and an engine-restore-to-ordinary-Provider-operation flow. Cover corrupt data, operation rejection/failure, engine failure, cancellation, lost results, workspace lifetime, cleanup, credential isolation, and no duplicated side effects.\n\n## Non-goals\n\nNo Protocol backup/DR contract, Provider compliance layer, hard-coded operation catalogue, vendor-specific Agent code, Control Plane policy selection/Snapshot coordinator, or automatic retry after uncertainty.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed generic SFP contracts and repository boundaries. Choose orchestration interfaces from current Agent patterns so later SF-AOP/Control Plane plans can authorize the same local actions without redefining SFP. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 32,
         "step_id": "A10",
-        "title": "[TASK][MVP] Integrate Agent Backup and Restore Orchestration"
+        "title": "[TASK][MVP] Integrate Agent Backup and Restore Orchestration",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/sfp-reconciliation",
+        "context_resources": [],
         "depends_on": [
           "A4",
           "A6",
@@ -418,10 +615,12 @@
         "required_result": "## Outcome and ownership\n\nComplete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.\n\n## Required behavior\n\n- Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission.\n- Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content.\n- Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state.\n- Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects.\n- Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior.\n- Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.\n\n## Acceptance evidence\n\nAutomated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.\n\n## Non-goals\n\nNo compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.\n\nChoose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.",
         "sort_order": 33,
         "step_id": "A11",
-        "title": "[TASK][MVP] Complete SFP Disconnection and Recovery"
+        "title": "[TASK][MVP] Complete SFP Disconnection and Recovery",
+        "verification_requirements": []
       },
       {
         "branch_name": "mvp/local-runtime-integration",
+        "context_resources": [],
         "depends_on": [
           "A10",
           "A11",
@@ -441,7 +640,8 @@
         "required_result": "## Outcome and ownership\n\nVerify the complete local Agent/Provider foundation using separate real processes plus an installed BackupEngine/Restic plugin. Prove generic SFP and Agent-owned backup tooling compose without adding backup semantics to the Protocol or Provider runtime.\n\n## Required behavior\n\n- Exercise discovery/identity/handshake, manifest validation/revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint.\n- Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Provider knowledge of BackupEngine.\n- Exercise an engine-only physical backup/restore for an entity with no native backup API. Also exercise an optional ordinary Provider preparation operation before engine create and an optional ordinary Provider consume/reload operation after engine restore.\n- Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, corrupt storage, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects.\n- Verify local backup identity/provenance, engine integrity evidence, operation evidence, and workspace ownership remain distinct and available through clean internal coordination boundaries. Do not claim local physical backups are already coordinated Control Plane Snapshots.\n- Build and clean-install involved distributions, verify packaged contracts/typing/plugin resources/public docs, and pass all applicable gates on the supported runtime/platform matrix.\n\n## Acceptance evidence\n\nA repeatable automated real-process matrix proves generic SFP interoperability, engine-only backup/restore, optional Provider-operation choreography, credential isolation, and honest recovery from uncertainty. Record the local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.\n\n## Non-goals\n\nNo SF-AOP/Control Plane implementation, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, production policy engine, or broad architecture migration.\n\n## Compatibility, discretion, and delivery\n\nPreserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.",
         "sort_order": 34,
         "step_id": "A12",
-        "title": "[TASK][MVP] Verify the Complete Local Agent and Provider Runtime"
+        "title": "[TASK][MVP] Verify the Complete Local Agent and Provider Runtime",
+        "verification_requirements": []
       }
     ]
   }
@@ -455,7 +655,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 14
+**Revision:** 16
 
 ## Repositories
 
@@ -472,13 +672,13 @@ STATEFORGE_DPT_MANIFEST -->
 | `P0` | `protocol` | **[TASK][MVP] Define SFP Handshake and Version Negotiation**<br>Bootstrap v1 selects one mutually supported wire version and binds discovered Provider identity and generation. | — | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-protocol/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-protocol/pull/2) |
 | `P1` | `protocol` | **[TASK][MVP] Define Provider Manifest Exchange Contract**<br>Version the effective manifest, Provider identity, runtime requirements, configuration schema, namespaced operation identifiers, trigger declarations, and explicit backup/DR compliance profiles. Do not encode a closed operation enum. | `P0` | `COMPLETED` | [Issue #3](https://github.com/stateforge-org/stateforge-protocol/issues/3) · [Pull Request #4](https://github.com/stateforge-org/stateforge-protocol/pull/4) |
 | `P2` | `protocol` | **[TASK][MVP] Define Capability Assessment Contract**<br>Assess a declared operation identifier against a target and return normalized support, requirements, reasons, and assessment identity. | `P1` | `COMPLETED` | [Issue #5](https://github.com/stateforge-org/stateforge-protocol/issues/5) · [Pull Request #9](https://github.com/stateforge-org/stateforge-protocol/pull/9) |
-| `P3` | `protocol` | **[TASK][MVP] Define Trigger Publication and Acknowledgement Contract**<br>## Outcome and ownership  Define the Protocol-only SFP contract for Provider-originated, manifest-declared trigger publication and acknowledgements on an Agent-initiated bidirectional stream over the existing channel. See `docs/procedures/triggers.md` and the SFP Trigger Publication and Acknowledgement specification.  ## Required behavior  - Define a bounded envelope with stable publication ID, versioned trigger identifier, schema-bound payload, and event time. Bind the publisher to the authenticated Provider instance and active SFP session; do not add a generic target, source, or resource identity to the envelope. Trigger-specific source/resource identity, when required, belongs in the declared trigger payload schema. - Specify field ownership, presence/defaults, schema validation, limits, ordering, and canonical content equality. A retransmission keeps the same ID and semantic content; ID reuse with different content is a conflict. - Define ACCEPTED_NEW, ACCEPTED_DUPLICATE, and REJECTED acknowledgements, rejection reasons, correlation, retryability, and stream termination/backpressure. Separate event-delivery identity from any later policy-run identity. - ACCEPTED_NEW means the Agent durably assumed delivery responsibility before acknowledging. How the Agent satisfies that responsibility locally or later hands work downstream is outside P3 and is not exposed to the Provider. Losing an acknowledgement permits replay, not a second logical publication. - State retention/replay limitations explicitly, including reconnect and optional Provider persistence. Do not promise exactly-once business execution from delivery deduplication.  ## Acceptance evidence  Ship versioned protobuf sources, generated bindings, contract documentation, and reusable valid/invalid fixtures. Cover serialization, authenticated service/session identity, unknown or undeclared trigger IDs, invalid payload/envelope/session, duplicate versus conflicting content, lost-ack replay, bounded messages, acknowledgement correlation, and the absence of generic target/source/resource fields. Describe independent Agent/Provider implementation behavior without implementing either runtime.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP transport, Control Plane mapping, policy evaluation, trigger-to-component inference, or mandatory persistent Provider database.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1` | `PENDING` | [Issue #17](https://github.com/stateforge-org/stateforge-protocol/issues/17) |
+| `P3` | `protocol` | **[TASK][MVP] Define Trigger Publication and Acknowledgement Contract**<br>## Outcome and ownership  Define the Protocol-only SFP contract for Provider-originated, manifest-declared trigger publication and acknowledgements on an Agent-initiated bidirectional stream over the existing channel. See `docs/procedures/triggers.md` and the SFP Trigger Publication and Acknowledgement specification.  ## Required behavior  - Define a bounded envelope with stable publication ID, versioned trigger identifier, schema-bound payload, and event time. Bind the publisher to the authenticated Provider instance and active SFP session; do not add a generic target, source, or resource identity to the envelope. Trigger-specific source/resource identity, when required, belongs in the declared trigger payload schema. - Specify field ownership, presence/defaults, schema validation, limits, ordering, and canonical content equality. A retransmission keeps the same ID and semantic content; ID reuse with different content is a conflict. - Define ACCEPTED_NEW, ACCEPTED_DUPLICATE, and REJECTED acknowledgements, rejection reasons, correlation, retryability, and stream termination/backpressure. Separate event-delivery identity from any later policy-run identity. - ACCEPTED_NEW means the Agent durably assumed delivery responsibility before acknowledging. How the Agent satisfies that responsibility locally or later hands work downstream is outside P3 and is not exposed to the Provider. Losing an acknowledgement permits replay, not a second logical publication. - State retention/replay limitations explicitly, including reconnect and optional Provider persistence. Do not promise exactly-once business execution from delivery deduplication.  ## Acceptance evidence  Ship versioned protobuf sources, generated bindings, contract documentation, and reusable valid/invalid fixtures. Cover serialization, authenticated service/session identity, unknown or undeclared trigger IDs, invalid payload/envelope/session, duplicate versus conflicting content, lost-ack replay, bounded messages, acknowledgement correlation, and the absence of generic target/source/resource fields. Describe independent Agent/Provider implementation behavior without implementing either runtime.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP transport, Control Plane mapping, policy evaluation, trigger-to-component inference, or mandatory persistent Provider database.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1` | `COMPLETED` | [Issue #17](https://github.com/stateforge-org/stateforge-protocol/issues/17) · [Pull Request #23](https://github.com/stateforge-org/stateforge-protocol/pull/23) |
 | `P4` | `protocol` | **[TASK][MVP] Define Operation Admission and Idempotency Contract**<br>## Outcome and ownership  Define the Protocol-only generic operation-admission contract. Any manifest-declared operation may be invoked; backup/DR are explicit profiles, not a closed list of transport commands. See `docs/procedures/operation-admission.md` and the SFP admission specification.  ## Required behavior  - Define an immutable invocation: Agent-assigned operation ID before contact, versioned operation identifier, normalized target, validated payload, deadline, pinned schema/profile context where applicable, and execution context. Specify field ownership, presence, limits, and current-session validation. - Define the canonical fingerprint projection and golden vectors. Distinguish semantic invocation fields from transport/session fields so reconnecting does not turn an identical retry into a different execution. - Admission is atomic before author/vendor behavior starts. A new ID creates one record and dispatch; matching ID/fingerprint resolves the existing state/result; the same ID with different content conflicts. Concurrent duplicate submissions must not dispatch twice. - Keep ACCEPTED_NEW and RESOLVED_EXISTING as successful admission dispositions. Invalid, undeclared, incompatible, busy, or conflicting requests use specified gRPC statuses and structured reasons; rejection creates no accepted record. - Define deadline boundaries, retry guidance, and externally observable retention/expiry behavior. Lost responses can be resolved with the same immutable request while state is retained; lost/expired admitted state is unresolved, not permission for automatic redispatch. A genuinely new authorized attempt needs a new ID. - Separate SFP delivery idempotency from the underlying action's business idempotency. Do not add execution metadata by silently changing P1 schema 1.  ## Acceptance evidence  Ship versioned sources/bindings, explicit status/reason tables, fingerprints, and contract fixtures covering defaults, invalid IDs/payloads, unknown operations, equivalent retry, changed target/payload/context, concurrent duplicate semantics, deadline-before-admission, replay of terminal records, and retention/state-loss boundaries. Contract tests do not implement a registry.  ## Non-goals  No Provider scheduler, Agent dispatch implementation, universal persistent registry, automatic retry of indeterminate side effects, arbitrary shell execution, SF-AOP, or policy engine.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1`, `P2` | `COMPLETED` | [Issue #16](https://github.com/stateforge-org/stateforge-protocol/issues/16) · [Pull Request #20](https://github.com/stateforge-org/stateforge-protocol/pull/20) |
-| `P5` | `protocol` | **[TASK][MVP] Define Operation Progress Results and Cancellation Contract**<br>## Outcome and ownership  Define generic operation observation, terminal outcomes, and cancellation in Protocol, building on P4. See `docs/procedures/progress-results-cancellation.md` and the SFP lifecycle specification.  ## Required behavior  - Specify ACCEPTED, RUNNING, CANCELLATION_REQUESTED, SUCCEEDED, FAILED, and CANCELLED, their legal transitions, presence rules, and the difference between wire status and operation outcome. - Observation attaches only to an already admitted operation; it never dispatches work. Replay current state/latest retained progress immediately and the immutable result when terminal. - Define per-operation monotonic sequence/cursor semantics, bounded retention and coalescing, gap handling, reconnect behavior, and slow-observer backpressure. Do not promise unlimited history; never discard a terminal result while its record is retained. - Success contains a schema-valid typed result. Failure contains structured, sanitized reasons and relevant partial-side-effect/cleanup metadata without secrets or remote tracebacks. Define invalid author-result handling. - Specify cancellation accepted/requested, unsupported, and already-terminal outcomes. CANCELLED means execution actually stopped, not that a request arrived. The first terminal outcome wins a completion/cancellation race and remains immutable. - Cancelling a Watch or losing transport does not cancel business execution. Cancellation is operation-scoped; it must not terminate the shared Provider process or unrelated streams. An RPC deadline is not proof that side effects stopped.  ## Acceptance evidence  Ship schemas/bindings, transition and error tables, and fixtures/tests for initial/late Watch, sequence replay/gaps, terminal immutability, result-schema errors, failure metadata, cancellation races, unsupported cancellation, unknown IDs, and stream termination. Document what is retained versus indeterminate.  ## Non-goals  No runtime task manager, full event-log service, process-kill cancellation, backup-specific transport command, or invented Control Plane response to uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4` | `PENDING` | [Issue #21](https://github.com/stateforge-org/stateforge-protocol/issues/21) |
-| `P8` | `protocol` | **[TASK][MVP] Define SFP Disconnection Recovery Contracts**<br>## Outcome and ownership  Complete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.  ## Required behavior  - Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority. - Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry. - A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger. - Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID. - Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries. - Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.  ## Acceptance evidence  Contract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.  ## Non-goals  No runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P5` | `BLOCKED` | — |
+| `P5` | `protocol` | **[TASK][MVP] Define Operation Progress Results and Cancellation Contract**<br>## Outcome and ownership  Define generic operation observation, terminal outcomes, and cancellation in Protocol, building on P4. See `docs/procedures/progress-results-cancellation.md` and the SFP lifecycle specification.  ## Required behavior  - Specify ACCEPTED, RUNNING, CANCELLATION_REQUESTED, SUCCEEDED, FAILED, and CANCELLED, their legal transitions, presence rules, and the difference between wire status and operation outcome. - Observation attaches only to an already admitted operation; it never dispatches work. Replay current state/latest retained progress immediately and the immutable result when terminal. - Define per-operation monotonic sequence/cursor semantics, bounded retention and coalescing, gap handling, reconnect behavior, and slow-observer backpressure. Do not promise unlimited history; never discard a terminal result while its record is retained. - Success contains a schema-valid typed result. Failure contains structured, sanitized reasons and relevant partial-side-effect/cleanup metadata without secrets or remote tracebacks. Define invalid author-result handling. - Specify cancellation accepted/requested, unsupported, and already-terminal outcomes. CANCELLED means execution actually stopped, not that a request arrived. The first terminal outcome wins a completion/cancellation race and remains immutable. - Cancelling a Watch or losing transport does not cancel business execution. Cancellation is operation-scoped; it must not terminate the shared Provider process or unrelated streams. An RPC deadline is not proof that side effects stopped.  ## Acceptance evidence  Ship schemas/bindings, transition and error tables, and fixtures/tests for initial/late Watch, sequence replay/gaps, terminal immutability, result-schema errors, failure metadata, cancellation races, unsupported cancellation, unknown IDs, and stream termination. Document what is retained versus indeterminate.  ## Non-goals  No runtime task manager, full event-log service, process-kill cancellation, backup-specific transport command, or invented Control Plane response to uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4` | `COMPLETED` | [Issue #21](https://github.com/stateforge-org/stateforge-protocol/issues/21) · [Pull Request #22](https://github.com/stateforge-org/stateforge-protocol/pull/22) |
+| `P8` | `protocol` | **[TASK][MVP] Define SFP Disconnection Recovery Contracts**<br>## Outcome and ownership  Complete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.  ## Required behavior  - Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority. - Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry. - A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger. - Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID. - Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries. - Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.  ## Acceptance evidence  Contract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.  ## Non-goals  No runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P5` | `READY` | — |
 | `P9` | `protocol` | **[TASK][MVP] Verify the Complete SFP Contract Surface**<br>## Outcome and ownership  Verify that the complete local SFP transport and generic-operation contract package can be consumed independently by Agent and Provider developers. This is Protocol integration/conformance work, not business-operation or runtime implementation.  ## Required behavior  - Verify bootstrap, manifest, capability assessment, triggers, generic operation admission, lifecycle/progress/results/cancellation, and reconnect/recovery compose coherently. Identifier ownership, session/generation validation, versioning, error taxonomy, retention, and replay semantics must agree. - Prove SFP transports arbitrary declared operations through their own typed payload/result schemas without interpreting application meaning. Backup preparation, restore, disaster recovery, and BackupEngine behavior are not SFP procedures or Protocol-owned schemas. - Preserve landed bootstrap and manifest contracts. Keep operations as versioned namespaced strings, retain generic `implements` declarations without assigning Protocol-owned backup/DR meaning, and document only the current active contract. - Supply reusable conformance fixtures for ordinary operations, invalid schemas/results, duplicate/conflicting admission, progress/cancellation, trigger replay, channel loss, and state-loss recovery. - Check Buf lint, reproducible generation, generated-source freshness and compatibility. Generated modules must never be hand-edited. Ensure required protobuf/schema fixtures, typing markers, and documentation are included in wheel and sdist. - Verify clean installation/imports and dependency compatibility for supported Python versions/platforms. Separate build tooling from runtime dependencies and build strict documentation.  ## Acceptance evidence  All configured Protocol gates pass, installed-package consumers load every generic SFP service/schema/fixture, and independent Agent/Provider test peers make the same transport, validation, identity, idempotency, and recovery decisions. No fixture requires knowledge of BackupEngine or a predefined backup/DR operation.  ## Non-goals  No Agent/Provider runtime, business-operation catalogue, backup/DR schema, BackupEngine implementation, SF-AOP design, or Control Plane contract.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `P1`, `P2`, `P3`, `P4`, `P5`, `P8` | `BLOCKED` | — |
 | `R0` | `provider` | **[TASK][MVP] Implement Provider Discovery and Handshake Foundation**<br>Publish a ready local endpoint and negotiate one SFP session on the Agent-established channel. | `P0` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-provider-implemntation/pull/2) |
-| `R1` | `provider` | **[TASK][MVP] Implement Provider Manifest Exchange**<br>Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles. | `P1` | `PENDING` | [Issue #3](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/3) |
+| `R1` | `provider` | **[TASK][MVP] Implement Provider Manifest Exchange**<br>Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles. | `P1` | `IN_REVIEW` | [Issue #3](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/3) · [Pull Request #10](https://github.com/stateforge-org/stateforge-provider-implemntation/pull/10) |
 | `R2` | `provider` | **[TASK][MVP] Implement Provider Health and Availability Reporting**<br>## Outcome and ownership  Expose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.  ## Required behavior  - Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior. - Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors. - Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch. - Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability. - Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.  ## Acceptance evidence  Exercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.  ## Non-goals  No Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `R1` | `BLOCKED` | — |
 | `R3` | `provider` | **[TASK][MVP] Implement Provider Capability Assessment**<br>## Outcome and ownership  Implement the locked P2 capability-assessment contract behind a typed, overridable Provider capability hook, compatible with R1 manifest declarations and R2 readiness. P2's issued requirements remain unchanged.  ## Required behavior  - Validate negotiated session/generation, target kind, requested versioned operation IDs, configuration/execution context, payload limits, and current declarations before invoking author code. - Perform only bounded read-only inspection. Return the contract's normalized SUPPORTED, SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED, or INDETERMINATE findings and correlation identity, with explicit reasons/requirements for each requested operation as the landed contract permits. - Preserve the difference between declared support, runtime/target compatibility, temporary unavailability, and proven satisfaction of prerequisites. Unknown requirements or a manifest declaration alone are not evidence of support. - Keep capability findings operation-generic: never add or echo backup-preparation result variants, storage-tool choices, or other operation-specific result fields. Profile conformance belongs to the declared versioned operation schemas and later admission/execution paths. Keep target-specific business inspection in author code; the runtime never assigns logical StateForge component IDs. - Negative assessment is a valid domain result, not automatically an RPC failure. Invalid protocol input and hook/transport failures follow P2's error mapping; sanitize remote diagnostics and honor finite deadlines/cancellation of the read. - Reuse the Provider framework and existing schema/model facilities. Do not independently reinterpret or redesign P2 while implementing its consumer.  ## Acceptance evidence  Cover generic and profile-related assessment, all support statuses, conditional/unknown requirements, undeclared IDs/kinds, malformed context, correlation, stale session, hook exception/deadline, absence of operation-specific result fields, and absence of target mutation. Verify public hook documentation and configured gates.  ## Non-goals  No operation dispatch, target mutation, mandatory persistence, Agent/Control Plane mapping, policy evaluation, or universal vendor-version evaluator.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P2`, `R1`, `R2` | `BLOCKED` | — |
 | `R4` | `provider` | **[TASK][MVP] Implement Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Implement P3 Provider publication with a simple typed author-facing trigger API on the existing Provider framework. The runtime owns envelopes, stream adaptation, acknowledgement, and retries.  ## Required behavior  - Publish only manifest-declared versioned trigger IDs and schema-valid payloads. Derive authenticated installation/session identity internally. Do not accept a generic target, source, or resource identity; any trigger-specific resource/source information is ordinary schema-validated payload data. - Allocate/preserve stable publication identity and canonical semantic content. Keep bounded pending state until accepted/rejected, correlate acknowledgements, handle new/duplicate/rejected dispositions, and surface rejection safely to authors. - Lost acknowledgements and transient streams replay the original ID/content with bounded backoff/backpressure. Conflicting content under one ID is never silently accepted. Stop retrying non-retryable rejection as defined by P3. - Respect startup/shutdown, generation/session fencing, deadlines and pending-queue limits without blocking unrelated channel services. Document queue-full and disconnected publication behavior. - Baseline pending state may be in memory. Provider-controlled persistence is optional; document what a process crash can lose rather than promising durable delivery from stable installation identity alone. - Keep generated messages, gRPC streams, canonical envelope construction and secret redaction private. A trigger does not by itself prove a policy ran or a backup completed.  ## Acceptance evidence  Test public publication and real stream transport, payload/ID rejection, accepted new/duplicate, lost-ack replay, content conflict, rejection retryability, bounded queue, disconnect/reconnect, optional-state limitations, shutdown, and the absence of generic source/target parameters. No human-facing author example requires protobuf or session/generation management.  ## Non-goals  No generic target/source/resource abstraction, Control Plane connection, policy executor, StateForge binding assignment, mandatory persistent Provider event log, or backup-only trigger taxonomy.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `R1`, `R2` | `BLOCKED` | — |
@@ -499,6 +699,264 @@ STATEFORGE_DPT_MANIFEST -->
 | `A10` | `agent` | **[TASK][MVP] Integrate Agent Backup and Restore Orchestration**<br>## Outcome and ownership  Compose Agent-owned BackupEngine work with optional ordinary Provider operations. The Agent performs physical backup/restore; Providers only execute explicitly configured generic operations through SFP.  ## Required behavior  - Implement a local orchestration boundary that can create an engine backup from an authorized source and restore it to an authorized destination without requiring any Provider-native backup or restore feature. - Allow workflow configuration to invoke an ordinary declared Provider operation before backup, after backup, before restore, or after restore when the managed system needs quiesce, export, resume, import, reload, reconstruction, or verification behavior. - Send those calls through normal P4/P5 operation admission/lifecycle using each operation's own identifier and typed payload/result schema. The Agent and SFP must not recognize a predefined backup/DR role, operation name, payload, or result. - When configured, allocate an A7 workspace and place its authorized path and operation-specific data in the ordinary operation payload. The Agent already owns the path; it does not discover a standardized backup source from the Provider response. - Keep BackupEngine handles, repository credentials, physical storage results, and integrity checks inside the Agent. Validate restored data before any configured Provider post-restore operation and retain staging until all consumers release it. - Preserve immutable invocation identity, cancellation, deadlines, partial effects, and indeterminate outcomes. Do not automatically repeat a Provider operation or engine action after an ambiguous result.  ## Acceptance evidence  Test an engine-only create/restore flow for an entity with no native backup API; a prepare-operation-to-engine-create flow; and an engine-restore-to-ordinary-Provider-operation flow. Cover corrupt data, operation rejection/failure, engine failure, cancellation, lost results, workspace lifetime, cleanup, credential isolation, and no duplicated side effects.  ## Non-goals  No Protocol backup/DR contract, Provider compliance layer, hard-coded operation catalogue, vendor-specific Agent code, Control Plane policy selection/Snapshot coordinator, or automatic retry after uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed generic SFP contracts and repository boundaries. Choose orchestration interfaces from current Agent patterns so later SF-AOP/Control Plane plans can authorize the same local actions without redefining SFP. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A6`, `A9`, `R6` | `BLOCKED` | — |
 | `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  ## Acceptance evidence  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A4`, `A6`, `P8`, `R9` | `BLOCKED` | — |
 | `A12` | `agent` | **[TASK][MVP] Verify the Complete Local Agent and Provider Runtime**<br>## Outcome and ownership  Verify the complete local Agent/Provider foundation using separate real processes plus an installed BackupEngine/Restic plugin. Prove generic SFP and Agent-owned backup tooling compose without adding backup semantics to the Protocol or Provider runtime.  ## Required behavior  - Exercise discovery/identity/handshake, manifest validation/revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint. - Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Provider knowledge of BackupEngine. - Exercise an engine-only physical backup/restore for an entity with no native backup API. Also exercise an optional ordinary Provider preparation operation before engine create and an optional ordinary Provider consume/reload operation after engine restore. - Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, corrupt storage, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects. - Verify local backup identity/provenance, engine integrity evidence, operation evidence, and workspace ownership remain distinct and available through clean internal coordination boundaries. Do not claim local physical backups are already coordinated Control Plane Snapshots. - Build and clean-install involved distributions, verify packaged contracts/typing/plugin resources/public docs, and pass all applicable gates on the supported runtime/platform matrix.  ## Acceptance evidence  A repeatable automated real-process matrix proves generic SFP interoperability, engine-only backup/restore, optional Provider-operation choreography, credential isolation, and honest recovery from uncertainty. Record the local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.  ## Non-goals  No SF-AOP/Control Plane implementation, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, production policy engine, or broad architecture migration.  ## Compatibility, discretion, and delivery  Preserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A10`, `A11`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `A8`, `A9`, `P9`, `R10` | `BLOCKED` | — |
+
+## Milestone context contracts
+
+### `P0` — [TASK][MVP] Define SFP Handshake and Version Negotiation
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `agent/tests` | `must_understand` | `canonical` | Yes | Read all tests |
+| `agent/src/stateforge_agent/_sfp/session.py` | `must_understand` | `canonical` | Yes | This is the seesion |
+
+#### Verification contract
+
+- **test** · `agent` · `test` — test
+
+### `P1` — [TASK][MVP] Define Provider Manifest Exchange Contract
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+- **test** · `agent` · `ls -al` — Listing of files
+
+### `P2` — [TASK][MVP] Define Capability Assessment Contract
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `P3` — [TASK][MVP] Define Trigger Publication and Acknowledgement Contract
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `P4` — [TASK][MVP] Define Operation Admission and Idempotency Contract
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `P5` — [TASK][MVP] Define Operation Progress Results and Cancellation Contract
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `P8` — [TASK][MVP] Define SFP Disconnection Recovery Contracts
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `P9` — [TASK][MVP] Verify the Complete SFP Contract Surface
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R0` — [TASK][MVP] Implement Provider Discovery and Handshake Foundation
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R1` — [TASK][MVP] Implement Provider Manifest Exchange
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `provider/docs` | `expected_to_change` | `canonical` | Yes | Update docs respectfully to the change. |
+| `provider/pyproject.toml` | `expected_to_change` | `canonical` | Yes | Dependencies probably. |
+| `provider/src/stateforge_rpc` | `expected_to_change` | `canonical` | Yes | Where implementation would live. |
+| `protocol/proto/stateforge_protocol/sfp/manifest` | `must_understand` | `canonical` | Yes | Manifest exchange protocol buffers. |
+| `protocol/docs/assets/diagrams/provider-manifest-exchange.png` | `must_understand` | `canonical` | Yes | Manifest change diagram. |
+| `protocol/src/stateforge_protocol/sfp/manifest` | `must_understand` | `canonical` | Yes | Generate protobuf python binding. |
+| `protocol/docs/procedures/provider-manifest.md` | `must_understand` | `canonical` | Yes | Manifest exchange docs. |
+
+#### Verification contract
+
+- **human** · `provider` · `Review passed?` — Human In The loop involved.
+
+### `R2` — [TASK][MVP] Implement Provider Health and Availability Reporting
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R3` — [TASK][MVP] Implement Provider Capability Assessment
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R4` — [TASK][MVP] Implement Trigger Publication and Acknowledgement
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R5` — [TASK][MVP] Implement Operation Admission and Idempotency
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R6` — [TASK][MVP] Implement Operation Progress Results and Cancellation
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R9` — [TASK][MVP] Complete Provider Disconnection and Recovery
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R10` — [TASK][MVP] Verify the Complete Provider Runtime
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A0` — [TASK][MVP] Implement SFP Discovery and Handshake Foundation
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A1` — [TASK][MVP] Integrate Provider Manifest Exchange
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A2` — [TASK][MVP] Integrate Provider Health and Availability Monitoring
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A3` — [TASK][MVP] Integrate Provider Capability Assessment
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A4` — [TASK][MVP] Integrate Trigger Publication and Acknowledgement
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A5` — [TASK][MVP] Integrate Operation Admission and Idempotency
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A6` — [TASK][MVP] Integrate Operation Progress Results and Cancellation
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A7` — [TASK][MVP] Implement Agent-Managed Backup Workspaces
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A8` — [TASK][MVP] Implement the BackupEngine Extension Layer
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A9` — [TASK][MVP] Implement ResticBackupEngine
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A10` — [TASK][MVP] Integrate Agent Backup and Restore Orchestration
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A11` — [TASK][MVP] Complete SFP Disconnection and Recovery
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `A12` — [TASK][MVP] Verify the Complete Local Agent and Provider Runtime
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
 
 ## Delivery rules
 
