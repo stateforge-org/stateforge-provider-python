@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "181274564f614cba1b0f82dfc13f1e30030610c8c7b12881e99413d421f525ee",
+  "fingerprint": "4f91880b2613b6b4de5542482586e3e50c6b2a76a8fa0f5d93d18297e6f58417",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 16,
+      "revision": 17,
       "slug": "stateforge"
     },
     "repositories": [
@@ -164,7 +164,68 @@
       },
       {
         "branch_name": "mvp/sfp-reconciliation",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-450019cb-61fe-45e6-a972-a030e932234f",
+            "explanation": "Skills needed to edit this repository.",
+            "path": ".agents/skills",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-f87daf23-1ae4-425b-b6f1-70d662d383ec",
+            "explanation": "Skills needed to edit this repository.",
+            "path": ".claude/skills",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-b93094f3-4c92-4f8d-93d0-4240aacd41ff",
+            "explanation": "Disconnect recovery diagram.",
+            "path": "docs/assets/diagrams/disconnection-and-recovery.png",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-2518c59d-68fa-48ed-b9aa-57e59e7fc40d",
+            "explanation": "Initial documentation regarding Disconnect recovery procedure.",
+            "path": "docs/procedures/disconnection-recovery.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-74b54252-554f-46b2-a246-7f5d27e50f3c",
+            "explanation": "Explanation for agents for how to edit this repository.",
+            "path": "AGENTS.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          }
+        ],
         "depends_on": [
           "P3",
           "P5"
@@ -175,7 +236,17 @@
         "sort_order": 9,
         "step_id": "P8",
         "title": "[TASK][MVP] Define SFP Disconnection Recovery Contracts",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Human In The Loop.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 0,
+            "target": "GitHub Review",
+            "verification_id": "verify-a5664633-3e89-4794-a1b8-f7410ef8e647"
+          }
+        ]
       },
       {
         "branch_name": "mvp/sfp-contract-verification",
@@ -321,7 +392,68 @@
       },
       {
         "branch_name": "mvp/provider-health-monitoring",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-4be49a9a-b3e2-45e8-b27c-a3e079e8d691",
+            "explanation": "Health procedure diagram.",
+            "path": "docs/assets/diagrams/health-and-availability-monitoring.png",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-84a63d0e-b6b5-4dbb-9d5e-5fedd9a64755",
+            "explanation": "Initial description of the health and availability monitoring procedures.",
+            "path": "docs/procedures/health.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-bb12e6b0-70a3-4d23-a8e5-587814c09880",
+            "explanation": "Skills needed to modify this project.",
+            "path": ".claude/skills",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-def817b4-d231-4b35-bee1-76663537df6b",
+            "explanation": "Skill that explains DPT.",
+            "path": ".agents/skills/stateforge-dpt-milestone",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-6cbec76b-8efe-4a5f-8eb9-33866e019e9e",
+            "explanation": "Explanation toward agents before editing this repository.",
+            "path": "AGENTS.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          }
+        ],
         "depends_on": [
           "R1"
         ],
@@ -331,7 +463,17 @@
         "sort_order": 13,
         "step_id": "R2",
         "title": "[TASK][MVP] Implement Provider Health and Availability Reporting",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Human In The Loop.",
+            "kind": "human",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 0,
+            "target": "GitHub review",
+            "verification_id": "verify-d56fcae2-d0ce-4be7-a0a5-90ff033bc2ff"
+          }
+        ]
       },
       {
         "branch_name": "mvp/capability-assessment",
@@ -448,7 +590,92 @@
       },
       {
         "branch_name": "mvp/provider-manifest-exchange",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-5583dd08-aa31-42d1-a092-d91ae466ade8",
+            "explanation": "Protocol description",
+            "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-43ee22b2-5164-4488-9034-dd0260894422",
+            "explanation": "Provider implementation ",
+            "path": "src/stateforge_rpc/_services/manifest",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-dfe9cef5-5e3f-43ad-8878-3dcc443de1f4",
+            "explanation": "Skills to edit this repo",
+            "path": ".claude",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-51c98175-9c2d-4e6f-b151-4d1904f3a31d",
+            "explanation": "Skills to edit this repo",
+            "path": ".agents",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-75ebaead-6ef9-44ae-be7b-a612317c74ce",
+            "explanation": "Agent instructions.",
+            "path": "AGENTS.md",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-4d3d6ac6-08b5-4350-92c4-28444dd4e749",
+            "explanation": "Manifest exchange protocol description",
+            "path": "docs/procedures/provider-manifest.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 5
+          },
+          {
+            "authority": "canonical",
+            "context_id": "context-b3527042-a290-4af4-9821-17c3855720d1",
+            "explanation": "Manifest exchange diagram",
+            "path": "docs/assets/diagrams/provider-manifest-exchange.png",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 6
+          }
+        ],
         "depends_on": [
           "P1",
           "R1"
@@ -459,7 +686,17 @@
         "sort_order": 23,
         "step_id": "A1",
         "title": "[TASK][MVP] Integrate Provider Manifest Exchange",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Human In The Loop",
+            "kind": "human",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 0,
+            "target": "GitHub Review",
+            "verification_id": "verify-2a9b7867-6697-4ba1-85b5-700698a5d04c"
+          }
+        ]
       },
       {
         "branch_name": "mvp/provider-health-monitoring",
@@ -655,7 +892,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 16
+**Revision:** 17
 
 ## Repositories
 
@@ -675,11 +912,11 @@ STATEFORGE_DPT_MANIFEST -->
 | `P3` | `protocol` | **[TASK][MVP] Define Trigger Publication and Acknowledgement Contract**<br>## Outcome and ownership  Define the Protocol-only SFP contract for Provider-originated, manifest-declared trigger publication and acknowledgements on an Agent-initiated bidirectional stream over the existing channel. See `docs/procedures/triggers.md` and the SFP Trigger Publication and Acknowledgement specification.  ## Required behavior  - Define a bounded envelope with stable publication ID, versioned trigger identifier, schema-bound payload, and event time. Bind the publisher to the authenticated Provider instance and active SFP session; do not add a generic target, source, or resource identity to the envelope. Trigger-specific source/resource identity, when required, belongs in the declared trigger payload schema. - Specify field ownership, presence/defaults, schema validation, limits, ordering, and canonical content equality. A retransmission keeps the same ID and semantic content; ID reuse with different content is a conflict. - Define ACCEPTED_NEW, ACCEPTED_DUPLICATE, and REJECTED acknowledgements, rejection reasons, correlation, retryability, and stream termination/backpressure. Separate event-delivery identity from any later policy-run identity. - ACCEPTED_NEW means the Agent durably assumed delivery responsibility before acknowledging. How the Agent satisfies that responsibility locally or later hands work downstream is outside P3 and is not exposed to the Provider. Losing an acknowledgement permits replay, not a second logical publication. - State retention/replay limitations explicitly, including reconnect and optional Provider persistence. Do not promise exactly-once business execution from delivery deduplication.  ## Acceptance evidence  Ship versioned protobuf sources, generated bindings, contract documentation, and reusable valid/invalid fixtures. Cover serialization, authenticated service/session identity, unknown or undeclared trigger IDs, invalid payload/envelope/session, duplicate versus conflicting content, lost-ack replay, bounded messages, acknowledgement correlation, and the absence of generic target/source/resource fields. Describe independent Agent/Provider implementation behavior without implementing either runtime.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP transport, Control Plane mapping, policy evaluation, trigger-to-component inference, or mandatory persistent Provider database.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1` | `COMPLETED` | [Issue #17](https://github.com/stateforge-org/stateforge-protocol/issues/17) · [Pull Request #23](https://github.com/stateforge-org/stateforge-protocol/pull/23) |
 | `P4` | `protocol` | **[TASK][MVP] Define Operation Admission and Idempotency Contract**<br>## Outcome and ownership  Define the Protocol-only generic operation-admission contract. Any manifest-declared operation may be invoked; backup/DR are explicit profiles, not a closed list of transport commands. See `docs/procedures/operation-admission.md` and the SFP admission specification.  ## Required behavior  - Define an immutable invocation: Agent-assigned operation ID before contact, versioned operation identifier, normalized target, validated payload, deadline, pinned schema/profile context where applicable, and execution context. Specify field ownership, presence, limits, and current-session validation. - Define the canonical fingerprint projection and golden vectors. Distinguish semantic invocation fields from transport/session fields so reconnecting does not turn an identical retry into a different execution. - Admission is atomic before author/vendor behavior starts. A new ID creates one record and dispatch; matching ID/fingerprint resolves the existing state/result; the same ID with different content conflicts. Concurrent duplicate submissions must not dispatch twice. - Keep ACCEPTED_NEW and RESOLVED_EXISTING as successful admission dispositions. Invalid, undeclared, incompatible, busy, or conflicting requests use specified gRPC statuses and structured reasons; rejection creates no accepted record. - Define deadline boundaries, retry guidance, and externally observable retention/expiry behavior. Lost responses can be resolved with the same immutable request while state is retained; lost/expired admitted state is unresolved, not permission for automatic redispatch. A genuinely new authorized attempt needs a new ID. - Separate SFP delivery idempotency from the underlying action's business idempotency. Do not add execution metadata by silently changing P1 schema 1.  ## Acceptance evidence  Ship versioned sources/bindings, explicit status/reason tables, fingerprints, and contract fixtures covering defaults, invalid IDs/payloads, unknown operations, equivalent retry, changed target/payload/context, concurrent duplicate semantics, deadline-before-admission, replay of terminal records, and retention/state-loss boundaries. Contract tests do not implement a registry.  ## Non-goals  No Provider scheduler, Agent dispatch implementation, universal persistent registry, automatic retry of indeterminate side effects, arbitrary shell execution, SF-AOP, or policy engine.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1`, `P2` | `COMPLETED` | [Issue #16](https://github.com/stateforge-org/stateforge-protocol/issues/16) · [Pull Request #20](https://github.com/stateforge-org/stateforge-protocol/pull/20) |
 | `P5` | `protocol` | **[TASK][MVP] Define Operation Progress Results and Cancellation Contract**<br>## Outcome and ownership  Define generic operation observation, terminal outcomes, and cancellation in Protocol, building on P4. See `docs/procedures/progress-results-cancellation.md` and the SFP lifecycle specification.  ## Required behavior  - Specify ACCEPTED, RUNNING, CANCELLATION_REQUESTED, SUCCEEDED, FAILED, and CANCELLED, their legal transitions, presence rules, and the difference between wire status and operation outcome. - Observation attaches only to an already admitted operation; it never dispatches work. Replay current state/latest retained progress immediately and the immutable result when terminal. - Define per-operation monotonic sequence/cursor semantics, bounded retention and coalescing, gap handling, reconnect behavior, and slow-observer backpressure. Do not promise unlimited history; never discard a terminal result while its record is retained. - Success contains a schema-valid typed result. Failure contains structured, sanitized reasons and relevant partial-side-effect/cleanup metadata without secrets or remote tracebacks. Define invalid author-result handling. - Specify cancellation accepted/requested, unsupported, and already-terminal outcomes. CANCELLED means execution actually stopped, not that a request arrived. The first terminal outcome wins a completion/cancellation race and remains immutable. - Cancelling a Watch or losing transport does not cancel business execution. Cancellation is operation-scoped; it must not terminate the shared Provider process or unrelated streams. An RPC deadline is not proof that side effects stopped.  ## Acceptance evidence  Ship schemas/bindings, transition and error tables, and fixtures/tests for initial/late Watch, sequence replay/gaps, terminal immutability, result-schema errors, failure metadata, cancellation races, unsupported cancellation, unknown IDs, and stream termination. Document what is retained versus indeterminate.  ## Non-goals  No runtime task manager, full event-log service, process-kill cancellation, backup-specific transport command, or invented Control Plane response to uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4` | `COMPLETED` | [Issue #21](https://github.com/stateforge-org/stateforge-protocol/issues/21) · [Pull Request #22](https://github.com/stateforge-org/stateforge-protocol/pull/22) |
-| `P8` | `protocol` | **[TASK][MVP] Define SFP Disconnection Recovery Contracts**<br>## Outcome and ownership  Complete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.  ## Required behavior  - Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority. - Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry. - A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger. - Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID. - Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries. - Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.  ## Acceptance evidence  Contract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.  ## Non-goals  No runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P5` | `READY` | — |
+| `P8` | `protocol` | **[TASK][MVP] Define SFP Disconnection Recovery Contracts**<br>## Outcome and ownership  Complete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.  ## Required behavior  - Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority. - Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry. - A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger. - Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID. - Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries. - Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.  ## Acceptance evidence  Contract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.  ## Non-goals  No runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P5` | `PENDING` | [Issue #26](https://github.com/stateforge-org/stateforge-protocol/issues/26) |
 | `P9` | `protocol` | **[TASK][MVP] Verify the Complete SFP Contract Surface**<br>## Outcome and ownership  Verify that the complete local SFP transport and generic-operation contract package can be consumed independently by Agent and Provider developers. This is Protocol integration/conformance work, not business-operation or runtime implementation.  ## Required behavior  - Verify bootstrap, manifest, capability assessment, triggers, generic operation admission, lifecycle/progress/results/cancellation, and reconnect/recovery compose coherently. Identifier ownership, session/generation validation, versioning, error taxonomy, retention, and replay semantics must agree. - Prove SFP transports arbitrary declared operations through their own typed payload/result schemas without interpreting application meaning. Backup preparation, restore, disaster recovery, and BackupEngine behavior are not SFP procedures or Protocol-owned schemas. - Preserve landed bootstrap and manifest contracts. Keep operations as versioned namespaced strings, retain generic `implements` declarations without assigning Protocol-owned backup/DR meaning, and document only the current active contract. - Supply reusable conformance fixtures for ordinary operations, invalid schemas/results, duplicate/conflicting admission, progress/cancellation, trigger replay, channel loss, and state-loss recovery. - Check Buf lint, reproducible generation, generated-source freshness and compatibility. Generated modules must never be hand-edited. Ensure required protobuf/schema fixtures, typing markers, and documentation are included in wheel and sdist. - Verify clean installation/imports and dependency compatibility for supported Python versions/platforms. Separate build tooling from runtime dependencies and build strict documentation.  ## Acceptance evidence  All configured Protocol gates pass, installed-package consumers load every generic SFP service/schema/fixture, and independent Agent/Provider test peers make the same transport, validation, identity, idempotency, and recovery decisions. No fixture requires knowledge of BackupEngine or a predefined backup/DR operation.  ## Non-goals  No Agent/Provider runtime, business-operation catalogue, backup/DR schema, BackupEngine implementation, SF-AOP design, or Control Plane contract.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `P1`, `P2`, `P3`, `P4`, `P5`, `P8` | `BLOCKED` | — |
 | `R0` | `provider` | **[TASK][MVP] Implement Provider Discovery and Handshake Foundation**<br>Publish a ready local endpoint and negotiate one SFP session on the Agent-established channel. | `P0` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-provider-implemntation/pull/2) |
-| `R1` | `provider` | **[TASK][MVP] Implement Provider Manifest Exchange**<br>Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles. | `P1` | `IN_REVIEW` | [Issue #3](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/3) · [Pull Request #10](https://github.com/stateforge-org/stateforge-provider-implemntation/pull/10) |
-| `R2` | `provider` | **[TASK][MVP] Implement Provider Health and Availability Reporting**<br>## Outcome and ownership  Expose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.  ## Required behavior  - Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior. - Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors. - Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch. - Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability. - Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.  ## Acceptance evidence  Exercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.  ## Non-goals  No Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `R1` | `BLOCKED` | — |
+| `R1` | `provider` | **[TASK][MVP] Implement Provider Manifest Exchange**<br>Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles. | `P1` | `COMPLETED` | [Issue #3](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/3) · [Pull Request #10](https://github.com/stateforge-org/stateforge-provider-implemntation/pull/10) |
+| `R2` | `provider` | **[TASK][MVP] Implement Provider Health and Availability Reporting**<br>## Outcome and ownership  Expose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.  ## Required behavior  - Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior. - Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors. - Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch. - Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability. - Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.  ## Acceptance evidence  Exercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.  ## Non-goals  No Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `R1` | `BLOCKED` | [Issue #16](https://github.com/stateforge-org/stateforge-provider-implemntation/issues/16) |
 | `R3` | `provider` | **[TASK][MVP] Implement Provider Capability Assessment**<br>## Outcome and ownership  Implement the locked P2 capability-assessment contract behind a typed, overridable Provider capability hook, compatible with R1 manifest declarations and R2 readiness. P2's issued requirements remain unchanged.  ## Required behavior  - Validate negotiated session/generation, target kind, requested versioned operation IDs, configuration/execution context, payload limits, and current declarations before invoking author code. - Perform only bounded read-only inspection. Return the contract's normalized SUPPORTED, SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED, or INDETERMINATE findings and correlation identity, with explicit reasons/requirements for each requested operation as the landed contract permits. - Preserve the difference between declared support, runtime/target compatibility, temporary unavailability, and proven satisfaction of prerequisites. Unknown requirements or a manifest declaration alone are not evidence of support. - Keep capability findings operation-generic: never add or echo backup-preparation result variants, storage-tool choices, or other operation-specific result fields. Profile conformance belongs to the declared versioned operation schemas and later admission/execution paths. Keep target-specific business inspection in author code; the runtime never assigns logical StateForge component IDs. - Negative assessment is a valid domain result, not automatically an RPC failure. Invalid protocol input and hook/transport failures follow P2's error mapping; sanitize remote diagnostics and honor finite deadlines/cancellation of the read. - Reuse the Provider framework and existing schema/model facilities. Do not independently reinterpret or redesign P2 while implementing its consumer.  ## Acceptance evidence  Cover generic and profile-related assessment, all support statuses, conditional/unknown requirements, undeclared IDs/kinds, malformed context, correlation, stale session, hook exception/deadline, absence of operation-specific result fields, and absence of target mutation. Verify public hook documentation and configured gates.  ## Non-goals  No operation dispatch, target mutation, mandatory persistence, Agent/Control Plane mapping, policy evaluation, or universal vendor-version evaluator.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P2`, `R1`, `R2` | `BLOCKED` | — |
 | `R4` | `provider` | **[TASK][MVP] Implement Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Implement P3 Provider publication with a simple typed author-facing trigger API on the existing Provider framework. The runtime owns envelopes, stream adaptation, acknowledgement, and retries.  ## Required behavior  - Publish only manifest-declared versioned trigger IDs and schema-valid payloads. Derive authenticated installation/session identity internally. Do not accept a generic target, source, or resource identity; any trigger-specific resource/source information is ordinary schema-validated payload data. - Allocate/preserve stable publication identity and canonical semantic content. Keep bounded pending state until accepted/rejected, correlate acknowledgements, handle new/duplicate/rejected dispositions, and surface rejection safely to authors. - Lost acknowledgements and transient streams replay the original ID/content with bounded backoff/backpressure. Conflicting content under one ID is never silently accepted. Stop retrying non-retryable rejection as defined by P3. - Respect startup/shutdown, generation/session fencing, deadlines and pending-queue limits without blocking unrelated channel services. Document queue-full and disconnected publication behavior. - Baseline pending state may be in memory. Provider-controlled persistence is optional; document what a process crash can lose rather than promising durable delivery from stable installation identity alone. - Keep generated messages, gRPC streams, canonical envelope construction and secret redaction private. A trigger does not by itself prove a policy ran or a backup completed.  ## Acceptance evidence  Test public publication and real stream transport, payload/ID rejection, accepted new/duplicate, lost-ack replay, content conflict, rejection retryability, bounded queue, disconnect/reconnect, optional-state limitations, shutdown, and the absence of generic source/target parameters. No human-facing author example requires protobuf or session/generation management.  ## Non-goals  No generic target/source/resource abstraction, Control Plane connection, policy executor, StateForge binding assignment, mandatory persistent Provider event log, or backup-only trigger taxonomy.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `R1`, `R2` | `BLOCKED` | — |
 | `R5` | `provider` | **[TASK][MVP] Implement Operation Admission and Idempotency**<br>## Outcome and ownership  Implement P4 admission and generic typed operation dispatch behind the public Provider framework. Providers can expose arbitrary declared operations; no backup/DR claim is required for ordinary operations.  ## Required behavior  - Provide compatible typed request/result models and async `@operation()` registration on Provider subclasses, reusing R1 facilities. Use landed `namespace/name@major` IDs, not legacy unversioned dotted examples; reject duplicate/invalid declarations and align derived schemas with the manifest. - Keep installation/session/generation, protobuf adaptation, fingerprints and registry management private. Provide a typed OperationContext carrying operation identity, deadline and approved execution context; extend it for P5 lifecycle in R6. - Validate active session, R2 readiness, declared operation/target and input schema before author behavior. Use P4's canonical fingerprint and atomic admission record before dispatch. Matching concurrent retries resolve one execution; changed content conflicts. - Return P4's successful dispositions and rejection statuses/reasons. Busy/invalid/deadline-before-admission requests create no accepted record. Terminal IDs are not repurposed; document bounded retention/expiry and lost-state limitations. - Default accepted-operation state is in memory; optional stronger persistence remains Provider-controlled. Delivery deduplication does not guarantee the vendor action is idempotent or justify retry after a process lost admitted state. - Validate author outputs and sanitize exceptions using the established lifecycle/error boundary; do not opportunistically implement full progress/Watch/cancellation or backup profiles in this step.  ## Acceptance evidence  Cover a typed non-backup operation, schema derivation, duplicate registrations, invalid requests, readiness rejection, concurrency, identical lost-response retry, changed content, terminal replay/ID immutability, deadlines, safe exceptions, and expiry. Prove author examples require no gRPC/protobuf plumbing and dispatch occurs once per accepted identity.  ## Non-goals  No arbitrary shell-command API, vendor integration, mandatory persistent operation database, backup/DR requirement for generic operations, SF-AOP, or policy-run scheduling.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4`, `R2`, `R3` | `BLOCKED` | — |
@@ -687,7 +924,7 @@ STATEFORGE_DPT_MANIFEST -->
 | `R9` | `provider` | **[TASK][MVP] Complete Provider Disconnection and Recovery**<br>## Outcome and ownership  Implement P8 Provider reconnect/state-reconciliation behavior by composing existing runtime identity, manifest, health, trigger and operation facilities.  ## Required behavior  - Separate channel loss from process death: accepted work may continue while the server process survives. Rebind new channels to validated handshake/session/generation before serving operational state. - Retain current operations/terminal results and pending trigger IDs/content for their documented in-process retention; replay existing state/results/acknowledgement work without redispatching author operations. - Keep installation identity/generation storage independent from execution persistence. Baseline process restart may lose operation/trigger state; optional Provider persistence may recover only verifiable records. - Return the contract's explicit indeterminate/lost/expired outcome for unresolved admitted identities. Never manufacture FAILED/SUCCEEDED, silently create a new record for reconciliation, or claim executions belonging to a replaced instance. - Fence stale sessions/watchers/acknowledgements, respect cursor gaps and backpressure, and coordinate bounded shutdown/restart. Remove only descriptor/socket/resources owned by the current generation. - Document exactly what survives transport interruption versus process restart and how callers detect limitations. Business/operator remediation belongs above SFP, not in the generic runtime.  ## Acceptance evidence  Cross-process scenarios cover lost admission reply, ongoing execution during transport loss, terminal replay, pending-trigger replay, generation replacement, stable-installation restart with state loss, new-instance replacement, stale stream responses, retention expiry, and supported optional persistence. Prove no author redispatch on reconciliation.  ## Non-goals  No mandatory persistent Provider registry, Agent reconnect manager, Control Plane remediation, automatic re-execution, or broader process-supervision redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P8`, `R4`, `R6` | `BLOCKED` | — |
 | `R10` | `provider` | **[TASK][MVP] Verify the Complete Provider Runtime**<br>## Outcome and ownership  Verify the generic Provider framework/runtime against an independent Agent-side SFP test peer using installed contracts. The real Agent-daemon integration gate is A12.  ## Required behavior  - Run the reference Provider in a separate process through public `Provider.run()` and `serve()` paths. Exercise discovery/handshake, manifest, standard health, read-only capability assessment, triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect. - Prove Provider authors can expose unrelated namespaced operations with their own request/result models. The runtime must not recognize backup, restore, disaster recovery, BackupEngine, or other business-operation categories. - Exercise concurrent streams/operations and the safety matrix: lost replies/acknowledgements, duplicate/conflicting IDs, invalid author results, cancellation races, slow observers, deadlines, stale generations, restart, and indeterminate state. No scenario may silently redispatch unresolved work. - Verify authored models/decorators, hook lifecycle, schema derivation, generic `implements` declaration transport, and sanitized exceptions. Normal public examples must not require servicers, protobufs, descriptors, instance storage, or generation allocation. - Build wheel/sdist, verify packaged typing/resources and clean installed startup, and pass Ruff, strict mypy, pytest, package, and strict documentation gates. Use reusable Protocol conformance fixtures where available.  ## Acceptance evidence  Automated bounded subprocess coverage and a documented generic SFP coverage matrix. Include multiple unrelated operation schemas and prove the Provider runtime dispatches them without operation-specific branches. Report actual supported operating-system/runtime limits.  ## Non-goals  No production vendor Provider, Agent daemon, Agent workspace, BackupEngine, backup/DR workflow, SF-AOP/Control Plane, or unreviewed public API redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `R2`, `R3`, `R4`, `R5`, `R6`, `R9` | `BLOCKED` | — |
 | `A0` | `agent` | **[TASK][MVP] Implement SFP Discovery and Handshake Foundation**<br>Procedures 1 and 2, daemon lifecycle, channel reuse, and reconnection foundation. | `P0`, `R0` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-agent/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-agent/pull/2) |
-| `A1` | `agent` | **[TASK][MVP] Integrate Provider Manifest Exchange**<br>## Outcome and ownership  Integrate the landed P1/R1 manifest exchange into the Agent's existing session manager/channel. See the Protocol manifest procedure and checked-in schema/revision conformance vector.  ## Required behavior  - Retrieve only after successful handshake with expected installation/generation, finite deadlines, bounded read retry and an explicit supported-schema offer. Accept only an offered/understood version and a complete atomic response. - Enforce current P1 ProtoJSON/schema rules, embedded local-reference validation, size/nesting bounds and safe secret handling. Preserve versioned string IDs, target kinds, role claims, requirements and explicit platform pairs. - Compute the exact schema-1 revision preimage `{manifest, manifestSchemaVersion, providerInstanceId}` using RFC 8785 with ProtoJSON defaults emitted. Exclude generation/revision, not installation identity; do not substitute deterministic protobuf bytes or older DOCX hashing rules. - Cache only validated declarations under installation/SFP version/schema/revision. Reuse an unchanged declaration without merging unvalidated fields, but always check current generation/session. A digest is a change detector, not authentication. - Invalid/incompatible manifest blocks operational use independently of healthy transport. Replace valid changed declarations atomically and invalidate dependent local decisions; stale responses cannot activate a superseded session. - Transport/session connection state is not full operational availability. Compose with the upcoming A2 health gate rather than treating bootstrap success alone as sufficient. Preserve existing connection replacement behavior.  ## Acceptance evidence  Test a real manifest peer, conformance hash, unchanged cache reuse, changed/new-installation revision, complete-response validation, bad header/digest/schema/reference, offered-version mismatch, limits/secrets, stale generation, transport retry and invalid-manifest gating. Ensure no extra channel or vendor-specific interpretation.  ## Non-goals  No modification of locked P1/R1, new schema-1 fields, health implementation, capability/admission dispatch, mandatory inventory redesign, SF-AOP or Control Plane reporting.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1`, `R1` | `BLOCKED` | — |
+| `A1` | `agent` | **[TASK][MVP] Integrate Provider Manifest Exchange**<br>## Outcome and ownership  Integrate the landed P1/R1 manifest exchange into the Agent's existing session manager/channel. See the Protocol manifest procedure and checked-in schema/revision conformance vector.  ## Required behavior  - Retrieve only after successful handshake with expected installation/generation, finite deadlines, bounded read retry and an explicit supported-schema offer. Accept only an offered/understood version and a complete atomic response. - Enforce current P1 ProtoJSON/schema rules, embedded local-reference validation, size/nesting bounds and safe secret handling. Preserve versioned string IDs, target kinds, role claims, requirements and explicit platform pairs. - Compute the exact schema-1 revision preimage `{manifest, manifestSchemaVersion, providerInstanceId}` using RFC 8785 with ProtoJSON defaults emitted. Exclude generation/revision, not installation identity; do not substitute deterministic protobuf bytes or older DOCX hashing rules. - Cache only validated declarations under installation/SFP version/schema/revision. Reuse an unchanged declaration without merging unvalidated fields, but always check current generation/session. A digest is a change detector, not authentication. - Invalid/incompatible manifest blocks operational use independently of healthy transport. Replace valid changed declarations atomically and invalidate dependent local decisions; stale responses cannot activate a superseded session. - Transport/session connection state is not full operational availability. Compose with the upcoming A2 health gate rather than treating bootstrap success alone as sufficient. Preserve existing connection replacement behavior.  ## Acceptance evidence  Test a real manifest peer, conformance hash, unchanged cache reuse, changed/new-installation revision, complete-response validation, bad header/digest/schema/reference, offered-version mismatch, limits/secrets, stale generation, transport retry and invalid-manifest gating. Ensure no extra channel or vendor-specific interpretation.  ## Non-goals  No modification of locked P1/R1, new schema-1 fields, health implementation, capability/admission dispatch, mandatory inventory redesign, SF-AOP or Control Plane reporting.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1`, `R1` | `PENDING` | [Issue #8](https://github.com/stateforge-org/stateforge-agent/issues/8) |
 | `A2` | `agent` | **[TASK][MVP] Integrate Provider Health and Availability Monitoring**<br>## Outcome and ownership  Watch standard `grpc.health.v1` on the current Agent-established Provider channel and maintain coherent local operational eligibility with A1's manifest acceptance.  ## Required behavior  - Watch the proper versioned operational service on the existing channel; Check is diagnostic. Initial/unknown/NOT_SERVING states block new operation admission. - Availability requires current transport, validated handshake/session/generation, compatible valid manifest, and SERVING health. Keep connection state and eligibility distinguishable using existing state boundaries, not parallel unsynchronized ledgers. - On Watch end/failure, mark health unknown/unavailable and stop new admission while reconnect/Watch retry is bounded. Resume only after current-session prerequisites are valid again. - Fence stale Watch updates after generation replacement, manifest rejection or shutdown. Changes affect new-work eligibility, not the truth of already admitted operations or their terminal results. - Expose local status/reasons for diagnostics and later internal consumers without inventing Control Plane reporting. Do not embed vendor-specific health probes.  ## Acceptance evidence  Exercise initial replay, SERVING/NOT_SERVING, unknown service, Watch loss/recovery, invalid manifest despite SERVING, generation replacement/stale update, concurrent channel streams, and shutdown. Verify readiness transitions are coherent and admitted work is not automatically cancelled by health loss.  ## Non-goals  No custom health protobuf, second channel, remote Control Plane status, business-operation retry/cancellation, or wholesale replacement of landed session-management APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `R2` | `BLOCKED` | — |
 | `A3` | `agent` | **[TASK][MVP] Integrate Provider Capability Assessment**<br>## Outcome and ownership  Consume locked P2/R3 capability assessment using only normalized SFP data, A1 declarations and A2 current eligibility. Preserve P2's issued contract/requirements.  ## Required behavior  - Validate current session/generation, declared versioned operation/target kind and bounded request/context before a finite read-only RPC. Reject unsupported declarations locally without assuming vendor knowledge. - Normalize/correlate the contract's per-operation support, requirements, reasons and assessment identity. Preserve SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED and INDETERMINATE distinctions; negative support is a domain finding, not successful eligibility. - A manifest advertises potential support, not current target compatibility or satisfied runtime prerequisites. Unknown requirements remain unresolved; do not infer Backup/DR compliance from operation names, capability findings, or operation-specific result shapes. - Any reusable assessment is bound to the relevant target/context and active declaration/session; invalidate stale decisions when identity/generation/manifest changes. Read-only retry may inspect a newer state and does not authorize business execution. - Surface temporary unavailability, malformed responses, deadline/transport errors and sanitized reasons distinctly. Keep a clean internal boundary for later authorized dispatch, not a policy interpreter.  ## Acceptance evidence  Cover generic non-backup and profile-related assessment, all support findings, unmet/unknown prerequisites, invalid/undeclared IDs/kinds, malformed/correlation-mismatched reply, readiness gate, stale cache/context, changed generation/manifest and read-only retry. Verify no target mutation or Provider/vendor imports.  ## Non-goals  No P2 redesign, operation dispatch, StateForge component assignment, policy selection, Control Plane connection or universal vendor requirement evaluator.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `A2`, `P2`, `R3` | `BLOCKED` | — |
 | `A4` | `agent` | **[TASK][MVP] Integrate Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Receive P3/R4 Provider triggers, durably accept delivery responsibility, deduplicate, and acknowledge on the existing SFP stream. Keep an internal forwarding boundary for the later SF-AOP phase.  ## Required behavior  - Validate the authenticated Provider/session/generation, declared versioned trigger, schema-bound payload, stable publication ID, canonical content equality, and limits. SFP has no generic target/source/resource identity; any trigger-specific resource/source identity remains payload data and is not interpreted as a StateForge project/component assignment. - Commit an accepted event and Agent-owned responsibility state durably before ACCEPTED_NEW. A matching replay returns ACCEPTED_DUPLICATE without duplicate logical delivery; same ID/different semantic content rejects as a conflict. - Acknowledgement loss and Agent restart must recover the accepted event/responsibility without forcing a new ID or dropping it silently. A local durable acceptance is not proof that the Control Plane processed it, and downstream handoff is not part of the P3 wire acknowledgement. - Retain a bounded, recoverable pending-forward boundary with explicit queue-full/backpressure, rejection/retryability and retention behavior. Until SF-AOP exists, retain accepted events rather than pretending remote forwarding succeeded. - Fence stale streams/acks and handle reconnect/shutdown without acknowledging uncommitted work. Keep persistence implementation aligned with the current Agent; no prescribed database engine or new transport architecture. - This Provider-originated SFP route remains distinct from any legacy application/developer local-trigger interface; avoid conflating their identifiers or permissions.  ## Acceptance evidence  Test valid/invalid publication, commit-before-ack, crash before commit/after commit-before-ack, lost acknowledgement, durable restart, matching duplicate, conflicting content, queue pressure, reconnect, stale generation, absent downstream transport, and the absence of generic source/target handling. Prove one retained logical event and honest forwarding status.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP wire protocol, Control Plane policy evaluation/component mapping, legacy Local API redesign, or exactly-once policy execution claim.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `A2`, `P3`, `R4` | `BLOCKED` | — |
@@ -757,11 +994,19 @@ _No verification evidence has been declared yet._
 
 ### `P8` — [TASK][MVP] Define SFP Disconnection Recovery Contracts
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `protocol/.agents/skills` | `must_understand` | `canonical` | Yes | Skills needed to edit this repository. |
+| `protocol/.claude/skills` | `must_understand` | `canonical` | Yes | Skills needed to edit this repository. |
+| `protocol/docs/assets/diagrams/disconnection-and-recovery.png` | `must_understand` | `canonical` | Yes | Disconnect recovery diagram. |
+| `protocol/docs/procedures/disconnection-recovery.md` | `must_understand` | `canonical` | Yes | Initial documentation regarding Disconnect recovery procedure. |
+| `protocol/AGENTS.md` | `must_understand` | `canonical` | Yes | Explanation for agents for how to edit this repository. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **test** · `protocol` · `GitHub Review` — Human In The Loop.
 
 ### `P9` — [TASK][MVP] Verify the Complete SFP Contract Surface
 
@@ -799,11 +1044,19 @@ _No verification evidence has been declared yet._
 
 ### `R2` — [TASK][MVP] Implement Provider Health and Availability Reporting
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `protocol/docs/assets/diagrams/health-and-availability-monitoring.png` | `must_understand` | `canonical` | Yes | Health procedure diagram. |
+| `protocol/docs/procedures/health.md` | `must_understand` | `canonical` | Yes | Initial description of the health and availability monitoring procedures. |
+| `protocol/.claude/skills` | `must_understand` | `canonical` | Yes | Skills needed to modify this project. |
+| `protocol/.agents/skills/stateforge-dpt-milestone` | `must_understand` | `canonical` | Yes | Skill that explains DPT. |
+| `protocol/AGENTS.md` | `must_understand` | `canonical` | Yes | Explanation toward agents before editing this repository. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **human** · `protocol` · `GitHub review` — Human In The Loop.
 
 ### `R3` — [TASK][MVP] Implement Provider Capability Assessment
 
@@ -863,11 +1116,21 @@ _No verification evidence has been declared yet._
 
 ### `A1` — [TASK][MVP] Integrate Provider Manifest Exchange
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `must_understand` | `canonical` | Yes | Protocol description |
+| `provider/src/stateforge_rpc/_services/manifest` | `must_understand` | `canonical` | Yes | Provider implementation  |
+| `agent/.claude` | `must_understand` | `canonical` | Yes | Skills to edit this repo |
+| `agent/.agents` | `must_understand` | `canonical` | Yes | Skills to edit this repo |
+| `agent/AGENTS.md` | `must_understand` | `canonical` | Yes | Agent instructions. |
+| `protocol/docs/procedures/provider-manifest.md` | `must_understand` | `canonical` | Yes | Manifest exchange protocol description |
+| `protocol/docs/assets/diagrams/provider-manifest-exchange.png` | `must_understand` | `canonical` | Yes | Manifest exchange diagram |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **human** · `agent` · `GitHub Review` — Human In The Loop
 
 ### `A2` — [TASK][MVP] Integrate Provider Health and Availability Monitoring
 
