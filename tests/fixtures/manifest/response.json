@@ -1,0 +1,59 @@
+{
+  "providerInstanceId": "7f7db7d8-68b4-4f71-9769-065b5c4f941c",
+  "endpointGeneration": "4",
+  "manifestSchemaVersion": 1,
+  "manifest": {
+    "providerIdentity": "stateforge.git",
+    "implementationVersion": "1.0.0",
+    "displayName": "Git Provider",
+    "operations": {
+      "stateforge.git/reference.resolve@1": {
+        "inputSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "resultSchema": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        },
+        "implements": []
+      }
+    },
+    "runtimeRequirements": {
+      "executable.git": {
+        "description": "Git executable available to the Provider",
+        "versionConstraint": ">=2.40"
+      }
+    },
+    "platforms": [
+      {
+        "operatingSystem": "linux",
+        "architecture": "x86_64"
+      }
+    ],
+    "configurationSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string"
+        },
+        "token": {
+          "type": "string",
+          "writeOnly": true
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "repository"
+      ]
+    },
+    "triggers": {}
+  },
+  "manifestRevision": "sha256:6bfdf3aedc2d4e45d77d4787cc0e744a488208b2510d81788291f51d24a623e8",
+  "sessionId": "manifest-session-A"
+}

@@ -10,7 +10,7 @@ from pathlib import Path
 import grpc
 import pytest
 
-from stateforge_rpc import Provider, ProviderServerError
+from stateforge_rpc import Platform, Provider, ProviderServerError
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")
@@ -26,7 +26,10 @@ def endpoint_directory() -> Iterator[Path]:
 
 
 class _RecordingProvider(Provider):
-    identity = "stateforge.test-recorder"
+    identity = "stateforge.test_recorder"
+    display_name = "Test recorder"
+    version = "1.0.0"
+    platforms = (Platform("linux", "x86_64"),)
 
     def __init__(
         self,
@@ -48,7 +51,9 @@ class _RecordingProvider(Provider):
         self.started.set()
 
     async def on_shutdown(self) -> None:
-        assert self._server.descriptor_path.exists()
+        assert not self._server.descriptor_path.exists()
+        assert self._server._sessions is not None
+        assert self._server._sessions._closed
         self.events.append("shutdown")
 
 
@@ -99,6 +104,55 @@ def test_wire_version_support_is_not_provider_configurable() -> None:
         "supported_sfp_versions"
         not in inspect.signature(Provider.__init__).parameters
     )
+
+
+def test_run_owns_signal_handler_installation(
+    endpoint_directory: Path,
+    monkeypatch,
+) -> None:
+    provider = _RecordingProvider(
+        discovery_directory=endpoint_directory,
+        state_directory=endpoint_directory / "state",
+    )
+    events: list[str] = []
+
+    def install_signal_handlers() -> None:
+        events.append("signals")
+
+    async def serve() -> None:
+        events.append("serve")
+
+    monkeypatch.setattr(
+        provider, "_install_signal_handlers", install_signal_handlers
+    )
+    monkeypatch.setattr(provider, "serve", serve)
+
+    provider.run()
+
+    assert events == ["signals", "serve"]
+
+
+@pytest.mark.asyncio
+async def test_serve_leaves_signal_handlers_to_the_caller(
+    endpoint_directory: Path,
+    monkeypatch,
+) -> None:
+    provider = _RecordingProvider(
+        discovery_directory=endpoint_directory,
+        state_directory=endpoint_directory / "state",
+    )
+    loop = asyncio.get_running_loop()
+
+    def fail_if_called(*args, **kwargs) -> None:
+        del args, kwargs
+        pytest.fail("serve() must not install application signal handlers")
+
+    monkeypatch.setattr(loop, "add_signal_handler", fail_if_called)
+    provider.request_shutdown()
+
+    await provider.serve()
+
+    assert provider.events == ["startup", "shutdown"]
 
 
 @pytest.mark.asyncio

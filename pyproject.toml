@@ -28,18 +28,24 @@ classifiers = [
 
 dependencies = [
     "grpcio>=1.83",
+    "jsonschema>=4.25,<5",
+    "pydantic>=2.12,<3",
+    "referencing>=0.36,<1",
+    "rfc8785>=0.1.4,<1",
     "stateforge-protocol>=0.1.0,<0.2.0",
 ]
 
 
 [dependency-groups]
 dev = [
+    "build>=1.2",
     "mypy>=1.17",
     "pytest>=8.4",
     "pytest-asyncio>=1",
     "pytest-cov>=6.2",
     "ruff>=0.12",
     "types-grpcio",
+    "types-jsonschema",
     "types-protobuf",
 ]
 docs = [

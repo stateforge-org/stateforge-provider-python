@@ -18,17 +18,20 @@ third-party framework or component normally remains unchanged by StateForge.
 ## Author experience
 
 Subclass [`Provider`][stateforge_rpc.provider.Provider], declare a namespaced
-`identity`, and start it. The runtime loads or creates the stable Provider
+`identity` and the required manifest metadata, and start it. The runtime loads or creates the stable Provider
 identity, allocates an endpoint generation, starts the protected local
 endpoint, and negotiates SFP with the Agent without any of that appearing in
 the author-facing API:
 
 ```python
-from stateforge_rpc import Provider
+from stateforge_rpc import Platform, Provider
 
 
 class GitProvider(Provider):
     identity = "stateforge.git"
+    display_name = "Git Provider"
+    version = "1.0.0"
+    platforms = (Platform("linux", "x86_64"),)
 
     async def on_startup(self) -> None:
         """Initialize Provider resources."""
@@ -41,6 +44,8 @@ if __name__ == "__main__":
     GitProvider().run()
 ```
 
+See [Manifest declarations](manifest-authoring.md) for typed operation models,
+triggers, configuration schemas, requirements, and explicit compliance roles.
 An application that already owns an event loop calls
 `await GitProvider().serve()` instead. See
 `.claude/PROVIDER_AUTHORING_VISION.md` for the complete intended author
