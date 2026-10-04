@@ -9,13 +9,21 @@ from dataclasses import dataclass
 from typing import Any, get_type_hints
 
 from google.protobuf.json_format import MessageToDict, ParseDict
+from pydantic.errors import PydanticUndefinedAnnotation, PydanticUserError
 from pydantic.json_schema import JsonSchemaMode
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2
 
+from stateforge_rpc._configuration import (
+    DEFAULT_RUNTIME_LIMITS,
+    ProviderRuntimeLimits,
+)
 from stateforge_rpc._identity import ProviderEndpointIdentity
-from stateforge_rpc._schema import (
-    MAX_DEPTH,
-    MAX_RESPONSE_BYTES,
+from stateforge_rpc._manifest_schema import (
+    JSON_SCHEMA_DRAFT_2020_12_URI,
+    MANIFEST_MAX_DEPTH,
+    MANIFEST_MAX_PREIMAGE_BYTES,
+    MANIFEST_MAX_RESPONSE_BYTES,
     ManifestError,
     bounded_json,
     canonical_bytes,
@@ -30,24 +38,28 @@ from stateforge_rpc.declarations import (
     _Operation,
 )
 
-_DRAFT = "https://json-schema.org/draft/2020-12/schema"
-_MAX_ENTRIES = 1024
-_MAX_ROLES = 64
-_MAX_PLATFORMS = 256
-
 
 def _model_schema(
-    model: object, path: str, mode: JsonSchemaMode
+    model: object,
+    path: str,
+    mode: JsonSchemaMode,
+    limits: ProviderRuntimeLimits,
 ) -> dict[str, Any]:
     if not isinstance(model, type) or not issubclass(model, ProviderModel):
         raise ManifestError(f"{path}: must be a ProviderModel subclass")
     try:
         schema = model.model_json_schema(mode=mode)
-    except (TypeError, ValueError, RecursionError):
+    except (
+        PydanticUndefinedAnnotation,
+        PydanticUserError,
+        TypeError,
+        ValueError,
+        RecursionError,
+    ):
         raise ManifestError(f"{path}: cannot derive model schema") from None
-    schema.setdefault("$schema", _DRAFT)
+    schema.setdefault("$schema", JSON_SCHEMA_DRAFT_2020_12_URI)
     schema.setdefault("type", "object")
-    validate_schema(schema, path)
+    validate_schema(schema, path, limits=limits)
     return schema
 
 
@@ -58,29 +70,44 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
     return value
 
 
+def _mro_namespace(owner: type) -> dict[str, Any]:
+    """Collect the class namespace used where a method was declared."""
+    namespace: dict[str, Any] = {}
+    for base in reversed(owner.__mro__):
+        namespace.update(vars(base))
+    return namespace
+
+
 # Keep discovery and its rejection rules adjacent.
-def _operations(owner: type) -> dict[str, Any]:  # noqa: PLR0912
-    methods: dict[str, Any] = {}
+def _operations(  # noqa: PLR0912
+    owner: type, limits: ProviderRuntimeLimits
+) -> dict[str, Any]:
+    methods: dict[str, tuple[Any, type]] = {}
     for base in reversed(owner.__mro__):
         for name, method in vars(base).items():
             prior = methods.get(name)
             if getattr(
-                prior, "__stateforge_operation__", None
+                prior[0] if prior is not None else None,
+                "__stateforge_operation__",
+                None,
             ) is not None and not isinstance(
                 getattr(method, "__stateforge_operation__", None), _Operation
             ):
                 raise ManifestError(
                     "operations: overrides must redeclare metadata"
                 )
-            methods[name] = method
-    declarations: dict[str, Any] = {}
-    for method in methods.values():
+            methods[name] = (method, base)
+    declared_methods: list[tuple[Any, type, _Operation]] = []
+    for method, declaring_class in methods.values():
         metadata = getattr(method, "__stateforge_operation__", None)
-        if not isinstance(metadata, _Operation):
-            continue
+        if isinstance(metadata, _Operation):
+            declared_methods.append((method, declaring_class, metadata))
+    if len(declared_methods) > manifest_contract.MAX_OPERATIONS:
+        raise ManifestError("operations: entry limit exceeded")
+
+    declarations: dict[str, Any] = {}
+    for method, declaring_class, metadata in declared_methods:
         path = f"operations[{len(declarations)}]"
-        if len(declarations) >= _MAX_ENTRIES:
-            raise ManifestError("operations: entry limit exceeded")
         validate_structure(metadata.identifier, "identifier", path)
         if metadata.identifier in declarations:
             raise ManifestError(f"{path}: duplicate operation identifier")
@@ -90,13 +117,19 @@ def _operations(owner: type) -> dict[str, Any]:  # noqa: PLR0912
         if parameters != ("self", "request"):
             raise ManifestError(f"{path}: expected (self, request) signature")
         try:
-            annotations = get_type_hints(method, localns=dict(vars(owner)))
+            annotations = get_type_hints(
+                method,
+                localns=_mro_namespace(declaring_class),
+            )
         except (NameError, TypeError):
             raise ManifestError(
                 f"{path}: unresolved model annotations"
             ) from None
         roles = metadata.implements
-        if not isinstance(roles, tuple) or len(roles) > _MAX_ROLES:
+        if (
+            not isinstance(roles, tuple)
+            or len(roles) > manifest_contract.MAX_PROFILE_CLAIMS_PER_OPERATION
+        ):
             raise ManifestError(f"{path}.implements: must be a bounded tuple")
         for role in roles:
             validate_structure(role, "dottedIdentifier", f"{path}.implements")
@@ -104,14 +137,47 @@ def _operations(owner: type) -> dict[str, Any]:  # noqa: PLR0912
             raise ManifestError(f"{path}.implements: duplicate role")
         declarations[metadata.identifier] = {
             "inputSchema": _model_schema(
-                annotations.get("request"), f"{path}.input", "validation"
+                annotations.get("request"),
+                f"{path}.input",
+                "validation",
+                limits,
             ),
             "resultSchema": _model_schema(
-                annotations.get("return"), f"{path}.result", "serialization"
+                annotations.get("return"),
+                f"{path}.result",
+                "serialization",
+                limits,
             ),
             "implements": sorted(roles),
         }
     return declarations
+
+
+def _check_combined_schema_budget(
+    configuration: dict[str, Any],
+    operations: dict[str, Any],
+    triggers: dict[str, Any],
+) -> None:
+    """Bound all generated schemas before validating the full manifest."""
+    schemas = [configuration]
+    schemas.extend(
+        schema
+        for declaration in operations.values()
+        for schema in (
+            declaration["inputSchema"],
+            declaration["resultSchema"],
+        )
+    )
+    schemas.extend(
+        declaration["payloadSchema"] for declaration in triggers.values()
+    )
+    total = 0
+    for schema in schemas:
+        total += len(canonical_bytes(schema))
+        if total > MANIFEST_MAX_PREIMAGE_BYTES:
+            raise ManifestError(
+                "manifest: combined schema size limit exceeded"
+            )
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,12 +187,16 @@ class ManifestDeclaration:
     document: bytes
 
     @classmethod
-    def discover(cls, owner: type) -> ManifestDeclaration:
+    def discover(
+        cls,
+        owner: type,
+        *,
+        limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
+    ) -> ManifestDeclaration:
         """Inspect class metadata without invoking business methods."""
-        targets = _sequence(owner, "target_kinds", _MAX_ENTRIES)
-        for target in targets:
-            validate_structure(target, "identifier", "target_kinds")
-        platforms = _sequence(owner, "platforms", _MAX_PLATFORMS)
+        platforms = _sequence(
+            owner, "platforms", manifest_contract.MAX_PLATFORMS
+        )
         if any(not isinstance(item, Platform) for item in platforms):
             raise ManifestError("platforms: expected Platform declarations")
         platform_documents = [
@@ -140,7 +210,11 @@ class ManifestDeclaration:
             validate_structure(item, "platform", "platforms")
         requirements = {}
         for index, requirement in enumerate(
-            _sequence(owner, "runtime_requirements", _MAX_ENTRIES)
+            _sequence(
+                owner,
+                "runtime_requirements",
+                manifest_contract.MAX_RUNTIME_REQUIREMENTS,
+            )
         ):
             path = f"runtime_requirements[{index}]"
             if not isinstance(requirement, RuntimeRequirement):
@@ -158,7 +232,7 @@ class ManifestDeclaration:
             }
         triggers = {}
         for index, trigger in enumerate(
-            _sequence(owner, "triggers", _MAX_ENTRIES)
+            _sequence(owner, "triggers", manifest_contract.MAX_TRIGGERS)
         ):
             path = f"triggers[{index}]"
             if not isinstance(trigger, Trigger):
@@ -168,14 +242,21 @@ class ManifestDeclaration:
                 raise ManifestError(f"{path}: duplicate trigger identifier")
             triggers[trigger.identifier] = {
                 "payloadSchema": _model_schema(
-                    trigger.payload, path, "serialization"
+                    trigger.payload, path, "serialization", limits
                 )
             }
+        operations = _operations(owner, limits)
+        configuration = _model_schema(
+            getattr(owner, "configuration_model", ProviderModel),
+            "configuration_schema",
+            "validation",
+            limits,
+        )
+        _check_combined_schema_budget(configuration, operations, triggers)
         document = {
             "providerIdentity": getattr(owner, "identity", None),
             "implementationVersion": getattr(owner, "version", None),
             "displayName": getattr(owner, "display_name", None),
-            "targetKinds": sorted(targets),
             "platforms": sorted(
                 platform_documents,
                 key=lambda item: (
@@ -185,14 +266,15 @@ class ManifestDeclaration:
             ),
             "runtimeRequirements": requirements,
             "triggers": triggers,
-            "operations": _operations(owner),
-            "configurationSchema": _model_schema(
-                getattr(owner, "configuration_model", ProviderModel),
-                "configuration_schema",
-                "validation",
-            ),
+            "operations": operations,
+            "configurationSchema": configuration,
         }
-        bounded_json(document, "manifest", depth_limit=MAX_DEPTH + 4)
+        bounded_json(
+            document,
+            "manifest",
+            depth_limit=MANIFEST_MAX_DEPTH + 4,
+            limits=limits,
+        )
         # Bound canonical content before recursive metaschema processing.
         content = canonical_bytes(document)
         validate_structure(document, "providerManifest", "manifest")
@@ -222,7 +304,7 @@ class ManifestDeclaration:
             # Reserve the largest legal UTF-8 session header before serving.
             session_id="\U0001f600" * 255,
         )
-        if response.ByteSize() > MAX_RESPONSE_BYTES:
+        if response.ByteSize() > MANIFEST_MAX_RESPONSE_BYTES:
             raise ManifestError("manifest: response size limit exceeded")
         validate_structure(
             MessageToDict(response, always_print_fields_with_no_presence=True),

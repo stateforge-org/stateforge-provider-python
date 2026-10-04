@@ -31,7 +31,6 @@ class GitProvider(Provider):
     identity = "stateforge.git"
     display_name = "Git Provider"
     version = "1.0.0"
-    target_kinds = ("stateforge.git/repository@1",)
     platforms = (Platform("linux", "x86_64"),)
 
     async def on_startup(self) -> None:

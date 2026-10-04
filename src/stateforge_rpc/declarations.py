@@ -65,7 +65,10 @@ def operation(
 
     Annotate ``request`` and the return value with ProviderModel subclasses.
     This milestone discovers metadata only; it does not dispatch the method.
-    Roles are explicit claims, never inferred from a method or model name.
+    ``implements`` contains versioned semantic/compliance profile claims. Each
+    claim says the operation conforms to that profile's required schemas and
+    behavior. Claims are not permissions or Control Plane contract identifiers
+    and are never inferred from a method or model name.
     Inherited methods follow Python's MRO; overriding requires redeclaration.
     """
 

@@ -1,16 +1,18 @@
-"""Run the Provider side of the SFP bootstrap protocol.
+"""Run the shared Provider-side SFP endpoint.
 
-This module is a private runtime implementation detail. Provider authors use
-the public :class:`stateforge_rpc.Provider` base class; they must not import
-or configure anything here directly.
+The endpoint hosts version-neutral bootstrap negotiation and the negotiated
+SFP procedure services. This module is a private runtime implementation
+detail. Provider authors use the public :class:`stateforge_rpc.Provider` base
+class; they must not import or configure anything here directly.
 """
 
 from __future__ import annotations
 
 import json
+import logging
 import os
 import stat
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -20,12 +22,34 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
+from stateforge_protocol.sfp.capability_assessment.v1 import (
+    contract as capability_assessment_contract,
+)
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2_grpc
+from stateforge_protocol.sfp.operation_admission.v1 import (
+    contract as operation_admission_contract,
+)
+from stateforge_protocol.sfp.operation_lifecycle.v1 import (
+    contract as operation_lifecycle_contract,
+)
+from stateforge_protocol.sfp.trigger_publication.v1 import (
+    contract as trigger_publication_contract,
+)
 
+from stateforge_rpc._configuration import ProviderRuntimeConfiguration
+from stateforge_rpc._filesystem import (
+    SecureFileError,
+    read_owned_regular_file,
+    synchronize_directory,
+    write_all,
+)
 from stateforge_rpc._identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,
+    is_allocated_endpoint_generation,
+    is_canonical_uuid4,
 )
 from stateforge_rpc._manifest import ManifestDeclaration
 from stateforge_rpc._manifest_service import (
@@ -33,15 +57,27 @@ from stateforge_rpc._manifest_service import (
     SessionRegistry,
     SessionRegistryClosedError,
 )
-from stateforge_rpc._schema import MAX_REQUEST_BYTES, MAX_RESPONSE_BYTES
 from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 _DESCRIPTOR_SCHEMA_VERSION = "1"
 _DESCRIPTOR_SUFFIX = ".sfp.json"
 _DESCRIPTOR_MODE = 0o640
+_MAXIMUM_DESCRIPTOR_BYTES = 4096
 _SOCKET_MODE = 0o660
-_MAXIMUM_ENDPOINT_GENERATION = (2**63) - 1
-_UUID_VERSION = 4
+_SFP_PROCEDURE_CONTRACTS = (
+    capability_assessment_contract,
+    manifest_contract,
+    operation_admission_contract,
+    operation_lifecycle_contract,
+    trigger_publication_contract,
+)
+_ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES = max(
+    contract.MAX_REQUEST_BYTES for contract in _SFP_PROCEDURE_CONTRACTS
+)
+_ENDPOINT_MAX_SEND_MESSAGE_BYTES = max(
+    contract.MAX_RESPONSE_BYTES for contract in _SFP_PROCEDURE_CONTRACTS
+)
+_LOGGER = logging.getLogger(__name__)
 
 
 class ProviderServerError(RuntimeError):
@@ -49,24 +85,23 @@ class ProviderServerError(RuntimeError):
 
 
 @dataclass(frozen=True, slots=True)
-class ProviderServerConfiguration:
-    """Immutable configuration for one Provider process endpoint."""
+class _SocketIdentity:
+    """Identify the exact filesystem socket created for this runtime."""
 
-    state_directory: Path
-    discovery_directory: Path
+    device: int
+    inode: int
+    owner: int
 
-    def __post_init__(self) -> None:
-        """Validate values used to construct the local endpoint."""
-        if not self.discovery_directory.is_absolute():
-            raise ValueError("discovery_directory must be absolute")
-        if not self.state_directory.is_absolute():
-            raise ValueError("state_directory must be absolute")
+    @classmethod
+    def capture(cls, status: os.stat_result) -> _SocketIdentity:
+        """Capture the stable fields used before removing a socket."""
+        return cls(status.st_dev, status.st_ino, status.st_uid)
 
 
 class ProviderServer:
-    """Expose the Provider bootstrap service over a Unix domain socket."""
+    """Host the shared Provider-side SFP endpoint on a Unix domain socket."""
 
-    def __init__(self, configuration: ProviderServerConfiguration) -> None:
+    def __init__(self, configuration: ProviderRuntimeConfiguration) -> None:
         """Create a stopped Provider server."""
         self.configuration = configuration
         self._identity_store = ProviderIdentityStore(
@@ -77,6 +112,7 @@ class ProviderServer:
         self._server: grpc.aio.Server | None = None
         self._started = False
         self._sessions: SessionRegistry | None = None
+        self._socket_identity: _SocketIdentity | None = None
 
     @property
     def provider_instance_id(self) -> UUID:
@@ -143,11 +179,20 @@ class ProviderServer:
             if manifest is not None
             else None
         )
-        sessions = SessionRegistry(self._allocated_identity)
+        sessions = SessionRegistry(
+            self._allocated_identity,
+            self.configuration.limits,
+        )
         server = grpc.aio.server(
             options=(
-                ("grpc.max_receive_message_length", MAX_REQUEST_BYTES),
-                ("grpc.max_send_message_length", MAX_RESPONSE_BYTES),
+                (
+                    "grpc.max_receive_message_length",
+                    _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES,
+                ),
+                (
+                    "grpc.max_send_message_length",
+                    _ENDPOINT_MAX_SEND_MESSAGE_BYTES,
+                ),
             )
         )
         bootstrap_pb2_grpc.add_BootstrapServiceServicer_to_server(
@@ -179,28 +224,111 @@ class ProviderServer:
             await server.start()
             self._secure_socket()
             self._publish_descriptor()
-        except BaseException:
-            sessions.clear()
-            await server.stop(grace=None)
-            if owns_socket:
-                self._remove_descriptor_if_owned()
-                self._remove_socket()
-            self._server = None
+        except BaseException as error:
+            (
+                transport_failure,
+                _,
+                cleanup_failures,
+            ) = await self._teardown(
+                server,
+                grace_seconds=None,
+                remove_endpoint=owns_socket,
+            )
+            failures = cleanup_failures
+            if transport_failure is not None:
+                failures = [("gRPC shutdown", transport_failure), *failures]
+            _annotate_failure(error, failures)
             raise
         self._started = True
 
-    async def stop(self, *, grace_seconds: float = 5.0) -> None:
-        """Stop accepting RPCs and withdraw this endpoint generation."""
+    async def stop(
+        self,
+        *,
+        grace_seconds: float | None = None,
+        after_transport_stopped: Callable[[], Awaitable[None]] | None = None,
+    ) -> None:
+        """Withdraw, stop RPCs, run a callback, then remove the endpoint."""
         server = self._server
         if not self._started or server is None:
+            if after_transport_stopped is not None:
+                await after_transport_stopped()
             return
-        self._remove_descriptor_if_owned()
+        (
+            transport_failure,
+            callback_failure,
+            cleanup_failures,
+        ) = await self._teardown(
+            server,
+            grace_seconds=(
+                grace_seconds
+                if grace_seconds is not None
+                else self.configuration.shutdown_timeout_seconds
+            ),
+            remove_endpoint=True,
+            after_transport_stopped=after_transport_stopped,
+        )
+        if transport_failure is not None:
+            if callback_failure is not None:
+                cleanup_failures.insert(
+                    0, ("post-transport callback", callback_failure)
+                )
+            _annotate_failure(transport_failure, cleanup_failures)
+            raise transport_failure
+        if callback_failure is not None:
+            _annotate_failure(callback_failure, cleanup_failures)
+            raise callback_failure
+        if cleanup_failures:
+            _raise_cleanup_failures(cleanup_failures)
+
+    async def _teardown(
+        self,
+        server: grpc.aio.Server,
+        *,
+        grace_seconds: float | None,
+        remove_endpoint: bool,
+        after_transport_stopped: Callable[[], Awaitable[None]] | None = None,
+    ) -> tuple[
+        BaseException | None,
+        BaseException | None,
+        list[tuple[str, BaseException]],
+    ]:
+        """Attempt every shutdown phase and always reset runtime state."""
+        cleanup_failures: list[tuple[str, BaseException]] = []
+        transport_failure: BaseException | None = None
+        callback_failure: BaseException | None = None
+
+        if remove_endpoint:
+            try:
+                self._remove_descriptor_if_owned()
+            except Exception as error:
+                cleanup_failures.append(("descriptor withdrawal", error))
         if self._sessions is not None:
-            self._sessions.clear()
-        await server.stop(grace=grace_seconds)
-        self._remove_socket()
-        self._server = None
-        self._started = False
+            try:
+                self._sessions.clear()
+            except Exception as error:
+                cleanup_failures.append(("session invalidation", error))
+        try:
+            await server.stop(grace=grace_seconds)
+        except BaseException as error:
+            transport_failure = error
+        else:
+            if after_transport_stopped is not None:
+                try:
+                    await after_transport_stopped()
+                except BaseException as error:
+                    callback_failure = error
+        finally:
+            if remove_endpoint:
+                try:
+                    self._remove_socket()
+                except Exception as error:
+                    cleanup_failures.append(("socket removal", error))
+            self._server = None
+            self._sessions = None
+            self._socket_identity = None
+            self._started = False
+
+        return transport_failure, callback_failure, cleanup_failures
 
     async def wait_for_termination(self) -> None:
         """Wait until the underlying gRPC server terminates."""
@@ -259,6 +387,8 @@ class ProviderServer:
                     "Provider endpoint is not owned by the Provider process: "
                     f"{self.socket_path}"
                 )
+            socket_identity = _SocketIdentity.capture(socket_status)
+            self._socket_identity = socket_identity
 
             os.chown(
                 self.socket_path,
@@ -279,6 +409,7 @@ class ProviderServer:
 
         if (
             not stat.S_ISSOCK(secured_status.st_mode)
+            or _SocketIdentity.capture(secured_status) != socket_identity
             or secured_status.st_uid != os.geteuid()
             or secured_status.st_gid != directory_status.st_gid
             or stat.S_IMODE(secured_status.st_mode) != _SOCKET_MODE
@@ -326,12 +457,12 @@ class ProviderServer:
                     )
                     os.fchown(descriptor, -1, directory_status.st_gid)
                     os.fchmod(descriptor, _DESCRIPTOR_MODE)
-                    _write_all(descriptor, content)
+                    write_all(descriptor, content, resource="Descriptor")
                     os.fsync(descriptor)
                 finally:
                     os.close(descriptor)
                 os.replace(temporary_path, self.descriptor_path)
-                _synchronize_directory(configuration.discovery_directory)
+                synchronize_directory(configuration.discovery_directory)
             except OSError as error:
                 temporary_path.unlink(missing_ok=True)
                 raise ProviderServerError(
@@ -341,20 +472,9 @@ class ProviderServer:
 
     def _published_generation(self) -> int | None:
         """Return the currently published generation for this identity."""
-        try:
-            document = json.loads(self.descriptor_path.read_bytes())
-        except FileNotFoundError:
+        document = _read_descriptor(self.descriptor_path)
+        if document is None:
             return None
-        except (OSError, json.JSONDecodeError) as error:
-            raise ProviderServerError(
-                f"Cannot validate existing Provider descriptor "
-                f"{self.descriptor_path}: {error}"
-            ) from error
-        if not isinstance(document, dict):
-            raise ProviderServerError(
-                f"Existing Provider descriptor is invalid: "
-                f"{self.descriptor_path}"
-            )
         if document.get("provider_instance_id") != str(
             self.provider_instance_id
         ):
@@ -363,11 +483,7 @@ class ProviderServer:
                 f"{self.descriptor_path}"
             )
         generation = document.get("endpoint_generation")
-        if (
-            not isinstance(generation, int)
-            or isinstance(generation, bool)
-            or not 1 <= generation <= _MAXIMUM_ENDPOINT_GENERATION
-        ):
+        if not is_allocated_endpoint_generation(generation):
             raise ProviderServerError(
                 "Existing Provider descriptor has an invalid generation: "
                 f"{self.descriptor_path}"
@@ -378,12 +494,8 @@ class ProviderServer:
         """Withdraw only a descriptor that still names this generation."""
         try:
             with self._identity_store.locked():
-                try:
-                    document = json.loads(self.descriptor_path.read_bytes())
-                except (OSError, json.JSONDecodeError):
-                    return
-
-                if not isinstance(document, dict):
+                document = _read_descriptor(self.descriptor_path)
+                if document is None:
                     return
                 if (
                     document.get("provider_instance_id")
@@ -392,22 +504,47 @@ class ProviderServer:
                     != self.endpoint_generation
                 ):
                     return
-                try:
-                    self.descriptor_path.unlink()
-                    _synchronize_directory(
-                        self.configuration.discovery_directory
-                    )
-                except OSError:
-                    return
-        except ProviderIdentityError:
-            return
+                self.descriptor_path.unlink()
+                synchronize_directory(self.configuration.discovery_directory)
+        except ProviderIdentityError as error:
+            raise ProviderServerError(
+                f"Cannot lock Provider descriptor cleanup: {error}"
+            ) from error
+        except OSError as error:
+            raise ProviderServerError(
+                f"Cannot remove Provider descriptor {self.descriptor_path}: "
+                f"{error}"
+            ) from error
 
     def _remove_socket(self) -> None:
-        """Remove the generation-specific socket if it still exists."""
+        """Remove only the exact generation-specific socket we secured."""
         try:
-            self.socket_path.unlink(missing_ok=True)
-        except OSError:
+            status = self.socket_path.lstat()
+        except FileNotFoundError:
             return
+        except OSError as error:
+            raise ProviderServerError(
+                f"Cannot inspect Provider socket {self.socket_path}: {error}"
+            ) from error
+
+        expected = self._socket_identity
+        if (
+            expected is None
+            or not stat.S_ISSOCK(status.st_mode)
+            or status.st_uid != os.geteuid()
+            or _SocketIdentity.capture(status) != expected
+        ):
+            raise ProviderServerError(
+                "Provider socket changed before cleanup; refusing to remove "
+                f"{self.socket_path}"
+            )
+        try:
+            self.socket_path.unlink()
+            synchronize_directory(self.configuration.discovery_directory)
+        except OSError as error:
+            raise ProviderServerError(
+                f"Cannot remove Provider socket {self.socket_path}: {error}"
+            ) from error
 
 
 class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
@@ -439,7 +576,7 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "agent_runtime is required",
             )
-        if not _is_canonical_uuid4(request.agent_runtime.runtime_id):
+        if not is_canonical_uuid4(request.agent_runtime.runtime_id):
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
                 "agent_runtime.runtime_id must be a canonical UUIDv4",
@@ -503,35 +640,56 @@ class _BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         )
 
 
-def _is_canonical_uuid4(value: str) -> bool:
-    """Return whether a string is a canonical lowercase UUIDv4."""
+def _annotate_failure(
+    primary: BaseException,
+    failures: Sequence[tuple[str, BaseException]],
+) -> None:
+    """Preserve a primary failure while making teardown failures visible."""
+    for phase, error in failures:
+        primary.add_note(f"Provider teardown failed during {phase}: {error}")
+        _LOGGER.error(
+            "Provider teardown failed during %s",
+            phase,
+            exc_info=(type(error), error, error.__traceback__),
+        )
+
+
+def _raise_cleanup_failures(
+    failures: Sequence[tuple[str, BaseException]],
+) -> None:
+    """Raise one public error after all independent cleanup attempts."""
+    phases = ", ".join(phase for phase, _ in failures)
+    error = ProviderServerError(f"Provider cleanup failed during: {phases}")
+    for phase, cause in failures:
+        error.add_note(f"{phase}: {cause}")
+    raise error from failures[0][1]
+
+
+def _read_descriptor(path: Path) -> dict[str, object] | None:
+    """Read one bounded, Provider-owned regular descriptor without links."""
     try:
-        identifier = UUID(value)
-    except ValueError:
-        return False
-    return identifier.version == _UUID_VERSION and str(identifier) == value
+        content = read_owned_regular_file(
+            path,
+            expected_mode=_DESCRIPTOR_MODE,
+            maximum_bytes=_MAXIMUM_DESCRIPTOR_BYTES,
+            resource="Provider descriptor",
+        )
+    except SecureFileError as error:
+        raise ProviderServerError(str(error)) from error
+    if content is None:
+        return None
+
+    try:
+        document = json.loads(content)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise ProviderServerError(
+            f"Cannot parse Provider descriptor {path}: {error}"
+        ) from error
+    if not isinstance(document, dict):
+        raise ProviderServerError(f"Provider descriptor is invalid: {path}")
+    return document
 
 
 def _unix_channel_target(path: Path) -> str:
     """Build the gRPC target for an absolute Unix domain socket."""
     return f"unix:{path}"
-
-
-def _synchronize_directory(directory: Path) -> None:
-    """Make a descriptor rename or removal durable on the local filesystem."""
-    flags = os.O_RDONLY | os.O_CLOEXEC
-    descriptor = os.open(directory, flags)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
-def _write_all(descriptor: int, content: bytes) -> None:
-    """Write a complete descriptor document despite partial OS writes."""
-    offset = 0
-    while offset < len(content):
-        written = os.write(descriptor, content[offset:])
-        if written == 0:
-            raise OSError("Descriptor write returned zero bytes")
-        offset += written

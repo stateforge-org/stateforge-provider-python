@@ -6,17 +6,16 @@ Provider implementations use the generated contracts from
 `stateforge-protocol`, expose SFP through the Developer RPC runtime, and keep
 all third-party-specific behavior outside the StateForge Agent.
 
-Subclass `Provider`, declare identity/version, target kinds and platform pairs,
-and use typed `ProviderModel` classes with `@operation` for operation metadata.
+Subclass `Provider`, declare identity/version and platform pairs, and use typed
+`ProviderModel` classes with `@operation` for operation metadata.
 The runtime validates an immutable schema-1 manifest and serves it after
 handshake on the existing endpoint. See the
 [authoring guide](docs/manifest-authoring.md) and
 [complete example](examples/reference_provider.py).
 
-Development requires the landed session-bound Protocol correction:
+Install the project and its development tools from its package metadata:
 
 ```sh
-python -m pip install -r requirements/protocol.txt
 python -m pip install -e . --group dev --group docs
 ```
 

@@ -14,13 +14,20 @@ from jsonschema import Draft202012Validator
 from referencing import Registry
 from referencing.exceptions import Unresolvable
 from referencing.jsonschema import DRAFT202012
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
-MAX_PREIMAGE_BYTES = 1024 * 1024
-MAX_RESPONSE_BYTES = 2 * MAX_PREIMAGE_BYTES
-MAX_REQUEST_BYTES = 8 * 1024
-MAX_DEPTH = 64
-_MAX_JSON_NODES = 65536
-_MAX_SCHEMA_NODES = 4096
+from stateforge_rpc._configuration import (
+    DEFAULT_RUNTIME_LIMITS,
+    ProviderRuntimeLimits,
+)
+
+MANIFEST_MAX_PREIMAGE_BYTES = (
+    manifest_contract.MAX_CANONICAL_REVISION_PREIMAGE_BYTES
+)
+MANIFEST_MAX_RESPONSE_BYTES = manifest_contract.MAX_RESPONSE_BYTES
+MANIFEST_MAX_REQUEST_BYTES = manifest_contract.MAX_REQUEST_BYTES
+MANIFEST_MAX_DEPTH = manifest_contract.MAX_EMBEDDED_JSON_DEPTH
+JSON_SCHEMA_DRAFT_2020_12_URI = str(Draft202012Validator.META_SCHEMA["$id"])
 _SCHEMA_MAPS = (
     "$defs",
     "definitions",
@@ -42,7 +49,16 @@ _SCHEMA_SINGLE = (
     "else",
     "contentSchema",
 )
-_SAME_INSTANCE = {"allOf", "anyOf", "oneOf", "not", "if", "then", "else"}
+_SAME_INSTANCE = {
+    "allOf",
+    "anyOf",
+    "oneOf",
+    "not",
+    "if",
+    "then",
+    "else",
+    "dependentSchemas",
+}
 _VALUES = {"default", "examples", "const", "enum"}
 
 
@@ -52,7 +68,11 @@ class ManifestError(ValueError):
 
 # Keep size, type, and depth checks in one bounded traversal.
 def bounded_json(  # noqa: PLR0912
-    value: object, path: str, *, depth_limit: int = MAX_DEPTH
+    value: object,
+    path: str,
+    *,
+    depth_limit: int = MANIFEST_MAX_DEPTH,
+    limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
 ) -> None:
     """Reject excessive/non-JSON content before schema or protobuf work."""
     pending = [(value, 0)]
@@ -61,13 +81,16 @@ def bounded_json(  # noqa: PLR0912
     while pending:
         item, depth = pending.pop()
         nodes += 1
-        if nodes > _MAX_JSON_NODES or size > MAX_PREIMAGE_BYTES:
+        if (
+            nodes > limits.max_json_nodes
+            or size > MANIFEST_MAX_PREIMAGE_BYTES
+        ):
             raise ManifestError(f"{path}: JSON resource limit exceeded")
         if isinstance(item, (dict, list)):
             depth += 1
             if depth > depth_limit:
                 raise ManifestError(f"{path}: JSON nesting limit exceeded")
-            if len(item) > _MAX_JSON_NODES:
+            if len(item) > limits.max_json_nodes:
                 raise ManifestError(f"{path}: JSON resource limit exceeded")
             size += len(item) + 2
             if isinstance(item, dict):
@@ -81,7 +104,7 @@ def bounded_json(  # noqa: PLR0912
             else:
                 pending.extend((child, depth) for child in item)
         elif isinstance(item, str):
-            if len(item) > MAX_PREIMAGE_BYTES:
+            if len(item) > MANIFEST_MAX_PREIMAGE_BYTES:
                 raise ManifestError(f"{path}: JSON resource limit exceeded")
             try:
                 size += len(item.encode("utf-8")) + 2
@@ -91,14 +114,14 @@ def bounded_json(  # noqa: PLR0912
             size += 1
         else:
             raise ManifestError(f"{path}: non-JSON value")
-    if size > MAX_PREIMAGE_BYTES:
+    if size > MANIFEST_MAX_PREIMAGE_BYTES:
         raise ManifestError(f"{path}: JSON resource limit exceeded")
 
 
 class _BoundedBuffer(io.BytesIO):
     def write(self, data: bytes, /) -> int:  # type: ignore[override]
         # RFC 8785 writes bytes; enforce the limit while canonicalizing.
-        if self.tell() + len(data) > MAX_PREIMAGE_BYTES:
+        if self.tell() + len(data) > MANIFEST_MAX_PREIMAGE_BYTES:
             raise ManifestError("manifest: canonical preimage limit exceeded")
         return super().write(data)
 
@@ -121,8 +144,6 @@ def contract_validator(definition: str) -> Draft202012Validator:
         .joinpath("manifest.schema.json")
         .read_text()
     )
-    if "sessionId" not in document["$defs"]:
-        raise ManifestError("Install the session-bound P1 Protocol contract")
     return Draft202012Validator(
         {"$ref": f"#/$defs/{definition}", "$defs": document["$defs"]},
     )
@@ -139,7 +160,10 @@ def validate_structure(value: object, definition: str, path: str) -> None:
 
 # Review reference and secret rules together; all graph walks are bounded.
 def validate_schema(  # noqa: PLR0912, PLR0915
-    document: dict[str, Any], path: str
+    document: dict[str, Any],
+    path: str,
+    *,
+    limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
 ) -> None:
     """Resolve local schema references and reject indirect secret values.
 
@@ -148,7 +172,7 @@ def validate_schema(  # noqa: PLR0912, PLR0915
     former; values on a secret, below it, or on its ancestors are forbidden.
     Cycles are handled with finite graph traversals, without fetching URLs.
     """
-    bounded_json(document, path)
+    bounded_json(document, path, limits=limits)
     canonical_bytes(document)
     validate_structure(document, "schemaDocument", path)
     nodes: dict[int, dict[str, Any]] = {}
@@ -161,12 +185,12 @@ def validate_schema(  # noqa: PLR0912, PLR0915
         if key in nodes:
             continue
         if (
-            node.get("$schema", "https://json-schema.org/draft/2020-12/schema")
-            != "https://json-schema.org/draft/2020-12/schema"
+            node.get("$schema", JSON_SCHEMA_DRAFT_2020_12_URI)
+            != JSON_SCHEMA_DRAFT_2020_12_URI
         ):
             raise ManifestError(f"{path}: unsupported nested schema dialect")
         nodes[key] = node
-        if len(nodes) > _MAX_SCHEMA_NODES:
+        if len(nodes) > limits.max_schema_nodes:
             raise ManifestError(f"{path}: schema node limit exceeded")
         children.setdefault(key, set())
         same.setdefault(key, set())

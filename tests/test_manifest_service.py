@@ -5,6 +5,7 @@ import json
 import shutil
 import tempfile
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from pathlib import Path
 from uuid import uuid4
 
@@ -25,8 +26,8 @@ from stateforge_rpc import (
     operation,
 )
 from stateforge_rpc._manifest import ManifestDeclaration, ManifestSnapshot
+from stateforge_rpc._manifest_schema import MANIFEST_MAX_REQUEST_BYTES
 from stateforge_rpc._manifest_service import ManifestService
-from stateforge_rpc._schema import MAX_REQUEST_BYTES
 
 
 class _Request(ProviderModel):
@@ -42,7 +43,6 @@ class _Provider(Provider):
     display_name = "Manifest test"
     version = "1.0.0"
     platforms = (Platform("linux", "x86_64"),)
-    target_kinds = ("example.manifest/resource@1",)
 
     def __init__(self, directory):
         super().__init__(
@@ -98,6 +98,12 @@ async def _running(provider):
         await asyncio.wait_for(task, 3)
         if channel is not None:
             await channel.close()
+
+
+def _configure(provider, **changes):
+    configuration = replace(provider._configuration, **changes)
+    provider._configuration = configuration
+    provider._server.configuration = configuration
 
 
 async def _handshake(stub, descriptor):
@@ -239,7 +245,7 @@ async def test_manifest_is_ready_on_publication_and_binds_each_session(
             grpc.StatusCode.INVALID_ARGUMENT,
         ),
         (
-            {"expected_session_id": "x" * MAX_REQUEST_BYTES},
+            {"expected_session_id": "x" * MANIFEST_MAX_REQUEST_BYTES},
             grpc.StatusCode.RESOURCE_EXHAUSTED,
         ),
     ],
@@ -258,6 +264,8 @@ async def test_manifest_status_precedence_and_transport_limits(
                 _request(handshake, **overrides), timeout=2
             )
         assert error.value.code() == code
+        if code is grpc.StatusCode.RESOURCE_EXHAUSTED:
+            assert error.value.details() == "Manifest request limit exceeded"
 
 
 @pytest.mark.asyncio
@@ -282,10 +290,12 @@ async def test_an_endpoint_without_handshake_is_not_a_session(directory):
 
 @pytest.mark.asyncio
 async def test_bounded_sessions_invalidate_oldest_and_rehandshake_recovers(
-    directory, monkeypatch
+    directory,
 ):
-    monkeypatch.setattr("stateforge_rpc._manifest_service._MAX_SESSIONS", 2)
-    async with _running(_Provider(directory)) as (
+    provider = _Provider(directory)
+    limits = replace(provider._configuration.limits, max_sessions=2)
+    _configure(provider, limits=limits)
+    async with _running(provider) as (
         manifest,
         bootstrap,
         descriptor,
@@ -489,10 +499,8 @@ async def test_failed_publication_does_not_remove_newer_generation(
 async def test_shutdown_timeout_still_withdraws_the_endpoint(
     directory, monkeypatch
 ):
-    monkeypatch.setattr(
-        "stateforge_rpc.provider._SHUTDOWN_TIMEOUT_SECONDS", 0.01
-    )
     provider = _Provider(directory)
+    _configure(provider, shutdown_timeout_seconds=0.01)
 
     async def hang():
         await asyncio.Event().wait()

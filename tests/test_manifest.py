@@ -3,12 +3,15 @@
 import copy
 import json
 import runpy
+from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from uuid import UUID, uuid4
 
 import pytest
 from google.protobuf.json_format import MessageToDict
 from pydantic import ConfigDict, Field, SecretStr
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
 from stateforge_rpc import (
     ManifestError,
@@ -19,12 +22,14 @@ from stateforge_rpc import (
     Trigger,
     operation,
 )
+from stateforge_rpc._configuration import DEFAULT_RUNTIME_LIMITS
 from stateforge_rpc._identity import ProviderEndpointIdentity
 from stateforge_rpc._manifest import ManifestDeclaration
-from stateforge_rpc._schema import (
-    MAX_PREIMAGE_BYTES,
+from stateforge_rpc._manifest_schema import (
+    MANIFEST_MAX_PREIMAGE_BYTES,
     bounded_json,
     canonical_bytes,
+    contract_validator,
     validate_schema,
 )
 
@@ -51,7 +56,6 @@ class _Minimal(Provider):
     display_name = "Reference Provider"
     version = "1.2.3-alpha.1+build.7"
     platforms = (Platform("linux", "x86_64"),)
-    target_kinds = ("example.reference/resource@1",)
 
 
 class _Representative(_Minimal):
@@ -140,14 +144,14 @@ def test_minimal_and_representative_provider_authoring():
         ("version", "1.0.0-01"),
         ("display_name", ""),
         ("display_name", "x" * 256),
-        ("target_kinds", ()),
-        ("target_kinds", ("wrong",)),
-        ("target_kinds", ("example.reference/resource@1",) * 2),
-        ("target_kinds", ("example.reference/resource@1",) * 1025),
         ("platforms", ()),
         ("platforms", (Platform("*", "x86_64"),)),
         ("platforms", (Platform("linux", "x86_64"),) * 2),
-        ("platforms", (Platform("linux", "x86_64"),) * 257),
+        (
+            "platforms",
+            (Platform("linux", "x86_64"),)
+            * (manifest_contract.MAX_PLATFORMS + 1),
+        ),
         ("platforms", ("linux",)),
         ("configuration_model", dict),
         ("runtime_requirements", (RuntimeRequirement("bad", "text"),)),
@@ -162,14 +166,18 @@ def test_minimal_and_representative_provider_authoring():
         ),
         (
             "runtime_requirements",
-            (RuntimeRequirement("runtime.test", "x"),) * 1025,
+            (RuntimeRequirement("runtime.test", "x"),)
+            * (manifest_contract.MAX_RUNTIME_REQUIREMENTS + 1),
         ),
         ("runtime_requirements", ("wrong",)),
         ("triggers", (Trigger("wrong", _Input),)),
         ("triggers", (Trigger("example.reference/changed@1", _Input),) * 2),
-        ("triggers", (Trigger("example.reference/changed@1", _Input),) * 1025),
+        (
+            "triggers",
+            (Trigger("example.reference/changed@1", _Input),)
+            * (manifest_contract.MAX_TRIGGERS + 1),
+        ),
         ("triggers", ("wrong",)),
-        ("target_kinds", ["example.reference/resource@1"]),
     ],
 )
 def test_rejects_invalid_static_metadata(field, value):
@@ -186,7 +194,11 @@ def test_rejects_invalid_static_metadata(field, value):
         ("example.reference/resolve@01", ()),
         ("example.reference/resolve@1", ("wrong",)),
         ("example.reference/resolve@1", ("example.role.claim",) * 2),
-        ("example.reference/resolve@1", ("example.role.claim",) * 65),
+        (
+            "example.reference/resolve@1",
+            ("example.role.claim",)
+            * (manifest_contract.MAX_PROFILE_CLAIMS_PER_OPERATION + 1),
+        ),
         ("example.reference/resolve@1", "example.role.claim"),
     ],
 )
@@ -216,6 +228,35 @@ def test_operation_inheritance_duplicates_and_overrides():
     assert _response(type("Inherited", (_Representative,), {})) == _response()
 
 
+def test_inherited_operation_resolves_declaring_class_model_annotations():
+    class Models(_Minimal):
+        class Request(ProviderModel):
+            reference: str
+
+        class Result(ProviderModel):
+            resolved: str
+
+    class DeclaringProvider(Models):
+        @operation("example.reference/inherited@1")
+        async def inherited(self, request: "Request") -> "Result":  # noqa: F821
+            return self.Result(resolved=request.reference)
+
+    class InheritedProvider(DeclaringProvider):
+        class Request(ProviderModel):
+            wrong_model: bool
+
+    document = MessageToDict(
+        _response(InheritedProvider),
+        always_print_fields_with_no_presence=True,
+    )
+    declaration = document["manifest"]["operations"][
+        "example.reference/inherited@1"
+    ]
+
+    assert set(declaration["inputSchema"]["properties"]) == {"reference"}
+    assert set(declaration["resultSchema"]["properties"]) == {"resolved"}
+
+
 def test_rejects_sync_untyped_or_conflicting_operations():
     def sync(self, request: _Input) -> _Result:
         return _Result(resolved=request.reference)
@@ -240,6 +281,33 @@ def test_rejects_sync_untyped_or_conflicting_operations():
 
 def _schema(**overrides):
     return {"$schema": _DRAFT, "type": "object", **overrides}
+
+
+def test_versioned_contract_loader_does_not_sniff_individual_fields(
+    monkeypatch,
+):
+    class ContractResource:
+        def joinpath(self, name):
+            assert name == "manifest.schema.json"
+            return self
+
+        def read_text(self):
+            return json.dumps(
+                {
+                    "$schema": _DRAFT,
+                    "$defs": {"schemaDocument": {"type": "object"}},
+                }
+            )
+
+    contract_validator.cache_clear()
+    monkeypatch.setattr(
+        "stateforge_rpc._manifest_schema.files",
+        lambda package: ContractResource(),
+    )
+    try:
+        contract_validator("schemaDocument").validate({})
+    finally:
+        contract_validator.cache_clear()
 
 
 @pytest.mark.parametrize("keyword", ["$ref", "$dynamicRef"])
@@ -316,6 +384,22 @@ def test_rejects_indirect_secret_values_without_echoing_them(
     assert secret_value not in str(error.value)
 
 
+def test_dependent_schema_propagates_secret_policy_to_the_same_instance():
+    secret_value = "sensitive-canary-never-in-errors"  # noqa: S105
+    document = _schema(
+        properties={
+            "enabled": {"type": "boolean"},
+            "label": {"type": "string", "default": secret_value},
+        },
+        dependentSchemas={"enabled": {"writeOnly": True}},
+    )
+
+    with pytest.raises(ManifestError) as error:
+        validate_schema(document, "configuration")
+
+    assert secret_value not in str(error.value)
+
+
 def test_local_anchors_recursion_and_incidental_schema_data():
     document = _schema(
         **{
@@ -369,11 +453,18 @@ def test_rejects_excessive_nesting_and_bounded_serialization():
     with pytest.raises(ManifestError, match="nesting"):
         validate_schema(document, "input")
     with pytest.raises(ManifestError, match="resource"):
-        bounded_json({"x": "x" * (MAX_PREIMAGE_BYTES + 1)}, "input")
+        bounded_json(
+            {"x": "x" * (MANIFEST_MAX_PREIMAGE_BYTES + 1)}, "input"
+        )
     with pytest.raises(ManifestError, match="preimage"):
-        canonical_bytes({"x": "\x00" * (MAX_PREIMAGE_BYTES // 2)})
+        canonical_bytes(
+            {"x": "\x00" * (MANIFEST_MAX_PREIMAGE_BYTES // 2)}
+        )
     with pytest.raises(ManifestError, match="resource"):
-        bounded_json([None] * 65537, "input")
+        bounded_json(
+            [None] * (DEFAULT_RUNTIME_LIMITS.max_json_nodes + 1),
+            "input",
+        )
     with pytest.raises(ManifestError, match="non-JSON"):
         bounded_json({"x": object()}, "input")
 
@@ -402,7 +493,7 @@ def test_matches_unmodified_p1_cross_language_revision_vector():
         == (_FIXTURES / "revision-preimage.json").read_bytes()
     )
     assert response.manifest_revision == (
-        "sha256:34f54f69855f1fbebef4d3d6bb74c0238785e0f8ef43f9efb1a12e6b4353183d"
+        "sha256:6bfdf3aedc2d4e45d77d4787cc0e744a488208b2510d81788291f51d24a623e8"
     )
 
 
@@ -445,7 +536,6 @@ def test_revision_order_generation_identity_and_snapshot_immutability():
 
 def test_map_and_set_like_order_does_not_change_revision():
     class First(_Representative):
-        target_kinds = ("example.reference/a@1", "example.reference/b@1")
         platforms = (Platform("linux", "x86_64"), Platform("darwin", "arm64"))
         runtime_requirements = (
             RuntimeRequirement("runtime.a", "A"),
@@ -453,7 +543,6 @@ def test_map_and_set_like_order_does_not_change_revision():
         )
 
     class Second(First):
-        target_kinds = tuple(reversed(First.target_kinds))
         platforms = tuple(reversed(First.platforms))
         runtime_requirements = tuple(reversed(First.runtime_requirements))
 
@@ -492,7 +581,10 @@ def test_operation_count_checked_before_schema_generation():
     owner = type(
         "Oversized",
         (_Minimal,),
-        {f"handler_{index}": decorated for index in range(1025)},
+        {
+            f"handler_{index}": decorated
+            for index in range(manifest_contract.MAX_OPERATIONS + 1)
+        },
     )
     with pytest.raises(ManifestError, match="entry limit"):
         _response(owner)
@@ -516,7 +608,9 @@ def test_combined_model_schema_budget_stops_discovery():
 
 
 def test_response_limit_checked_before_publication(monkeypatch):
-    monkeypatch.setattr("stateforge_rpc._manifest.MAX_RESPONSE_BYTES", 128)
+    monkeypatch.setattr(
+        "stateforge_rpc._manifest.MANIFEST_MAX_RESPONSE_BYTES", 128
+    )
     with pytest.raises(ManifestError, match="response size"):
         _response()
 
@@ -524,7 +618,15 @@ def test_response_limit_checked_before_publication(monkeypatch):
 def test_local_schema_node_limit_and_nested_dialect():
     with pytest.raises(ManifestError, match="node limit"):
         validate_schema(
-            _schema(**{"$defs": {f"n{i}": {} for i in range(4096)}}), "input"
+            _schema(
+                **{
+                    "$defs": {
+                        f"n{i}": {}
+                        for i in range(DEFAULT_RUNTIME_LIMITS.max_schema_nodes)
+                    }
+                }
+            ),
+            "input",
         )
     with pytest.raises(ManifestError, match="nested schema dialect"):
         validate_schema(
@@ -534,6 +636,20 @@ def test_local_schema_node_limit_and_nested_dialect():
                 }
             ),
             "input",
+        )
+
+
+def test_provider_owned_schema_limits_are_configurable():
+    json_limits = replace(DEFAULT_RUNTIME_LIMITS, max_json_nodes=2)
+    with pytest.raises(ManifestError, match="resource limit"):
+        bounded_json({"value": None}, "input", limits=json_limits)
+
+    schema_limits = replace(DEFAULT_RUNTIME_LIMITS, max_schema_nodes=1)
+    with pytest.raises(ManifestError, match="schema node limit"):
+        validate_schema(
+            _schema(properties={"value": {}}),
+            "input",
+            limits=schema_limits,
         )
 
 
@@ -556,6 +672,24 @@ def test_unresolvable_type_annotations_and_invalid_model_generation():
             type("Invalid", (_Minimal,), {"configuration_model": InvalidModel})
         )
     assert "sensitive-canary" not in str(error.value)
+
+
+def test_pydantic_json_schema_failures_use_the_manifest_error_boundary():
+    class UnsupportedSchema(ProviderModel):
+        callback: Callable[[], None]
+
+    class IncompleteSchema(ProviderModel):
+        missing: "MissingSchemaType"  # noqa: F821
+
+    for schema_model in (UnsupportedSchema, IncompleteSchema):
+        owner = type(
+            "Invalid",
+            (_Minimal,),
+            {"configuration_model": schema_model},
+        )
+
+        with pytest.raises(ManifestError, match="cannot derive model schema"):
+            _response(owner)
 
 
 def test_documented_reference_example_builds_a_valid_manifest():

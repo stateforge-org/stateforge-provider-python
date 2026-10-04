@@ -1,4 +1,4 @@
-"""Integration tests for the private Provider-side SFP bootstrap runtime."""
+"""Integration tests for the private shared Provider-side SFP runtime."""
 
 import asyncio
 import json
@@ -17,9 +17,33 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
+from stateforge_protocol.sfp.capability_assessment.v1 import (
+    contract as capability_assessment_contract,
+)
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
+from stateforge_protocol.sfp.operation_admission.v1 import (
+    contract as operation_admission_contract,
+)
+from stateforge_protocol.sfp.operation_lifecycle.v1 import (
+    contract as operation_lifecycle_contract,
+)
+from stateforge_protocol.sfp.trigger_publication.v1 import (
+    contract as trigger_publication_contract,
+)
 
 from stateforge_rpc import ProtocolVersion
-from stateforge_rpc._server import ProviderServer, ProviderServerConfiguration
+from stateforge_rpc._configuration import (
+    ProviderRuntimeConfiguration,
+    ProviderRuntimeLimits,
+)
+from stateforge_rpc._server import (
+    _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES,
+    _ENDPOINT_MAX_SEND_MESSAGE_BYTES,
+    _MAXIMUM_DESCRIPTOR_BYTES,
+    ProviderServer,
+    ProviderServerError,
+    _read_descriptor,
+)
 from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
@@ -38,8 +62,8 @@ def socket_directory() -> Iterator[Path]:
         shutil.rmtree(directory, ignore_errors=True)
 
 
-def _configuration(directory: Path) -> ProviderServerConfiguration:
-    return ProviderServerConfiguration(
+def _configuration(directory: Path) -> ProviderRuntimeConfiguration:
+    return ProviderRuntimeConfiguration(
         state_directory=directory / "state",
         discovery_directory=directory,
     )
@@ -148,17 +172,83 @@ def test_sdk_advertises_only_implemented_sfp_versions() -> None:
     assert (ProtocolVersion(major=1, minor=0),) == SUPPORTED_SFP_VERSIONS
 
 
+def test_shared_endpoint_ceiling_covers_every_versioned_procedure() -> None:
+    contracts = (
+        capability_assessment_contract,
+        manifest_contract,
+        operation_admission_contract,
+        operation_lifecycle_contract,
+        trigger_publication_contract,
+    )
+
+    assert max(
+        contract.MAX_REQUEST_BYTES for contract in contracts
+    ) == _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES
+    assert max(
+        contract.MAX_RESPONSE_BYTES for contract in contracts
+    ) == _ENDPOINT_MAX_SEND_MESSAGE_BYTES
+    assert (
+        _ENDPOINT_MAX_RECEIVE_MESSAGE_BYTES
+        > manifest_contract.MAX_REQUEST_BYTES
+    )
+    assert (
+        _ENDPOINT_MAX_SEND_MESSAGE_BYTES
+        > manifest_contract.MAX_RESPONSE_BYTES
+    )
+
+
+@pytest.mark.asyncio
+async def test_non_manifest_rpc_reaches_handler_past_manifest_limit(
+    socket_directory: Path,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
+    await asyncio.wait_for(channel.channel_ready(), timeout=2)
+
+    try:
+        with pytest.raises(grpc.aio.AioRpcError) as captured_error:
+            await bootstrap_pb2_grpc.BootstrapServiceStub(channel).Handshake(
+                _request(
+                    server.provider_instance_id,
+                    server.endpoint_generation,
+                    agent_runtime_id="x"
+                    * (manifest_contract.MAX_REQUEST_BYTES + 1),
+                ),
+                timeout=2,
+            )
+
+        assert captured_error.value.code() is grpc.StatusCode.INVALID_ARGUMENT
+        assert captured_error.value.details() == (
+            "agent_runtime.runtime_id must be a canonical UUIDv4"
+        )
+    finally:
+        await channel.close()
+        await server.stop()
+
+
 def test_rejects_invalid_configuration(socket_directory: Path) -> None:
     with pytest.raises(ValueError, match="state_directory must be absolute"):
-        ProviderServerConfiguration(
+        ProviderRuntimeConfiguration(
             state_directory=Path("relative"),
             discovery_directory=socket_directory,
         )
 
     with pytest.raises(ValueError, match="must be absolute"):
-        ProviderServerConfiguration(
+        ProviderRuntimeConfiguration(
             state_directory=socket_directory / "state",
             discovery_directory=Path("relative"),
+        )
+
+    for field in ("max_sessions", "max_json_nodes", "max_schema_nodes"):
+        with pytest.raises(ValueError, match="positive integer"):
+            ProviderRuntimeLimits(**{field: 0})
+
+    with pytest.raises(ValueError, match="shutdown_timeout_seconds"):
+        ProviderRuntimeConfiguration(
+            state_directory=socket_directory / "state",
+            discovery_directory=socket_directory,
+            shutdown_timeout_seconds=0,
         )
 
     with pytest.raises(ValueError, match="positive uint32"):
@@ -264,6 +354,265 @@ async def test_replacement_descriptor_is_not_removed_by_old_server(
 
     await first_server.stop()
     await second_server.stop()
+
+
+@pytest.mark.asyncio
+async def test_rejects_symbolic_link_descriptor(
+    socket_directory: Path,
+) -> None:
+    first_server = ProviderServer(_configuration(socket_directory))
+    await first_server.start()
+    descriptor_path = first_server.descriptor_path
+    await first_server.stop()
+
+    target = socket_directory / "untrusted-descriptor.json"
+    target.write_text("{}")
+    descriptor_path.symlink_to(target)
+
+    second_server = ProviderServer(_configuration(socket_directory))
+    with pytest.raises(ProviderServerError, match="Cannot open"):
+        await second_server.start()
+
+    assert descriptor_path.is_symlink()
+    assert target.exists()
+
+
+@pytest.mark.asyncio
+async def test_rejects_oversized_descriptor(
+    socket_directory: Path,
+) -> None:
+    first_server = ProviderServer(_configuration(socket_directory))
+    await first_server.start()
+    descriptor_path = first_server.descriptor_path
+    await first_server.stop()
+
+    descriptor_path.write_bytes(b"x" * (_MAXIMUM_DESCRIPTOR_BYTES + 1))
+    descriptor_path.chmod(_DESCRIPTOR_MODE)
+
+    second_server = ProviderServer(_configuration(socket_directory))
+    with pytest.raises(ProviderServerError, match="exceeds"):
+        await second_server.start()
+
+    assert descriptor_path.stat().st_size == _MAXIMUM_DESCRIPTOR_BYTES + 1
+
+
+@pytest.mark.asyncio
+async def test_rejects_non_regular_descriptor(
+    socket_directory: Path,
+) -> None:
+    first_server = ProviderServer(_configuration(socket_directory))
+    await first_server.start()
+    descriptor_path = first_server.descriptor_path
+    await first_server.stop()
+
+    descriptor_path.mkdir()
+
+    second_server = ProviderServer(_configuration(socket_directory))
+    with pytest.raises(ProviderServerError, match="not a regular file"):
+        await second_server.start()
+
+    assert descriptor_path.is_dir()
+
+
+def test_rejects_descriptor_not_owned_by_provider(
+    socket_directory: Path,
+    monkeypatch,
+) -> None:
+    descriptor_path = socket_directory / "provider.sfp.json"
+    descriptor_path.write_text("{}")
+    descriptor_path.chmod(_DESCRIPTOR_MODE)
+    owner = descriptor_path.stat().st_uid
+    monkeypatch.setattr(
+        "stateforge_rpc._server.os.geteuid", lambda: owner + 1
+    )
+
+    with pytest.raises(ProviderServerError, match="must be owned"):
+        _read_descriptor(descriptor_path)
+
+
+@pytest.mark.asyncio
+async def test_descriptor_cleanup_failure_is_reported_after_other_cleanup(
+    socket_directory: Path,
+    monkeypatch,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    descriptor_path = server.descriptor_path
+    original_unlink = Path.unlink
+
+    def fail_descriptor_unlink(path, *args, **kwargs):
+        if path == descriptor_path:
+            raise OSError("simulated descriptor unlink failure")
+        return original_unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_descriptor_unlink)
+
+    with pytest.raises(ProviderServerError, match="descriptor withdrawal"):
+        await server.stop()
+
+    assert descriptor_path.exists()
+    assert not server.socket_path.exists()
+    assert server._server is None
+    assert server._sessions is None
+    assert not server._started
+
+    original_unlink(descriptor_path)
+
+
+@pytest.mark.asyncio
+async def test_transport_failure_still_cleans_and_resets_runtime(
+    socket_directory: Path,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    transport = server._server
+    assert transport is not None
+
+    class FailingTransport:
+        async def stop(self, *, grace):
+            del grace
+            raise RuntimeError("simulated transport shutdown failure")
+
+    server._server = FailingTransport()
+    try:
+        with pytest.raises(RuntimeError, match="transport shutdown failure"):
+            await server.stop()
+
+        assert not server.descriptor_path.exists()
+        assert not server.socket_path.exists()
+        assert server._server is None
+        assert server._sessions is None
+        assert server._socket_identity is None
+        assert not server._started
+    finally:
+        await transport.stop(grace=None)
+
+
+@pytest.mark.asyncio
+async def test_transport_failure_retains_every_cleanup_failure(
+    socket_directory: Path,
+    monkeypatch,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    transport = server._server
+    assert transport is not None
+    descriptor_path = server.descriptor_path
+    socket_path = server.socket_path
+    phases: list[str] = []
+
+    def fail_descriptor_cleanup():
+        phases.append("descriptor")
+        raise ProviderServerError("descriptor cleanup failed")
+
+    def fail_socket_cleanup():
+        phases.append("socket")
+        raise ProviderServerError("socket cleanup failed")
+
+    class FailingTransport:
+        async def stop(self, *, grace):
+            del grace
+            phases.append("transport")
+            raise RuntimeError("transport shutdown failed")
+
+    monkeypatch.setattr(
+        server, "_remove_descriptor_if_owned", fail_descriptor_cleanup
+    )
+    monkeypatch.setattr(server, "_remove_socket", fail_socket_cleanup)
+    server._server = FailingTransport()
+    try:
+        with pytest.raises(
+            RuntimeError, match="transport shutdown failed"
+        ) as error:
+            await server.stop()
+
+        assert phases == ["descriptor", "transport", "socket"]
+        notes = getattr(error.value, "__notes__", ())
+        assert any("descriptor withdrawal" in note for note in notes)
+        assert any("socket removal" in note for note in notes)
+        assert server._server is None
+        assert server._sessions is None
+        assert not server._started
+    finally:
+        await transport.stop(grace=None)
+        descriptor_path.unlink(missing_ok=True)
+        socket_path.unlink(missing_ok=True)
+
+
+@pytest.mark.asyncio
+async def test_transport_cancellation_still_cleans_and_resets_runtime(
+    socket_directory: Path,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    transport = server._server
+    assert transport is not None
+
+    class CancelledTransport:
+        async def stop(self, *, grace):
+            del grace
+            raise asyncio.CancelledError
+
+    server._server = CancelledTransport()
+    try:
+        with pytest.raises(asyncio.CancelledError):
+            await server.stop()
+
+        assert not server.descriptor_path.exists()
+        assert not server.socket_path.exists()
+        assert server._server is None
+        assert server._sessions is None
+        assert server._socket_identity is None
+        assert not server._started
+    finally:
+        await transport.stop(grace=None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("replacement_kind", ["file", "symlink", "socket"])
+async def test_socket_cleanup_refuses_replacement(
+    socket_directory: Path,
+    replacement_kind: str,
+) -> None:
+    server = ProviderServer(_configuration(socket_directory))
+    await server.start()
+    transport = server._server
+    assert transport is not None
+    socket_path = server.socket_path
+    socket_path.unlink()
+
+    target: Path | None = None
+    replacement_socket: socket.socket | None = None
+    if replacement_kind == "file":
+        socket_path.write_text("replacement")
+    elif replacement_kind == "symlink":
+        target = socket_directory / "replacement-target"
+        target.write_text("replacement")
+        socket_path.symlink_to(target)
+    else:
+        replacement_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        replacement_socket.bind(str(socket_path))
+
+    class SuccessfulTransport:
+        async def stop(self, *, grace):
+            del grace
+
+    server._server = SuccessfulTransport()
+    try:
+        with pytest.raises(ProviderServerError, match="socket removal"):
+            await server.stop()
+
+        assert socket_path.exists() or socket_path.is_symlink()
+        assert server._server is None
+        assert server._socket_identity is None
+        assert not server._started
+    finally:
+        if replacement_socket is not None:
+            replacement_socket.close()
+        socket_path.unlink(missing_ok=True)
+        if target is not None:
+            target.unlink(missing_ok=True)
+        await transport.stop(grace=None)
 
 
 @pytest.mark.asyncio

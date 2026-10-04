@@ -10,7 +10,15 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeGuard
 from uuid import UUID, uuid4
+
+from stateforge_rpc._filesystem import (
+    SecureFileError,
+    read_owned_regular_file,
+    synchronize_directory,
+    write_all,
+)
 
 _STATE_SCHEMA_VERSION = "1"
 _STATE_FILENAME = "identity.json"
@@ -28,6 +36,24 @@ _STATE_FIELDS = {
 
 class ProviderIdentityError(RuntimeError):
     """Report unusable or exhausted Provider identity state."""
+
+
+def is_canonical_uuid4(value: str) -> bool:
+    """Return whether a string is a canonical lowercase UUIDv4."""
+    try:
+        identifier = UUID(value)
+    except ValueError:
+        return False
+    return identifier.version == _UUID_VERSION and str(identifier) == value
+
+
+def is_allocated_endpoint_generation(value: object) -> TypeGuard[int]:
+    """Return whether a value identifies an allocated endpoint generation."""
+    return (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and 1 <= value <= _MAXIMUM_ENDPOINT_GENERATION
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -180,53 +206,21 @@ class ProviderIdentityStore:
             os.close(descriptor)
 
     # Keep persisted-state validation visible as one security review surface.
-    def _load_state(  # noqa: PLR0912
-        self,
-    ) -> _ProviderIdentityState | None:
+    def _load_state(self) -> _ProviderIdentityState | None:
         """Read and validate the complete identity document."""
-        flags = os.O_RDONLY | os.O_CLOEXEC
-        if hasattr(os, "O_NOFOLLOW"):
-            flags |= os.O_NOFOLLOW
         try:
-            descriptor = os.open(self.state_path, flags)
-        except FileNotFoundError:
+            content = read_owned_regular_file(
+                self.state_path,
+                expected_mode=_STATE_FILE_MODE,
+                maximum_bytes=_MAXIMUM_STATE_BYTES,
+                resource="Provider identity state",
+            )
+        except SecureFileError as error:
+            raise ProviderIdentityError(
+                str(error)
+            ) from error
+        if content is None:
             return None
-        except OSError as error:
-            raise ProviderIdentityError(
-                f"Cannot open Provider identity state {self.state_path}: "
-                f"{error}"
-            ) from error
-
-        try:
-            status = os.fstat(descriptor)
-            if not stat.S_ISREG(status.st_mode):
-                raise ProviderIdentityError(
-                    f"Provider identity state is not a regular file: "
-                    f"{self.state_path}"
-                )
-            if status.st_uid != os.geteuid():
-                raise ProviderIdentityError(
-                    "Provider identity state must be owned by the Provider "
-                    f"process: {self.state_path}"
-                )
-            if stat.S_IMODE(status.st_mode) != _STATE_FILE_MODE:
-                raise ProviderIdentityError(
-                    f"Provider identity state mode must be "
-                    f"{_STATE_FILE_MODE:#05o}: {self.state_path}"
-                )
-            if status.st_size > _MAXIMUM_STATE_BYTES:
-                raise ProviderIdentityError(
-                    f"Provider identity state exceeds "
-                    f"{_MAXIMUM_STATE_BYTES} bytes: {self.state_path}"
-                )
-            content = os.read(descriptor, _MAXIMUM_STATE_BYTES + 1)
-        except OSError as error:
-            raise ProviderIdentityError(
-                f"Cannot read Provider identity state {self.state_path}: "
-                f"{error}"
-            ) from error
-        finally:
-            os.close(descriptor)
 
         try:
             document = json.loads(content)
@@ -288,34 +282,15 @@ class ProviderIdentityStore:
             descriptor = os.open(temporary_path, flags, _STATE_FILE_MODE)
             try:
                 os.fchmod(descriptor, _STATE_FILE_MODE)
-                _write_all(descriptor, content)
+                write_all(descriptor, content, resource="Identity-state")
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
             os.replace(temporary_path, self.state_path)
-            _synchronize_directory(self.state_directory)
+            synchronize_directory(self.state_directory)
         except OSError as error:
             temporary_path.unlink(missing_ok=True)
             raise ProviderIdentityError(
                 f"Cannot persist Provider identity state {self.state_path}: "
                 f"{error}"
             ) from error
-
-
-def _synchronize_directory(directory: Path) -> None:
-    """Make an atomic state-file replacement durable."""
-    descriptor = os.open(directory, os.O_RDONLY | os.O_CLOEXEC)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-
-
-def _write_all(descriptor: int, content: bytes) -> None:
-    """Write complete content despite partial operating-system writes."""
-    offset = 0
-    while offset < len(content):
-        written = os.write(descriptor, content[offset:])
-        if written == 0:
-            raise OSError("Identity-state write returned zero bytes")
-        offset += written

@@ -43,7 +43,6 @@ class ReferenceProvider(Provider):
     identity = "example.reference"
     display_name = "Reference Provider"
     version = "1.0.0"
-    target_kinds = ("example.reference/repository@1",)
     platforms = (Platform("linux", "x86_64"), Platform("darwin", "arm64"))
     configuration_model = Configuration
     runtime_requirements = (

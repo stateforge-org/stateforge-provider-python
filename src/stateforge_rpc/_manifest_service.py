@@ -11,16 +11,18 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import DecodeError
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
 
+from stateforge_rpc._configuration import (
+    DEFAULT_RUNTIME_LIMITS,
+    ProviderRuntimeLimits,
+)
 from stateforge_rpc._identity import ProviderEndpointIdentity
 from stateforge_rpc._manifest import ManifestSnapshot
-from stateforge_rpc._schema import (
-    MAX_REQUEST_BYTES,
+from stateforge_rpc._manifest_schema import (
+    MANIFEST_MAX_REQUEST_BYTES,
     ManifestError,
     contract_validator,
 )
 from stateforge_rpc.version import ProtocolVersion
-
-_MAX_SESSIONS = 1024
 
 
 class SessionRegistryClosedError(RuntimeError):
@@ -34,15 +36,20 @@ class _Session:
 
 
 class SessionRegistry:
-    """Own at most 1,024 in-memory negotiated sessions for one generation.
+    """Own a bounded set of negotiated sessions for one generation.
 
     Oldest sessions are invalidated on capacity pressure. Affected clients
     must handshake again. Reads do not refresh or mutate session state.
     All access runs on the server event loop, with no await during mutation.
     """
 
-    def __init__(self, endpoint: ProviderEndpointIdentity) -> None:
+    def __init__(
+        self,
+        endpoint: ProviderEndpointIdentity,
+        limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
+    ) -> None:
         self._endpoint = endpoint
+        self._max_sessions = limits.max_sessions
         self._sessions: dict[str, _Session] = {}
         self._closed = False
 
@@ -51,7 +58,7 @@ class SessionRegistry:
         if self._closed:
             raise SessionRegistryClosedError("Provider endpoint is stopping")
         identifier = str(uuid4())
-        if len(self._sessions) >= _MAX_SESSIONS:
+        if len(self._sessions) >= self._max_sessions:
             del self._sessions[next(iter(self._sessions))]
         self._sessions[identifier] = _Session(self._endpoint, version)
         return identifier
@@ -84,7 +91,7 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
         ],
     ) -> manifest_pb2.GetManifestResponse:
         """Check syntax, session, and compatibility before copying."""
-        if request.ByteSize() > MAX_REQUEST_BYTES:
+        if request.ByteSize() > MANIFEST_MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Manifest request limit exceeded",

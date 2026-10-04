@@ -16,7 +16,6 @@ class ExampleProvider(Provider):
     identity = "example.service"
     display_name = "Example Service"
     version = "1.0.0"
-    target_kinds = ("example.service/resource@1",)
     platforms = (Platform("linux", "x86_64"),)
 
 
@@ -24,12 +23,12 @@ if __name__ == "__main__":
     ExampleProvider().run()
 ```
 
-These five declarations are required. `identity` names the Provider **type**;
+These four declarations are required. `identity` names the Provider **type**;
 the runtime separately persists a UUIDv4 identifying this installation.
 `version` is the implementation's SemVer, independent of SFP and manifest
-schema versions. Target kinds are third-party resource types, never actual
-customer resources or StateForge component bindings. Platforms are explicit
-pairs, without wildcards or an implied Cartesian product.
+schema versions. Platforms are explicit pairs, without wildcards or an implied
+Cartesian product. Resource selection belongs in each operation's typed input
+schema; the manifest does not declare a generic target abstraction.
 
 The defaults declare no operations, triggers, or runtime requirements, and an
 empty configuration object that rejects extra fields. Earlier bootstrap-only
@@ -66,7 +65,6 @@ class ReferenceProvider(Provider):
     identity = "example.reference"
     display_name = "Reference Provider"
     version = "1.0.0"
-    target_kinds = ("example.reference/repository@1",)
     platforms = (Platform("linux", "x86_64"),)
     configuration_model = Configuration
     runtime_requirements = (
@@ -99,10 +97,10 @@ are inherited using Python's MRO; overriding a declared method requires a new
 errors. Unresolvable annotations fail startup; keep model classes importable
 at module scope or declared on the Provider class.
 
-Operation, target, and trigger identifiers use `namespace/name@major`, with at
+Operation and trigger identifiers use `namespace/name@major`, with at
 least two lowercase dotted namespace segments and a positive major version.
 An incompatible input/result contract requires a new identifier version.
-Use tuples for target kinds, platforms, requirements, triggers, and roles.
+Use tuples for platforms, requirements, triggers, and roles.
 Requirements are descriptive only; the runtime does not run probes or
 interpret their version constraints. An empty constraint means no declared
 version restriction.
@@ -151,8 +149,8 @@ numbers, and integers outside RFC 8785's exact integer range fail validation.
 
 P1 limits are 8 KiB per wire request, 2 MiB per wire response, 1 MiB per
 canonical revision preimage, 1,024 entries per operation/trigger/requirement
-map, 1,024 target kinds, 256 platform pairs, 64 roles per operation, and 64
-containers of embedded nesting. This runtime additionally caps JSON at 65,536
+map, 256 platform pairs, 64 roles per operation, and 64 containers of embedded
+nesting. This runtime additionally caps JSON at 65,536
 nodes per checked document, embedded schemas at 4,096 schema nodes each, and
 combined generated schema bytes at 1 MiB. It applies these bounds before
 expensive validation/serialization and checks actual encoded sizes before
@@ -196,21 +194,15 @@ check the echoed response against both the request and their current session,
 even when the revision is cached. After re-handshake, retry with the new
 identifier. There is no mandatory session metadata header.
 
-## Development dependency and scope
+## Development scope
 
-The Protocol prerequisite is merged PR #14 at commit
-`437828a92bd30ff763ca6cc4cd1c93443985c113`. Its distribution version is still
-`0.1.0`, so version resolution alone cannot distinguish earlier incomplete
-artifacts. Until a release provides that distinction, install the source pin
-before this package:
+Install the package and its development dependencies from `pyproject.toml`:
 
 ```sh
-python -m pip install -r requirements/protocol.txt
 python -m pip install -e . --group dev --group docs
 ```
 
-GitHub access to the Protocol repository is required. The runtime fails closed
-if the installed schema lacks the session-binding correction. This milestone
-does not implement configuration loading, target assessment, dispatch,
-OperationContext, trigger publication, Agent caching/routing, or vendor work.
-Those remain their own milestones; these declarations are their shared input.
+This milestone does not implement configuration loading, target assessment,
+dispatch, OperationContext, trigger publication, Agent caching/routing, or
+vendor work. Those remain their own milestones; these declarations are their
+shared input.
