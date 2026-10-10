@@ -8,17 +8,21 @@ import signal
 from pathlib import Path
 from typing import ClassVar, final
 
-from stateforge_rpc._runtime.configuration import ProviderRuntimeConfiguration
-from stateforge_rpc._runtime.errors import ProviderServerError
-from stateforge_rpc._runtime.grpc import ProcedureRegistration
-from stateforge_rpc._runtime.identity import ProviderEndpointIdentity
-from stateforge_rpc._runtime.server import ProviderServer
-from stateforge_rpc._runtime.sessions import SessionRegistry
-from stateforge_rpc._services.manifest.declaration import ManifestDeclaration
-from stateforge_rpc._services.manifest.service import (
+from stateforge_provider._runtime.configuration import (
+    ProviderRuntimeConfiguration,
+)
+from stateforge_provider._runtime.errors import ProviderServerError
+from stateforge_provider._runtime.grpc import ProcedureRegistration
+from stateforge_provider._runtime.identity import ProviderEndpointIdentity
+from stateforge_provider._runtime.server import ProviderServer
+from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.manifest.declaration import (
+    ManifestDeclaration,
+)
+from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
 )
-from stateforge_rpc.declarations import (
+from stateforge_provider.declarations import (
     Platform,
     ProviderModel,
     RuntimeRequirement,

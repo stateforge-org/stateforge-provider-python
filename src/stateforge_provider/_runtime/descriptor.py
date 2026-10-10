@@ -7,15 +7,17 @@ import os
 from pathlib import Path
 from uuid import UUID
 
-from stateforge_rpc._runtime.configuration import ProviderRuntimeConfiguration
-from stateforge_rpc._runtime.errors import ProviderServerError
-from stateforge_rpc._runtime.filesystem import (
+from stateforge_provider._runtime.configuration import (
+    ProviderRuntimeConfiguration,
+)
+from stateforge_provider._runtime.errors import ProviderServerError
+from stateforge_provider._runtime.filesystem import (
     SecureFileError,
     read_owned_regular_file,
     synchronize_directory,
     write_all,
 )
-from stateforge_rpc._runtime.identity import (
+from stateforge_provider._runtime.identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,

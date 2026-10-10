@@ -1,9 +1,9 @@
-# StateForge Provider Implementation
+# StateForge Provider
 
-This project is the reference starting point for a standalone StateForge
-Provider process. A Provider owns all third-party-specific behavior and
-communicates with the StateForge Agent exclusively through StateForge Protocol
-(SFP).
+StateForge Provider is the Python framework and runtime for standalone
+StateForge Provider processes. A Provider owns all third-party-specific
+behavior and communicates with the StateForge Agent exclusively through
+StateForge Protocol (SFP).
 
 The Developer RPC Library handles the generic SFP runtime. Provider authors
 implement component-specific behavior without placing vendor logic inside the
@@ -17,14 +17,14 @@ third-party framework or component normally remains unchanged by StateForge.
 
 ## Author experience
 
-Subclass [`Provider`][stateforge_rpc.provider.Provider], declare a namespaced
-`identity` and the required manifest metadata, and start it. The runtime loads or creates the stable Provider
-identity, allocates an endpoint generation, starts the protected local
-endpoint, and negotiates SFP with the Agent without any of that appearing in
-the author-facing API:
+Subclass [`Provider`][stateforge_provider.provider.Provider], declare a
+namespaced `identity` and the required manifest metadata, and start it. The
+runtime loads or creates the stable Provider identity, allocates an endpoint
+generation, starts the protected local endpoint, and negotiates SFP with the
+Agent without any of that appearing in the author-facing API:
 
 ```python
-from stateforge_rpc import Platform, Provider
+from stateforge_provider import Platform, Provider
 
 
 class GitProvider(Provider):

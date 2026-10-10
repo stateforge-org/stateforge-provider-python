@@ -1,4 +1,4 @@
-# StateForge Provider Implementation agent instructions
+# StateForge Provider agent instructions
 
 Before planning, reviewing, or changing this repository, read these files in
 order:

@@ -18,22 +18,22 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
 )
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
 
-from stateforge_rpc import (
+from stateforge_provider import (
     ManifestError,
     Platform,
     Provider,
     ProviderModel,
     operation,
 )
-from stateforge_rpc._services.manifest.declaration import (
+from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
     ManifestSnapshot,
 )
-from stateforge_rpc._services.manifest.limits import (
+from stateforge_provider._services.manifest.limits import (
     MAX_REQUEST_BYTES,
     MAX_RESPONSE_BYTES,
 )
-from stateforge_rpc._services.manifest.service import ManifestService
+from stateforge_provider._services.manifest.service import ManifestService
 
 
 class _Request(ProviderModel):

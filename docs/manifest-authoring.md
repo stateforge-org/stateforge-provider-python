@@ -9,7 +9,7 @@ of the declaration API.
 ## Minimal Provider
 
 ```python
-from stateforge_rpc import Platform, Provider
+from stateforge_provider import Platform, Provider
 
 
 class ExampleProvider(Provider):
@@ -38,7 +38,7 @@ Providers must add the required declarations before they can serve R1.
 
 ```python
 from pydantic import SecretStr
-from stateforge_rpc import (
+from stateforge_provider import (
     Platform,
     Provider,
     ProviderModel,

@@ -15,11 +15,11 @@ from referencing import Registry
 from referencing.exceptions import Unresolvable
 from referencing.jsonschema import DRAFT202012
 
-from stateforge_rpc._runtime.configuration import (
+from stateforge_provider._runtime.configuration import (
     DEFAULT_RUNTIME_LIMITS,
     ProviderRuntimeLimits,
 )
-from stateforge_rpc._services.manifest.limits import (
+from stateforge_provider._services.manifest.limits import (
     MAX_CANONICAL_REVISION_PREIMAGE_BYTES,
     MAX_EMBEDDED_JSON_DEPTH,
 )

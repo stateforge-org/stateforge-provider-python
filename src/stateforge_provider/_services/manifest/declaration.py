@@ -14,17 +14,17 @@ from pydantic.json_schema import JsonSchemaMode
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2
 
-from stateforge_rpc._runtime.configuration import (
+from stateforge_provider._runtime.configuration import (
     DEFAULT_RUNTIME_LIMITS,
     ProviderRuntimeLimits,
 )
-from stateforge_rpc._runtime.identity import ProviderEndpointIdentity
-from stateforge_rpc._services.manifest.limits import (
+from stateforge_provider._runtime.identity import ProviderEndpointIdentity
+from stateforge_provider._services.manifest.limits import (
     MAX_CANONICAL_REVISION_PREIMAGE_BYTES,
     MAX_EMBEDDED_JSON_DEPTH,
     MAX_RESPONSE_BYTES,
 )
-from stateforge_rpc._services.manifest.schema import (
+from stateforge_provider._services.manifest.schema import (
     JSON_SCHEMA_DRAFT_2020_12_URI,
     ManifestError,
     bounded_json,
@@ -32,7 +32,7 @@ from stateforge_rpc._services.manifest.schema import (
     validate_schema,
     validate_structure,
 )
-from stateforge_rpc.declarations import (
+from stateforge_provider.declarations import (
     Platform,
     ProviderModel,
     RuntimeRequirement,

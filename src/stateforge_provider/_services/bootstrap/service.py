@@ -10,20 +10,20 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2_grpc,
 )
 
-from stateforge_rpc._runtime.grpc import ProcedureRegistration
-from stateforge_rpc._runtime.identity import (
+from stateforge_provider._runtime.grpc import ProcedureRegistration
+from stateforge_provider._runtime.identity import (
     ProviderEndpointIdentity,
     is_canonical_uuid4,
 )
-from stateforge_rpc._runtime.sessions import (
+from stateforge_provider._runtime.sessions import (
     SessionRegistry,
     SessionRegistryClosedError,
 )
-from stateforge_rpc._services.bootstrap.limits import (
+from stateforge_provider._services.bootstrap.limits import (
     MAX_REQUEST_BYTES,
     MAX_RESPONSE_BYTES,
 )
-from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
+from stateforge_provider.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
 
 class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
