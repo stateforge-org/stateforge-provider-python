@@ -9,18 +9,18 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import DecodeError
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
 
-from stateforge_rpc._runtime.grpc import ProcedureRegistration
-from stateforge_rpc._runtime.sessions import SessionRegistry
-from stateforge_rpc._services.manifest.declaration import ManifestSnapshot
-from stateforge_rpc._services.manifest.limits import (
+from stateforge_provider._runtime.grpc import ProcedureRegistration
+from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.manifest.declaration import ManifestSnapshot
+from stateforge_provider._services.manifest.limits import (
     MAX_REQUEST_BYTES,
     MAX_RESPONSE_BYTES,
 )
-from stateforge_rpc._services.manifest.schema import (
+from stateforge_provider._services.manifest.schema import (
     ManifestError,
     contract_validator,
 )
-from stateforge_rpc.version import ProtocolVersion
+from stateforge_provider.version import ProtocolVersion
 
 
 class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):

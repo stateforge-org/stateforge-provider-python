@@ -2,8 +2,9 @@
 
 The endpoint hosts version-neutral bootstrap negotiation and the negotiated
 SFP procedure services. This module is a private runtime implementation
-detail. Provider authors use the public :class:`stateforge_rpc.Provider` base
-class; they must not import or configure anything here directly.
+detail. Provider authors use the public
+:class:`stateforge_provider.Provider` base class; they must not import or
+configure anything here directly.
 """
 
 from __future__ import annotations
@@ -18,23 +19,25 @@ from uuid import UUID, uuid4
 
 import grpc
 
-from stateforge_rpc._runtime.configuration import ProviderRuntimeConfiguration
-from stateforge_rpc._runtime.descriptor import EndpointDescriptor
-from stateforge_rpc._runtime.errors import ProviderServerError
-from stateforge_rpc._runtime.filesystem import (
+from stateforge_provider._runtime.configuration import (
+    ProviderRuntimeConfiguration,
+)
+from stateforge_provider._runtime.descriptor import EndpointDescriptor
+from stateforge_provider._runtime.errors import ProviderServerError
+from stateforge_provider._runtime.filesystem import (
     synchronize_directory,
 )
-from stateforge_rpc._runtime.grpc import (
+from stateforge_provider._runtime.grpc import (
     ProcedureRegistration,
     create_server,
 )
-from stateforge_rpc._runtime.identity import (
+from stateforge_provider._runtime.identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,
 )
-from stateforge_rpc._runtime.sessions import SessionRegistry
-from stateforge_rpc._services.bootstrap.service import (
+from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.bootstrap.service import (
     registration as bootstrap_registration,
 )
 

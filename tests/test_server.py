@@ -19,32 +19,32 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
 )
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
-from stateforge_rpc import ProtocolVersion
-from stateforge_rpc._runtime.configuration import (
+from stateforge_provider import ProtocolVersion
+from stateforge_provider._runtime.configuration import (
     ProviderRuntimeConfiguration,
     ProviderRuntimeLimits,
 )
-from stateforge_rpc._runtime.descriptor import (
+from stateforge_provider._runtime.descriptor import (
     _MAXIMUM_DESCRIPTOR_BYTES,
     _read_descriptor,
 )
-from stateforge_rpc._runtime.grpc import endpoint_message_limits
-from stateforge_rpc._runtime.identity import ProviderEndpointIdentity
-from stateforge_rpc._runtime.server import (
+from stateforge_provider._runtime.grpc import endpoint_message_limits
+from stateforge_provider._runtime.identity import ProviderEndpointIdentity
+from stateforge_provider._runtime.server import (
     ProviderServer,
     ProviderServerError,
 )
-from stateforge_rpc._runtime.sessions import SessionRegistry
-from stateforge_rpc._services.bootstrap import limits as bootstrap_limits
-from stateforge_rpc._services.bootstrap.service import (
+from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.bootstrap import limits as bootstrap_limits
+from stateforge_provider._services.bootstrap.service import (
     registration as bootstrap_registration,
 )
-from stateforge_rpc._services.manifest import limits as manifest_limits
-from stateforge_rpc._services.manifest.declaration import ManifestSnapshot
-from stateforge_rpc._services.manifest.service import (
+from stateforge_provider._services.manifest import limits as manifest_limits
+from stateforge_provider._services.manifest.declaration import ManifestSnapshot
+from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
 )
-from stateforge_rpc.version import SUPPORTED_SFP_VERSIONS
+from stateforge_provider.version import SUPPORTED_SFP_VERSIONS
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
 _UUID_VERSION = 4
@@ -546,7 +546,7 @@ def test_rejects_descriptor_not_owned_by_provider(
     descriptor_path.chmod(_DESCRIPTOR_MODE)
     owner = descriptor_path.stat().st_uid
     monkeypatch.setattr(
-        "stateforge_rpc._runtime.descriptor.os.geteuid", lambda: owner + 1
+        "stateforge_provider._runtime.descriptor.os.geteuid", lambda: owner + 1
     )
 
     with pytest.raises(ProviderServerError, match="must be owned"):

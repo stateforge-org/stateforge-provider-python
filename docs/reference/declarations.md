@@ -1,5 +1,5 @@
 # Declaration API
 
-::: stateforge_rpc.declarations
+::: stateforge_provider.declarations
 
-::: stateforge_rpc.ManifestError
+::: stateforge_provider.ManifestError

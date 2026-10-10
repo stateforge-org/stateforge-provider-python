@@ -31,7 +31,7 @@ next procedure in the same pull request.
   Provider process.
 - SFP uses one multiplexed local gRPC channel per active Provider endpoint.
 - `stateforge-protocol` owns protobuf sources and generated contracts only.
-- `stateforge-provider-implemntation` owns generic Provider server and
+- `stateforge-provider-python` owns generic Provider server and
   author-facing runtime behavior, not vendor-specific integrations.
 - `stateforge-agent` owns Agent-side coordination, workspaces, and
   BackupEngine tooling without embedding vendor knowledge.

@@ -1,5 +1,5 @@
 # Provider API
 
-::: stateforge_rpc.provider.Provider
+::: stateforge_provider.provider.Provider
 
-::: stateforge_rpc.ProviderServerError
+::: stateforge_provider.ProviderServerError

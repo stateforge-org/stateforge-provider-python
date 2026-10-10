@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "stateforge-provider-implementation"
+name = "stateforge-provider"
 version = "0.1.0"
-description = "Reference skeleton for implementing StateForge Providers."
+description = "StateForge Provider framework and runtime for Python"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
@@ -36,6 +36,13 @@ dependencies = [
 ]
 
 
+[project.urls]
+Homepage = "https://github.com/stateforge-org/stateforge-provider-python"
+Documentation = "https://github.com/stateforge-org/stateforge-provider-python/tree/main/docs"
+Repository = "https://github.com/stateforge-org/stateforge-provider-python"
+Issues = "https://github.com/stateforge-org/stateforge-provider-python/issues"
+
+
 [dependency-groups]
 dev = [
     "build>=1.2",
@@ -56,7 +63,18 @@ docs = [
 
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/stateforge_rpc"]
+packages = ["src/stateforge_provider"]
+
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "/.agents",
+    "/.chronos",
+    "/.claude",
+    "/AGENTS.md",
+    "/CLAUDE.md",
+    "/STATEFORGE_DPT.md",
+]
 
 
 [tool.ruff]
@@ -120,7 +138,7 @@ docstring-code-format = true
 python_version = "3.11"
 strict = true
 mypy_path = "src"
-packages = ["stateforge_rpc"]
+packages = ["stateforge_provider"]
 pretty = true
 show_error_codes = true
 warn_unreachable = true
@@ -132,7 +150,7 @@ minversion = "8.4"
 addopts = [
     "--strict-config",
     "--strict-markers",
-    "--cov=stateforge_rpc",
+    "--cov=stateforge_provider",
     "--cov-report=term-missing",
 ]
 testpaths = ["tests"]
@@ -141,7 +159,7 @@ asyncio_mode = "strict"
 
 [tool.coverage.run]
 branch = true
-source = ["stateforge_rpc"]
+source = ["stateforge_provider"]
 
 
 [tool.coverage.report]

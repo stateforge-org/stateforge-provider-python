@@ -1,11 +1,11 @@
 # Runtime package ownership
 
-Provider authors use the public `stateforge_rpc` API. The private package
+Provider authors use the public `stateforge_provider` API. The private package
 layout keeps endpoint infrastructure separate from the implementation of each
 SFP procedure:
 
 ```text
-stateforge_rpc/
+stateforge_provider/
   _runtime/             # shared endpoint and process infrastructure
   _services/
     bootstrap/           # Handshake implementation and local message limits

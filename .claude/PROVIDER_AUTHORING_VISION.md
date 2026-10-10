@@ -61,7 +61,7 @@ the Provider-author API.
 ## Intended author experience
 
 ```python
-from stateforge_rpc import (
+from stateforge_provider import (
     CapabilityAssessment,
     HealthStatus,
     OperationContext,
@@ -274,7 +274,7 @@ details. They must not become the documented authoring interface.
 | Repository | Responsibility |
 | --- | --- |
 | `stateforge-protocol` | Versioned protobuf sources and generated contracts only. |
-| `stateforge-provider-implemntation` | Developer RPC Library, Provider framework, runtime server, and reference skeleton. |
+| `stateforge-provider-python` | Python Provider framework, Developer RPC Library, runtime server, and public authoring surface. |
 | `stateforge-agent` | Agent-side SFP coordination, workspaces, and BackupEngine tooling. |
 
 The Provider repository must not gain Agent coordination, BackupEngine logic,

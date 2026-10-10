@@ -10,7 +10,7 @@ from pathlib import Path
 import grpc
 import pytest
 
-from stateforge_rpc import Platform, Provider, ProviderServerError
+from stateforge_provider import Platform, Provider, ProviderServerError
 
 _DEFAULT_DISCOVERY_DIRECTORY = Path("/run/stateforge-agent/providers")
 _DEFAULT_STATE_ROOT = Path("/var/lib/stateforge-providers")

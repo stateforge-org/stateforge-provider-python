@@ -1,4 +1,4 @@
-# StateForge Provider Implementation repository instructions
+# StateForge Provider repository instructions
 
 Read root `STATEFORGE_DPT.md` for the shared milestone declaration and
 generated delivery snapshot, not an editable local implementation ledger.
@@ -55,8 +55,8 @@ conditions, not permission to implement additional milestones.
 
 ## Repository boundary
 
-This repository provides the Developer RPC Library and reference skeleton used
-to implement a standalone Provider process. The Developer RPC Library and the
+This repository provides the Python Provider framework and runtime used to
+implement a standalone Provider process. The Developer RPC Library and the
 Provider implementation run in that same process; there is no second
 "standalone RPC process." The StateForge Agent is a different process.
 

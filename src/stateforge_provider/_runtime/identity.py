@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TypeGuard
 from uuid import UUID, uuid4
 
-from stateforge_rpc._runtime.filesystem import (
+from stateforge_provider._runtime.filesystem import (
     SecureFileError,
     read_owned_regular_file,
     synchronize_directory,

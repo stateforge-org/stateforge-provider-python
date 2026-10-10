@@ -5,12 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import uuid4
 
-from stateforge_rpc._runtime.configuration import (
+from stateforge_provider._runtime.configuration import (
     DEFAULT_RUNTIME_LIMITS,
     ProviderRuntimeLimits,
 )
-from stateforge_rpc._runtime.identity import ProviderEndpointIdentity
-from stateforge_rpc.version import ProtocolVersion
+from stateforge_provider._runtime.identity import ProviderEndpointIdentity
+from stateforge_provider.version import ProtocolVersion
 
 
 class SessionRegistryClosedError(RuntimeError):

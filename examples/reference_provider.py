@@ -2,7 +2,7 @@
 
 from pydantic import SecretStr
 
-from stateforge_rpc import (
+from stateforge_provider import (
     Platform,
     Provider,
     ProviderModel,
