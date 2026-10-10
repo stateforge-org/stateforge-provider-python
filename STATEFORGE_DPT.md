@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "ecdadbd066801e8101135503f9c1ee9040619f9bdf5bff9197a631ff87c806e6",
+  "fingerprint": "b24bba4d418ea92802ac528beb52799f8006b4ee4ba98b9eb59afefbd9e6cda4",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 18,
+      "revision": 19,
       "slug": "stateforge"
     },
     "repositories": [
@@ -28,7 +28,7 @@
       {
         "alias": "provider",
         "github_default_branch": null,
-        "github_full_name": "stateforge-org/stateforge-provider-implemntation",
+        "github_full_name": "stateforge-org/stateforge-provider-python",
         "responsibility": "Provider runtime and author-facing integration surface."
       }
     ],
@@ -895,7 +895,7 @@
             "authority": "canonical",
             "context_id": "r11-public-provider-api",
             "explanation": "Fixtures and scenarios must use the public authoring/lifecycle surface.",
-            "path": "src/stateforge_rpc/provider.py",
+            "path": "src/stateforge_provider/provider.py",
             "repository_alias": "provider",
             "required": true,
             "role": "must_preserve",
@@ -907,7 +907,7 @@
             "authority": "canonical",
             "context_id": "r11-runtime",
             "explanation": "Exercise endpoint ownership, startup, sessions, shutdown, and cleanup without duplicating runtime logic.",
-            "path": "src/stateforge_rpc/_runtime",
+            "path": "src/stateforge_provider/_runtime",
             "repository_alias": "provider",
             "required": true,
             "role": "must_verify",
@@ -919,7 +919,7 @@
             "authority": "canonical",
             "context_id": "r11-services",
             "explanation": "Verify implemented Bootstrap and Manifest services through public wire behavior.",
-            "path": "src/stateforge_rpc/_services",
+            "path": "src/stateforge_provider/_services",
             "repository_alias": "provider",
             "required": true,
             "role": "must_verify",
@@ -1546,7 +1546,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 18
+**Revision:** 19
 
 ## Repositories
 
@@ -1554,7 +1554,7 @@ STATEFORGE_DPT_MANIFEST -->
 | --- | --- | --- |
 | `agent` | [stateforge-org/stateforge-agent](https://github.com/stateforge-org/stateforge-agent) | Agent-side integration, staging, and backup tooling. |
 | `protocol` | [stateforge-org/stateforge-protocol](https://github.com/stateforge-org/stateforge-protocol) | Versioned StateForge Protocol wire contracts. |
-| `provider` | [stateforge-org/stateforge-provider-implemntation](https://github.com/stateforge-org/stateforge-provider-implemntation) | Provider runtime and author-facing integration surface. |
+| `provider` | [stateforge-org/stateforge-provider-python](https://github.com/stateforge-org/stateforge-provider-python) | Provider runtime and author-facing integration surface. |
 
 ## Implementation roadmap
 
@@ -1803,9 +1803,9 @@ _No verification evidence has been declared yet._
 | --- | --- | --- | --- | --- |
 | `provider/AGENTS.md` | `must_preserve` | `canonical` | Yes | Preserve the authoring vision, runtime abstraction, and human delivery authority. |
 | `provider/pyproject.toml` | `must_understand` | `canonical` | Yes | Defines the package, Python support, dependencies, coverage, and gates. |
-| `provider/src/stateforge_rpc/provider.py` | `must_preserve` | `canonical` | Yes | Fixtures and scenarios must use the public authoring/lifecycle surface. |
-| `provider/src/stateforge_rpc/_runtime` | `must_verify` | `canonical` | Yes | Exercise endpoint ownership, startup, sessions, shutdown, and cleanup without duplicating runtime logic. |
-| `provider/src/stateforge_rpc/_services` | `must_verify` | `canonical` | Yes | Verify implemented Bootstrap and Manifest services through public wire behavior. |
+| `provider/src/stateforge_provider/provider.py` | `must_preserve` | `canonical` | Yes | Fixtures and scenarios must use the public authoring/lifecycle surface. |
+| `provider/src/stateforge_provider/_runtime` | `must_verify` | `canonical` | Yes | Exercise endpoint ownership, startup, sessions, shutdown, and cleanup without duplicating runtime logic. |
+| `provider/src/stateforge_provider/_services` | `must_verify` | `canonical` | Yes | Verify implemented Bootstrap and Manifest services through public wire behavior. |
 | `provider/tests` | `must_preserve` | `canonical` | Yes | Existing tests remain authoritative and stay in the aggregate gate. |
 | `provider/docs` | `must_preserve` | `canonical` | Yes | Architecture and authoring docs define boundaries the fixtures must respect. |
 | `provider/README.md` | `expected_to_change` | `canonical` | Yes | Document local parity, inputs, scenario composition, and artifact reuse. |
