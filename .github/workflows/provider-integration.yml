@@ -35,3 +35,6 @@ jobs:
       protocol-ref: ${{ inputs.protocol-ref || 'mvp/implementation' }}
       scenario-tier: full
       retention-days: 14
+    secrets:
+      source_app_id: ${{ secrets.STATEFORGE_CI_APP_ID }}
+      source_private_key: ${{ secrets.STATEFORGE_CI_PRIVATE_KEY }}

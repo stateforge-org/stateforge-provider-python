@@ -44,3 +44,6 @@ jobs:
       protocol-ref: ${{ inputs.protocol-ref }}
       scenario-tier: ${{ inputs.scenario-tier }}
       retention-days: ${{ inputs.retention-days }}
+    secrets:
+      source_app_id: ${{ secrets.STATEFORGE_CI_APP_ID }}
+      source_private_key: ${{ secrets.STATEFORGE_CI_PRIVATE_KEY }}

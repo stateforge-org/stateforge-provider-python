@@ -28,6 +28,13 @@ on:
         required: false
         type: number
         default: 14
+    secrets:
+      source_app_id:
+        description: GitHub App ID with read access to dependency sources.
+        required: true
+      source_private_key:
+        description: Private key for the dependency-source GitHub App.
+        required: true
     outputs:
       artifact-name:
         description: Exact tested Provider, Protocol, and Agent bundle.
@@ -63,6 +70,9 @@ jobs:
       agent-ref: ${{ inputs.agent-ref }}
       protocol-ref: ${{ inputs.protocol-ref }}
       retention-days: ${{ inputs.retention-days }}
+    secrets:
+      source_app_id: ${{ secrets.source_app_id }}
+      source_private_key: ${{ secrets.source_private_key }}
 
   source:
     name: Verify source and automation

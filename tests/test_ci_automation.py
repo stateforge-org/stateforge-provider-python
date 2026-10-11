@@ -9,6 +9,7 @@ SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
 SCENARIO_COUNT = 6
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
+DEPENDENCY_CHECKOUT_COUNT = 2
 
 
 def read(path: Path) -> str:
@@ -107,6 +108,38 @@ def test_agent_ref_is_configurable_and_resolved() -> None:
     assert "git -C .stateforge-ci/agent rev-parse --verify HEAD" in build
     assert "agent-requested-ref=${AGENT_REF}" in build
     assert "agent-rpm-sha256=${AGENT_RPM_SHA256}" in build
+
+
+def test_private_dependency_checkouts_use_read_only_app_token() -> None:
+    """Authenticate sibling checkouts without widening workflow permissions."""
+    build = read(WORKFLOWS / "provider-build.yml")
+    aggregate = read(WORKFLOWS / "provider-build-and-verify.yml")
+
+    assert "source_app_id:" in build
+    assert "source_private_key:" in build
+    assert build.count("actions/create-github-app-token@") == 1
+    assert "owner: stateforge-org" in build
+    assert "stateforge-agent" in build
+    assert "stateforge-protocol" in build
+    assert "permission-contents: read" in build
+    assert (
+        build.count("token: ${{ steps.source-token.outputs.token }}")
+        == DEPENDENCY_CHECKOUT_COUNT
+    )
+    assert "source_app_id: ${{ secrets.source_app_id }}" in aggregate
+    assert "source_private_key: ${{ secrets.source_private_key }}" in aggregate
+
+    for filename in (
+        "provider-ci.yml",
+        "provider-integration.yml",
+        "provider-release-candidate.yml",
+    ):
+        workflow = read(WORKFLOWS / filename)
+        assert "source_app_id: ${{ secrets.STATEFORGE_CI_APP_ID }}" in workflow
+        assert (
+            "source_private_key: "
+            "${{ secrets.STATEFORGE_CI_PRIVATE_KEY }}" in workflow
+        )
 
 
 def test_installed_checks_cannot_use_source_imports() -> None:

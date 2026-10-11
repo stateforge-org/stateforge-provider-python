@@ -23,6 +23,13 @@ on:
         required: false
         type: number
         default: 14
+    secrets:
+      source_app_id:
+        description: GitHub App ID with read access to dependency sources.
+        required: true
+      source_private_key:
+        description: Private key for the dependency-source GitHub App.
+        required: true
     outputs:
       artifact-name:
         description: Immutable Provider, Protocol, and Agent runtime bundle.
@@ -68,6 +75,18 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Mint dependency source token
+        id: source-token
+        uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        with:
+          app-id: ${{ secrets.source_app_id }}
+          private-key: ${{ secrets.source_private_key }}
+          owner: stateforge-org
+          repositories: |
+            stateforge-agent
+            stateforge-protocol
+          permission-contents: read
+
       - name: Check out Protocol source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -75,6 +94,7 @@ jobs:
           ref: ${{ inputs.protocol-ref }}
           path: .stateforge-ci/protocol
           persist-credentials: false
+          token: ${{ steps.source-token.outputs.token }}
 
       - name: Check out Agent source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -83,6 +103,7 @@ jobs:
           ref: ${{ inputs.agent-ref }}
           path: .stateforge-ci/agent
           persist-credentials: false
+          token: ${{ steps.source-token.outputs.token }}
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

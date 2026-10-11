@@ -38,6 +38,15 @@ before running tests, then validates the working-tree source with Ruff, mypy,
 pytest, and MkDocs. No verification job rebuilds a distribution or RPM or
 resolves an unpublished StateForge package from PyPI.
 
+Because the Agent and Protocol repositories are private, entry-point workflows
+pass `STATEFORGE_CI_APP_ID` and `STATEFORGE_CI_PRIVATE_KEY` into the reusable
+build workflow. That workflow mints one short-lived installation token scoped
+to read-only contents access for only `stateforge-agent` and
+`stateforge-protocol`. The token authenticates those two source checkouts and
+is not forwarded to verification jobs, runtime containers, or Provider
+processes. The StateForge CI GitHub App must be installed on both dependency
+repositories.
+
 ## Local parity
 
 Run the repository gates with the package metadata as their source of truth:
