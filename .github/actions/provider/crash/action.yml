@@ -1,0 +1,58 @@
+name: Crash an installed StateForge Provider
+description: Terminate one fixture abruptly and record its stale endpoint.
+
+inputs:
+  pid:
+    description: Fixture process ID returned by the start action.
+    required: true
+  descriptor-path:
+    description: Stable descriptor path observed before the crash.
+    required: true
+  socket-path:
+    description: Generation-specific socket path observed before the crash.
+    required: true
+  evidence-directory:
+    description: Directory receiving deterministic fault evidence.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for process termination.
+    required: false
+    default: "10"
+
+runs:
+  using: composite
+  steps:
+    - name: Terminate fixture without graceful cleanup
+      shell: bash
+      env:
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        PROVIDER_PID: ${{ inputs.pid }}
+        SOCKET_PATH: ${{ inputs.socket-path }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        kill -KILL "${PROVIDER_PID}"
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
+          if [[ -z "${state}" || "${state}" == Z* ]]; then
+            break
+          fi
+          sleep 0.1
+        done
+        state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
+        if [[ -n "${state}" && "${state}" != Z* ]]; then
+          echo "Provider process survived SIGKILL" >&2
+          exit 1
+        fi
+        if [[ ! -f "${DESCRIPTOR_PATH}" || ! -S "${SOCKET_PATH}" ]]; then
+          echo "Crash did not leave the expected discovery evidence" >&2
+          exit 1
+        fi
+        printf '%s\n' \
+          "pid=${PROVIDER_PID}" \
+          "descriptor=${DESCRIPTOR_PATH}" \
+          "socket=${SOCKET_PATH}" \
+          > "${EVIDENCE_DIRECTORY}/crash.txt"

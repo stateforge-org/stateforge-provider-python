@@ -1,0 +1,70 @@
+name: Create a public-API Provider fixture
+description: Stage one declarative Provider outside the source checkout.
+
+inputs:
+  runtime-directory:
+    description: Scenario-owned runtime root under the runner temp directory.
+    required: true
+  instance-name:
+    description: Stable local name for this fixture process.
+    required: true
+  identity:
+    description: Author-declared Provider identity.
+    required: true
+  display-name:
+    description: Author-declared Provider display name.
+    required: false
+    default: StateForge CI Provider
+  state-name:
+    description: Shared installation-state name; empty uses instance-name.
+    required: false
+    default: ""
+
+outputs:
+  fixture-path:
+    description: Absolute staged fixture entry point.
+    value: ${{ steps.fixture.outputs.fixture-path }}
+  discovery-directory:
+    description: Shared scenario discovery directory.
+    value: ${{ steps.fixture.outputs.discovery-directory }}
+  state-directory:
+    description: Isolated state directory for this Provider installation.
+    value: ${{ steps.fixture.outputs.state-directory }}
+  event-log:
+    description: Author lifecycle event log.
+    value: ${{ steps.fixture.outputs.event-log }}
+
+runs:
+  using: composite
+  steps:
+    - name: Stage declarative Provider fixture
+      id: fixture
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        DISPLAY_NAME: ${{ inputs.display-name }}
+        IDENTITY: ${{ inputs.identity }}
+        INSTANCE_NAME: ${{ inputs.instance-name }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}
+        STATE_NAME: ${{ inputs.state-name }}
+      run: |
+        set -euo pipefail
+        root="${RUNTIME_DIRECTORY}/${INSTANCE_NAME}"
+        discovery="${RUNTIME_DIRECTORY}/discovery"
+        state_name="${STATE_NAME:-${INSTANCE_NAME}}"
+        state="${RUNTIME_DIRECTORY}/state/${state_name}"
+        event_log="${root}/events.log"
+        fixture="${root}/provider.py"
+        mkdir -p "${root}" "${discovery}"
+        chmod 2770 "${discovery}"
+        install -m 0644 "${ACTION_PATH}/fixture.py" "${fixture}"
+        printf '%s\n' \
+          "identity=${IDENTITY}" \
+          "display-name=${DISPLAY_NAME}" \
+          > "${root}/fixture-identity.txt"
+        {
+          echo "fixture-path=${fixture}"
+          echo "discovery-directory=${discovery}"
+          echo "state-directory=${state}"
+          echo "event-log=${event_log}"
+        } >> "${GITHUB_OUTPUT}"

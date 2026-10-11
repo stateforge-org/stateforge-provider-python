@@ -1,0 +1,80 @@
+name: Test normal installed Provider lifecycle
+description: Verify installation, Bootstrap, Manifest, shutdown, and cleanup.
+
+inputs:
+  provider-artifact-directory:
+    description: Directory containing the exact Provider build.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol build.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact runtime artifacts
+      id: environment
+      uses: ./.github/actions/environment/install
+      with:
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        environment-directory: ${{ inputs.runtime-directory }}/environment
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Create Provider fixture
+      id: fixture
+      uses: ./.github/actions/provider/create-fixture
+      with:
+        runtime-directory: ${{ inputs.runtime-directory }}
+        instance-name: provider
+        identity: stateforge.test.normal
+
+    - name: Start Provider fixture
+      id: provider
+      uses: ./.github/actions/provider/start
+      with:
+        python: ${{ steps.environment.outputs.python }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        identity: stateforge.test.normal
+        discovery-directory: ${{ steps.fixture.outputs.discovery-directory }}
+        state-directory: ${{ steps.fixture.outputs.state-directory }}
+        event-log: ${{ steps.fixture.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Assert Bootstrap
+      uses: ./.github/actions/sfp/assert-bootstrap
+      with:
+        python: ${{ steps.environment.outputs.python }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        evidence-directory: ${{ inputs.evidence-directory }}/sfp
+
+    - name: Assert Manifest
+      uses: ./.github/actions/sfp/assert-manifest
+      with:
+        python: ${{ steps.environment.outputs.python }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        identity: stateforge.test.normal
+        evidence-directory: ${{ inputs.evidence-directory }}/sfp
+
+    - name: Stop Provider fixture
+      uses: ./.github/actions/provider/stop
+      with:
+        pid: ${{ steps.provider.outputs.pid }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        socket-path: ${{ steps.provider.outputs.socket-path }}
+        event-log: ${{ steps.fixture.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Preserve bounded evidence and clean up
+      if: ${{ always() }}
+      uses: ./.github/actions/evidence/collect
+      with:
+        stage: normal-lifecycle
+        runtime-directory: ${{ inputs.runtime-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}

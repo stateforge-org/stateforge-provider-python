@@ -1,0 +1,80 @@
+name: Provider / Build and verify
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Name of the immutable Provider and Protocol bundle.
+        required: false
+        type: string
+        default: stateforge-provider-runtime-bundle
+      protocol-ref:
+        description: Protocol branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
+      scenario-tier:
+        description: Runtime scenario tier.
+        required: false
+        type: string
+        default: full
+      retention-days:
+        description: Number of days to retain distributions and evidence.
+        required: false
+        type: number
+        default: 14
+    outputs:
+      artifact-name:
+        description: Exact tested Provider and Protocol bundle.
+        value: ${{ jobs.build.outputs.artifact-name }}
+      provider-version:
+        description: Version read from the tested Provider wheel.
+        value: ${{ jobs.build.outputs.provider-version }}
+      provider-wheel-sha256:
+        description: SHA-256 digest of the tested Provider wheel.
+        value: ${{ jobs.build.outputs.provider-wheel-sha256 }}
+      protocol-commit:
+        description: Resolved Protocol commit used by every test.
+        value: ${{ jobs.build.outputs.protocol-commit }}
+      protocol-wheel-sha256:
+        description: SHA-256 digest of the tested Protocol wheel.
+        value: ${{ jobs.build.outputs.protocol-wheel-sha256 }}
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    name: Verify source and automation
+    uses: ./.github/workflows/provider-source-verify.yml
+    with:
+      evidence-name: stateforge-provider-source-${{ github.run_id }}-${{ github.run_attempt }}
+      retention-days: ${{ inputs.retention-days }}
+
+  build:
+    name: Build immutable runtime bundle
+    needs: source
+    uses: ./.github/workflows/provider-build.yml
+    with:
+      artifact-name: ${{ inputs.artifact-name }}
+      protocol-ref: ${{ inputs.protocol-ref }}
+      retention-days: ${{ inputs.retention-days }}
+
+  installed:
+    name: Verify installed packages
+    needs: build
+    uses: ./.github/workflows/provider-installed-test.yml
+    with:
+      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      evidence-prefix: stateforge-provider-installed-${{ github.run_id }}-${{ github.run_attempt }}
+      retention-days: ${{ inputs.retention-days }}
+
+  runtime:
+    name: Verify installed runtime
+    needs: build
+    uses: ./.github/workflows/provider-runtime-scenarios.yml
+    with:
+      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      scenario-tier: ${{ inputs.scenario-tier }}
+      evidence-prefix: stateforge-provider-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+      retention-days: ${{ inputs.retention-days }}

@@ -1,0 +1,33 @@
+name: Assert invalid SFP peers are rejected
+description: Reject mismatched identities and sessions, then prove recovery.
+
+inputs:
+  python:
+    description: Isolated Python containing exact Provider and Protocol artifacts.
+    required: true
+  descriptor-path:
+    description: Provider endpoint descriptor.
+    required: true
+  evidence-directory:
+    description: Directory receiving rejection evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Exercise invalid and valid peers
+      shell: bash
+      env:
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        ISOLATED_PYTHON: ${{ inputs.python }}
+        PROBE: ${{ github.workspace }}/.github/actions/sfp/probe.py
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        output="${GITHUB_WORKSPACE}/${EVIDENCE_DIRECTORY}/invalid-peer.json"
+        cd "${RUNNER_TEMP}"
+        unset PYTHONPATH PYTHONHOME
+        "${ISOLATED_PYTHON}" -I "${PROBE}" invalid-peer \
+          --descriptor "${DESCRIPTOR_PATH}" \
+          --output "${output}"

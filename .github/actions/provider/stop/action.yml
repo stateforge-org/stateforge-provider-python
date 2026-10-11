@@ -1,0 +1,87 @@
+name: Stop an installed StateForge Provider
+description: Request bounded shutdown and verify generation-owned cleanup.
+
+inputs:
+  pid:
+    description: Fixture process ID returned by the start action.
+    required: true
+  descriptor-path:
+    description: Stable descriptor path observed at startup.
+    required: true
+  socket-path:
+    description: Generation-specific socket path observed at startup.
+    required: true
+  event-log:
+    description: Lifecycle event log written by the fixture.
+    required: true
+  evidence-directory:
+    description: Directory receiving shutdown evidence.
+    required: true
+  descriptor-expectation:
+    description: Whether the stable descriptor must be removed or preserved.
+    required: false
+    default: removed
+  timeout-seconds:
+    description: Maximum time to wait for graceful shutdown.
+    required: false
+    default: "15"
+
+runs:
+  using: composite
+  steps:
+    - name: Stop fixture and verify cleanup
+      shell: bash
+      env:
+        DESCRIPTOR_EXPECTATION: ${{ inputs.descriptor-expectation }}
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVENT_LOG: ${{ inputs.event-log }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        PROVIDER_PID: ${{ inputs.pid }}
+        SOCKET_PATH: ${{ inputs.socket-path }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        if [[ "${DESCRIPTOR_EXPECTATION}" != "removed" && \
+              "${DESCRIPTOR_EXPECTATION}" != "preserved" ]]; then
+          echo "descriptor-expectation must be removed or preserved" >&2
+          exit 1
+        fi
+        if kill -0 "${PROVIDER_PID}" 2>/dev/null; then
+          kill -TERM "${PROVIDER_PID}"
+        fi
+
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
+          if [[ -z "${state}" || "${state}" == Z* ]]; then
+            break
+          fi
+          sleep 0.1
+        done
+        state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
+        if [[ -n "${state}" && "${state}" != Z* ]]; then
+          kill -KILL "${PROVIDER_PID}" 2>/dev/null || true
+          echo "Provider did not stop within ${TIMEOUT_SECONDS}s" >&2
+          exit 1
+        fi
+
+        if [[ -e "${SOCKET_PATH}" ]]; then
+          echo "Provider socket remained after graceful shutdown" >&2
+          exit 1
+        fi
+        if [[ "${DESCRIPTOR_EXPECTATION}" == "removed" && \
+              -e "${DESCRIPTOR_PATH}" ]]; then
+          echo "Provider descriptor remained after graceful shutdown" >&2
+          exit 1
+        fi
+        if [[ "${DESCRIPTOR_EXPECTATION}" == "preserved" && \
+              ! -e "${DESCRIPTOR_PATH}" ]]; then
+          echo "Older generation removed the replacement descriptor" >&2
+          exit 1
+        fi
+        if ! grep -Fxq startup "${EVENT_LOG}" || \
+           ! grep -Fxq shutdown "${EVENT_LOG}"; then
+          echo "Provider lifecycle hooks did not both complete" >&2
+          exit 1
+        fi
+        cp "${EVENT_LOG}" "${EVIDENCE_DIRECTORY}/lifecycle-events.txt"

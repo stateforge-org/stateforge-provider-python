@@ -1,0 +1,40 @@
+name: Provider release candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      protocol-ref:
+        description: Protocol branch, tag, or commit SHA to test.
+        required: false
+        type: string
+        default: mvp/implementation
+      scenario-tier:
+        description: Runtime scenario tier.
+        required: false
+        type: choice
+        options:
+          - full
+          - smoke
+        default: full
+      retention-days:
+        description: Number of days to retain the candidate and evidence.
+        required: false
+        type: number
+        default: 30
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  provider:
+    name: Build and verify release candidate
+    uses: ./.github/workflows/provider-build-and-verify.yml
+    with:
+      artifact-name: stateforge-provider-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+      protocol-ref: ${{ inputs.protocol-ref }}
+      scenario-tier: ${{ inputs.scenario-tier }}
+      retention-days: ${{ inputs.retention-days }}

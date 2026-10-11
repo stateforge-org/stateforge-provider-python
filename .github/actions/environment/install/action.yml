@@ -1,0 +1,98 @@
+name: Install exact Provider and Protocol artifacts
+description: Create an isolated environment outside both source checkouts.
+
+inputs:
+  provider-artifact-directory:
+    description: Directory containing the Provider wheel and provenance.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the Protocol wheel and provenance.
+    required: true
+  environment-directory:
+    description: New virtual environment path under the runner temporary directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving installation evidence.
+    required: true
+
+outputs:
+  python:
+    description: Absolute isolated Python interpreter path.
+    value: ${{ steps.install.outputs.python }}
+  provider-version:
+    description: Installed Provider version expected from build provenance.
+    value: ${{ steps.install.outputs.provider-version }}
+  provider-wheel:
+    description: Absolute path to the exact Provider wheel.
+    value: ${{ steps.install.outputs.provider-wheel }}
+  protocol-wheel:
+    description: Absolute path to the exact Protocol wheel.
+    value: ${{ steps.install.outputs.protocol-wheel }}
+
+runs:
+  using: composite
+  steps:
+    - name: Verify artifact identity and create environment
+      id: install
+      shell: bash
+      env:
+        ENVIRONMENT_DIRECTORY: ${{ inputs.environment-directory }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        PROVIDER_ARTIFACT_DIRECTORY: ${{ inputs.provider-artifact-directory }}
+        PROTOCOL_ARTIFACT_DIRECTORY: ${{ inputs.protocol-artifact-directory }}
+      run: |
+        set -euo pipefail
+        if [[ -e "${ENVIRONMENT_DIRECTORY}" ]]; then
+          echo "Refusing to replace existing environment: ${ENVIRONMENT_DIRECTORY}" >&2
+          exit 1
+        fi
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+
+        if [[ "${RUNNER_OS:-}" == "macOS" ]]; then
+          checksum_command=(shasum --algorithm 256 --check)
+        else
+          checksum_command=(sha256sum --check)
+        fi
+        (
+          cd "${PROVIDER_ARTIFACT_DIRECTORY}"
+          "${checksum_command[@]}" SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/provider-checksums.txt"
+        (
+          cd "${PROTOCOL_ARTIFACT_DIRECTORY}"
+          "${checksum_command[@]}" PROTOCOL_SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/protocol-checksums.txt"
+
+        shopt -s nullglob
+        provider_wheels=("${PROVIDER_ARTIFACT_DIRECTORY}"/stateforge_provider-*.whl)
+        protocol_wheels=("${PROTOCOL_ARTIFACT_DIRECTORY}"/stateforge_protocol-*.whl)
+        if [[ ${#provider_wheels[@]} -ne 1 || ${#protocol_wheels[@]} -ne 1 ]]; then
+          echo "Expected exactly one Provider wheel and one Protocol wheel" >&2
+          exit 1
+        fi
+        provider_wheel="$(cd "$(dirname "${provider_wheels[0]}")" && pwd)/$(basename "${provider_wheels[0]}")"
+        protocol_wheel="$(cd "$(dirname "${protocol_wheels[0]}")" && pwd)/$(basename "${protocol_wheels[0]}")"
+        provider_version="$(awk -F= '$1 == "version" {print $2}' \
+          "${PROVIDER_ARTIFACT_DIRECTORY}/PROVENANCE")"
+        if [[ -z "${provider_version}" ]]; then
+          echo "Provider provenance does not contain a version" >&2
+          exit 1
+        fi
+
+        python -m venv "${ENVIRONMENT_DIRECTORY}"
+        if [[ "${RUNNER_OS:-}" == "Windows" ]]; then
+          isolated_python="${ENVIRONMENT_DIRECTORY}/Scripts/python.exe"
+        else
+          isolated_python="${ENVIRONMENT_DIRECTORY}/bin/python"
+        fi
+        {
+          "${isolated_python}" -m pip install --disable-pip-version-check \
+            "${protocol_wheel}" "${provider_wheel}"
+          "${isolated_python}" -m pip freeze
+        } 2>&1 | tee "${EVIDENCE_DIRECTORY}/install.log"
+
+        {
+          echo "python=${isolated_python}"
+          echo "provider-version=${provider_version}"
+          echo "provider-wheel=${provider_wheel}"
+          echo "protocol-wheel=${protocol_wheel}"
+        } >> "${GITHUB_OUTPUT}"

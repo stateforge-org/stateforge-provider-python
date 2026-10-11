@@ -1,0 +1,38 @@
+name: Assert SFP Provider Manifest
+description: Read and validate the installed fixture's complete manifest.
+
+inputs:
+  python:
+    description: Isolated Python containing exact Provider and Protocol artifacts.
+    required: true
+  descriptor-path:
+    description: Provider endpoint descriptor.
+    required: true
+  identity:
+    description: Expected author-declared Provider identity.
+    required: true
+  evidence-directory:
+    description: Directory receiving Manifest evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Read the installed Provider manifest
+      shell: bash
+      env:
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        EXPECTED_IDENTITY: ${{ inputs.identity }}
+        ISOLATED_PYTHON: ${{ inputs.python }}
+        PROBE: ${{ github.workspace }}/.github/actions/sfp/probe.py
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        output="${GITHUB_WORKSPACE}/${EVIDENCE_DIRECTORY}/manifest.json"
+        cd "${RUNNER_TEMP}"
+        unset PYTHONPATH PYTHONHOME
+        "${ISOLATED_PYTHON}" -I "${PROBE}" manifest \
+          --descriptor "${DESCRIPTOR_PATH}" \
+          --identity "${EXPECTED_IDENTITY}" \
+          --output "${output}"

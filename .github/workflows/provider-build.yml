@@ -1,0 +1,115 @@
+name: Provider / Build immutable artifacts
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Name of the Provider and Protocol artifact bundle.
+        required: false
+        type: string
+        default: stateforge-provider-runtime-bundle
+      protocol-ref:
+        description: Protocol branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
+      retention-days:
+        description: Number of days to retain distributions and build evidence.
+        required: false
+        type: number
+        default: 14
+    outputs:
+      artifact-name:
+        description: Immutable Provider and Protocol distribution bundle.
+        value: ${{ jobs.build.outputs.artifact-name }}
+      provider-version:
+        description: Version read from the Provider wheel.
+        value: ${{ jobs.build.outputs.provider-version }}
+      provider-wheel-sha256:
+        description: SHA-256 digest of the Provider wheel.
+        value: ${{ jobs.build.outputs.provider-wheel-sha256 }}
+      protocol-commit:
+        description: Resolved Protocol source commit.
+        value: ${{ jobs.build.outputs.protocol-commit }}
+      protocol-wheel-sha256:
+        description: SHA-256 digest of the Protocol wheel.
+        value: ${{ jobs.build.outputs.protocol-wheel-sha256 }}
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Provider and Protocol once
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    outputs:
+      artifact-name: ${{ inputs.artifact-name }}
+      provider-version: ${{ steps.provider.outputs.version }}
+      provider-wheel-sha256: ${{ steps.provider.outputs.wheel-sha256 }}
+      protocol-commit: ${{ steps.protocol.outputs.resolved-commit }}
+      protocol-wheel-sha256: ${{ steps.protocol.outputs.wheel-sha256 }}
+    steps:
+      - name: Check out Provider source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install package builder
+        shell: bash
+        run: python -m pip install --disable-pip-version-check "build>=1.2"
+
+      - name: Build Provider distributions
+        id: provider
+        uses: ./.github/actions/package/build
+
+      - name: Build pinned Protocol distributions
+        id: protocol
+        uses: ./.github/actions/protocol/build
+        with:
+          ref: ${{ inputs.protocol-ref }}
+
+      - name: Record bundle identity
+        shell: bash
+        env:
+          PROTOCOL_COMMIT: ${{ steps.protocol.outputs.resolved-commit }}
+          PROTOCOL_REF: ${{ inputs.protocol-ref }}
+          PROTOCOL_WHEEL_SHA256: ${{ steps.protocol.outputs.wheel-sha256 }}
+          PROVIDER_VERSION: ${{ steps.provider.outputs.version }}
+          PROVIDER_WHEEL_SHA256: ${{ steps.provider.outputs.wheel-sha256 }}
+        run: |
+          printf '%s\n' \
+            "provider-version=${PROVIDER_VERSION}" \
+            "provider-wheel-sha256=${PROVIDER_WHEEL_SHA256}" \
+            "protocol-requested-ref=${PROTOCOL_REF}" \
+            "protocol-resolved-commit=${PROTOCOL_COMMIT}" \
+            "protocol-wheel-sha256=${PROTOCOL_WHEEL_SHA256}" \
+            > dist/BUNDLE_PROVENANCE
+
+      - name: Upload immutable runtime bundle
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: |
+            dist/provider
+            dist/protocol
+            dist/BUNDLE_PROVENANCE
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention-days }}
+          compression-level: 0
+
+      - name: Upload build evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stateforge-provider-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: evidence/build
+          if-no-files-found: warn
+          retention-days: ${{ inputs.retention-days }}
