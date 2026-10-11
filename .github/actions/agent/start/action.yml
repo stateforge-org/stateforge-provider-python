@@ -1,0 +1,46 @@
+name: Start the installed StateForge Agent
+description: Start the packaged systemd service and wait for readiness.
+
+inputs:
+  container-name:
+    description: Fedora container containing the installed Agent.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for service readiness.
+    required: false
+    default: "60"
+
+runs:
+  using: composite
+  steps:
+    - name: Start Agent service
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        docker exec "${CONTAINER_NAME}" systemctl daemon-reload
+        docker exec "${CONTAINER_NAME}" systemctl start stateforge-agent.service
+
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-active stateforge-agent.service 2>/dev/null || true)"
+          if [[ "${state}" == "active" ]] && docker exec \
+            "${CONTAINER_NAME}" journalctl -u stateforge-agent.service \
+              --no-pager -o cat | grep -Fq 'StateForge Agent started'; then
+            exit 0
+          fi
+          if [[ "${state}" == "failed" || "${state}" == "inactive" ]]; then
+            break
+          fi
+          sleep 1
+        done
+
+        docker exec "${CONTAINER_NAME}" \
+          systemctl status stateforge-agent.service --no-pager || true
+        docker exec "${CONTAINER_NAME}" \
+          journalctl -u stateforge-agent.service --no-pager || true
+        echo "Agent service did not become ready" >&2
+        exit 1

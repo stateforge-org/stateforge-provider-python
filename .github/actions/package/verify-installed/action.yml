@@ -1,0 +1,45 @@
+name: Verify an installed StateForge Provider wheel
+description: Prove exact installed identity, import origin, and public API.
+
+inputs:
+  provider-artifact-directory:
+    description: Directory containing the Provider distribution artifact.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the Protocol distribution artifact.
+    required: true
+  environment-directory:
+    description: New isolated environment path under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving installed-package evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact artifacts outside the checkout
+      id: environment
+      uses: ./.github/actions/environment/install
+      with:
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        environment-directory: ${{ inputs.environment-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}
+
+    - name: Verify installed package identity and API
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        EXPECTED_VERSION: ${{ steps.environment.outputs.provider-version }}
+        ISOLATED_PYTHON: ${{ steps.environment.outputs.python }}
+        VERIFY_SCRIPT: ${{ github.workspace }}/.github/actions/package/verify-installed/verify.py
+      run: |
+        set -euo pipefail
+        output="${GITHUB_WORKSPACE}/${EVIDENCE_DIRECTORY}/package.json"
+        cd "${RUNNER_TEMP}"
+        unset PYTHONPATH PYTHONHOME
+        "${ISOLATED_PYTHON}" -I "${VERIFY_SCRIPT}" \
+          --expected-version "${EXPECTED_VERSION}" \
+          --workspace "${GITHUB_WORKSPACE}" \
+          --output "${output}"

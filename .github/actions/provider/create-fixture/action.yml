@@ -1,0 +1,62 @@
+name: Create a public-API Provider fixture
+description: Stage one declarative Provider outside the source checkout.
+
+inputs:
+  runtime-directory:
+    description: Scenario-owned runtime root under the runner temp directory.
+    required: true
+  instance-name:
+    description: Stable local name for this fixture process.
+    required: true
+  identity:
+    description: Author-declared Provider identity.
+    required: true
+  display-name:
+    description: Author-declared Provider display name.
+    required: false
+    default: StateForge CI Provider
+  state-name:
+    description: Shared installation-state name; empty uses instance-name.
+    required: false
+    default: ""
+
+outputs:
+  fixture-path:
+    description: Absolute staged fixture entry point.
+    value: ${{ steps.fixture.outputs.fixture-path }}
+  instance-name:
+    description: Safe process name used for the transient service.
+    value: ${{ steps.fixture.outputs.instance-name }}
+  state-name:
+    description: Stable installation-state name used inside Fedora.
+    value: ${{ steps.fixture.outputs.state-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Stage declarative Provider fixture
+      id: fixture
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        DISPLAY_NAME: ${{ inputs.display-name }}
+        IDENTITY: ${{ inputs.identity }}
+        INSTANCE_NAME: ${{ inputs.instance-name }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}
+        STATE_NAME: ${{ inputs.state-name }}
+      run: |
+        set -euo pipefail
+        root="${RUNTIME_DIRECTORY}/${INSTANCE_NAME}"
+        state_name="${STATE_NAME:-${INSTANCE_NAME}}"
+        fixture="${root}/provider.py"
+        mkdir -p "${root}"
+        install -m 0644 "${ACTION_PATH}/fixture.py" "${fixture}"
+        printf '%s\n' \
+          "identity=${IDENTITY}" \
+          "display-name=${DISPLAY_NAME}" \
+          > "${root}/fixture-identity.txt"
+        {
+          echo "fixture-path=${fixture}"
+          echo "instance-name=${INSTANCE_NAME}"
+          echo "state-name=${state_name}"
+        } >> "${GITHUB_OUTPUT}"

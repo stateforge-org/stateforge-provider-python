@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import fcntl
+import importlib
 import json
 import os
 import stat
@@ -10,7 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TypeGuard
+from typing import Protocol, TypeGuard, cast
 from uuid import UUID, uuid4
 
 from stateforge_provider._runtime.filesystem import (
@@ -36,6 +36,27 @@ _STATE_FIELDS = {
 
 class ProviderIdentityError(RuntimeError):
     """Report unusable or exhausted Provider identity state."""
+
+
+class _AdvisoryFileLocks(Protocol):
+    """Describe the POSIX file-locking surface used by the runtime."""
+
+    LOCK_EX: int
+    LOCK_UN: int
+
+    def flock(self, descriptor: int, operation: int, /) -> None:
+        """Apply or release an advisory lock."""
+
+
+def _advisory_file_locks() -> _AdvisoryFileLocks:
+    """Load POSIX locking only when the Provider runtime starts."""
+    try:
+        module = importlib.import_module("fcntl")
+    except ModuleNotFoundError as error:
+        raise ProviderIdentityError(
+            "Provider runtime requires POSIX advisory file locking"
+        ) from error
+    return cast(_AdvisoryFileLocks, module)
 
 
 def is_canonical_uuid4(value: str) -> bool:
@@ -161,6 +182,7 @@ class ProviderIdentityStore:
     @contextmanager
     def locked(self) -> Iterator[None]:
         """Hold the installation lock across an identity-sensitive update."""
+        file_locks = _advisory_file_locks()
         flags = os.O_RDWR | os.O_CREAT | os.O_CLOEXEC
         if hasattr(os, "O_NOFOLLOW"):
             flags |= os.O_NOFOLLOW
@@ -188,7 +210,7 @@ class ProviderIdentityStore:
                     f"Provider identity lock mode must be "
                     f"{_STATE_FILE_MODE:#05o}: {self.lock_path}"
                 )
-            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            file_locks.flock(descriptor, file_locks.LOCK_EX)
         except OSError as error:
             os.close(descriptor)
             raise ProviderIdentityError(
@@ -202,7 +224,7 @@ class ProviderIdentityStore:
         try:
             yield
         finally:
-            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            file_locks.flock(descriptor, file_locks.LOCK_UN)
             os.close(descriptor)
 
     # Keep persisted-state validation visible as one security review surface.

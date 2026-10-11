@@ -1,0 +1,40 @@
+name: Provider integration
+
+on:
+  push:
+    branches:
+      - main
+      - mvp/implementation
+  workflow_dispatch:
+    inputs:
+      agent-ref:
+        description: Agent branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
+      protocol-ref:
+        description: Protocol branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provider:
+    name: Build and verify integration
+    uses: ./.github/workflows/provider-build-and-verify.yml
+    with:
+      artifact-name: stateforge-provider-integration-${{ github.run_id }}-${{ github.run_attempt }}
+      agent-ref: ${{ inputs.agent-ref || 'mvp/implementation' }}
+      protocol-ref: ${{ inputs.protocol-ref || 'mvp/implementation' }}
+      scenario-tier: full
+      retention-days: 14
+    secrets:
+      source_app_id: ${{ secrets.STATEFORGE_CI_APP_ID }}
+      source_private_key: ${{ secrets.STATEFORGE_CI_PRIVATE_KEY }}

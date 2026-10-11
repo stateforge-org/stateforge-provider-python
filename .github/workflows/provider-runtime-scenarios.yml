@@ -1,0 +1,154 @@
+name: Provider / Installed runtime scenarios
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: Runtime bundle produced by provider-build.yml.
+        required: true
+        type: string
+      scenario-tier:
+        description: Run smoke coverage or the complete scenario catalog.
+        required: false
+        type: string
+        default: full
+      evidence-prefix:
+        description: Prefix for per-scenario evidence artifacts.
+        required: false
+        type: string
+        default: stateforge-provider-runtime
+      retention-days:
+        description: Number of days to retain runtime evidence.
+        required: false
+        type: number
+        default: 14
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Normal lifecycle / installed Agent RPM
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out scenario automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download exact runtime bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/stateforge-provider-bundle
+
+      - name: Run normal-lifecycle scenario
+        uses: ./.github/actions/scenarios/smoke/normal-lifecycle
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/normal-lifecycle
+
+      - name: Upload runtime evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.evidence-prefix }}-normal-lifecycle
+          path: evidence/runtime/normal-lifecycle
+          if-no-files-found: warn
+          retention-days: ${{ inputs.retention-days }}
+
+  full:
+    name: ${{ matrix.scenario }} / installed Agent RPM
+    if: ${{ inputs.scenario-tier == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        scenario:
+          - concurrent-providers
+          - same-instance-replacement
+          - invalid-peer
+          - crash-restart
+          - uninstall-reinstall
+    steps:
+      - name: Check out scenario automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download exact runtime bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/stateforge-provider-bundle
+
+      - name: Run concurrent-providers scenario
+        if: ${{ matrix.scenario == 'concurrent-providers' }}
+        uses: ./.github/actions/scenarios/lifecycle/concurrent-providers
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/${{ matrix.scenario }}
+
+      - name: Run same-instance-replacement scenario
+        if: ${{ matrix.scenario == 'same-instance-replacement' }}
+        uses: ./.github/actions/scenarios/lifecycle/same-instance-replacement
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/${{ matrix.scenario }}
+
+      - name: Run invalid-peer scenario
+        if: ${{ matrix.scenario == 'invalid-peer' }}
+        uses: ./.github/actions/scenarios/adversarial/invalid-peer
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/${{ matrix.scenario }}
+
+      - name: Run crash-restart scenario
+        if: ${{ matrix.scenario == 'crash-restart' }}
+        uses: ./.github/actions/scenarios/resilience/crash-restart
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/${{ matrix.scenario }}
+
+      - name: Run uninstall-reinstall scenario
+        if: ${{ matrix.scenario == 'uninstall-reinstall' }}
+        uses: ./.github/actions/scenarios/destructive/uninstall-reinstall
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp
+          evidence-directory: evidence/runtime/${{ matrix.scenario }}
+
+      - name: Upload runtime evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.evidence-prefix }}-${{ matrix.scenario }}
+          path: evidence/runtime/${{ matrix.scenario }}
+          if-no-files-found: warn
+          retention-days: ${{ inputs.retention-days }}

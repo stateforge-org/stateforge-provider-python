@@ -1,0 +1,178 @@
+name: Install the exact Agent and Provider runtime
+description: Install the tested RPM and wheels in an isolated Fedora system.
+
+inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
+    required: true
+  provider-artifact-directory:
+    description: Directory containing the exact Provider wheel.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol wheel.
+    required: true
+  evidence-directory:
+    description: Host directory receiving installation evidence.
+    required: true
+  container-name:
+    description: Name of the isolated Fedora system.
+    required: false
+    default: stateforge-provider-system-test
+  container-image:
+    description: Local tag for the Fedora system-test image.
+    required: false
+    default: stateforge-provider-system-test:fedora42
+
+outputs:
+  container-name:
+    description: Fedora container containing the installed runtime.
+    value: ${{ steps.install.outputs.container-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install immutable runtime artifacts
+      id: install
+      shell: bash
+      env:
+        AGENT_ARTIFACT_DIRECTORY: ${{ inputs.agent-artifact-directory }}
+        AGENT_TEST_IMAGE_DIRECTORY: ${{ inputs.agent-test-image-directory }}
+        CONTAINER_IMAGE: ${{ inputs.container-image }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        PROTOCOL_ARTIFACT_DIRECTORY: ${{ inputs.protocol-artifact-directory }}
+        PROVIDER_ARTIFACT_DIRECTORY: ${{ inputs.provider-artifact-directory }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+
+        mapfile -t agent_rpms < <(
+          find "${AGENT_ARTIFACT_DIRECTORY}" -maxdepth 1 -type f \
+            -name 'stateforge-agent-*.rpm' ! -name '*.src.rpm' -print
+        )
+        mapfile -t provider_wheels < <(
+          find "${PROVIDER_ARTIFACT_DIRECTORY}" -maxdepth 1 -type f \
+            -name 'stateforge_provider-*.whl' -print
+        )
+        mapfile -t protocol_wheels < <(
+          find "${PROTOCOL_ARTIFACT_DIRECTORY}" -maxdepth 1 -type f \
+            -name 'stateforge_protocol-*.whl' -print
+        )
+        if (( ${#agent_rpms[@]} != 1 || \
+              ${#provider_wheels[@]} != 1 || \
+              ${#protocol_wheels[@]} != 1 )); then
+          echo "Expected one Agent RPM, Provider wheel, and Protocol wheel" >&2
+          exit 1
+        fi
+
+        (
+          cd "${AGENT_ARTIFACT_DIRECTORY}"
+          sha256sum --check SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/agent-checksums.txt"
+        (
+          cd "${AGENT_TEST_IMAGE_DIRECTORY}"
+          sha256sum --check SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/agent-test-image-checksums.txt"
+        (
+          cd "${PROVIDER_ARTIFACT_DIRECTORY}"
+          sha256sum --check SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/provider-checksums.txt"
+        (
+          cd "${PROTOCOL_ARTIFACT_DIRECTORY}"
+          sha256sum --check SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/protocol-checksums.txt"
+
+        agent_artifacts="$(cd "${AGENT_ARTIFACT_DIRECTORY}" && pwd -P)"
+        agent_test_image="$(
+          cd "${AGENT_TEST_IMAGE_DIRECTORY}" && pwd -P
+        )"
+        evidence="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"
+        provider_artifacts="$(cd "${PROVIDER_ARTIFACT_DIRECTORY}" && pwd -P)"
+        protocol_artifacts="$(cd "${PROTOCOL_ARTIFACT_DIRECTORY}" && pwd -P)"
+        agent_rpm="$(basename "${agent_rpms[0]}")"
+
+        docker build \
+          --file "${agent_test_image}/packaging/rpm/Dockerfile.test" \
+          --tag "${CONTAINER_IMAGE}" \
+          "${agent_test_image}/packaging/rpm"
+        docker rm --force "${CONTAINER_NAME}" >/dev/null 2>&1 || true
+        docker run --detach \
+          --name "${CONTAINER_NAME}" \
+          --privileged \
+          --cgroupns=host \
+          --tmpfs /run \
+          --tmpfs /run/lock \
+          --volume /sys/fs/cgroup:/sys/fs/cgroup:rw \
+          --mount \
+            "type=bind,source=${agent_artifacts},target=/artifacts/agent,readonly" \
+          --mount \
+            "type=bind,source=${provider_artifacts},target=/artifacts/provider,readonly" \
+          --mount \
+            "type=bind,source=${protocol_artifacts},target=/artifacts/protocol,readonly" \
+          --mount "type=bind,source=${evidence},target=/evidence" \
+          "${CONTAINER_IMAGE}" >/dev/null
+
+        for _ in {1..60}; do
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-system-running 2>/dev/null || true)"
+          if [[ "${state}" == "running" || "${state}" == "degraded" ]]; then
+            break
+          fi
+          sleep 1
+        done
+        if [[ "${state:-}" != "running" && "${state:-}" != "degraded" ]]; then
+          echo "systemd did not become ready in ${CONTAINER_NAME}" >&2
+          exit 1
+        fi
+
+        docker exec "${CONTAINER_NAME}" \
+          rpm -Uvh --nodeps "/artifacts/agent/${agent_rpm}" \
+          > "${EVIDENCE_DIRECTORY}/agent-rpm-install.txt"
+        docker exec "${CONTAINER_NAME}" rpm -V --nodeps stateforge-agent \
+          > "${EVIDENCE_DIRECTORY}/agent-rpm-verify.txt"
+        docker exec "${CONTAINER_NAME}" python3 -c '
+        import re
+        from importlib.metadata import requires
+
+        dependencies = []
+        for requirement in requires("stateforge-agent") or ():
+            name = re.split(r"[ ;<>=!~\[(]", requirement, maxsplit=1)[0]
+            if name.strip().lower().replace("_", "-") != "stateforge-protocol":
+                dependencies.append(requirement)
+        print("\n".join(dependencies))
+        ' > "${EVIDENCE_DIRECTORY}/agent-requirements.txt"
+        docker exec "${CONTAINER_NAME}" bash -lc \
+          'python3 -m pip install --no-cache-dir --break-system-packages --prefix /usr --requirement /evidence/agent-requirements.txt /artifacts/protocol/stateforge_protocol-*.whl /artifacts/provider/stateforge_provider-*.whl' \
+          > "${EVIDENCE_DIRECTORY}/runtime-install.txt"
+
+        docker exec "${CONTAINER_NAME}" \
+          sed -i \
+            's|url = ""|url = "https://control.stateforge.test"|' \
+            /etc/stateforge-agent/config.toml
+        docker exec "${CONTAINER_NAME}" python3 -c '
+        import json
+        from importlib.metadata import distribution
+        from pathlib import Path
+
+        import stateforge_agent
+        import stateforge_provider
+        import stateforge_protocol
+
+        packages = {}
+        for name, module in (
+            ("stateforge-agent", stateforge_agent),
+            ("stateforge-provider", stateforge_provider),
+            ("stateforge-protocol", stateforge_protocol),
+        ):
+            package = distribution(name)
+            packages[name] = {
+                "module_file": str(Path(module.__file__).resolve()),
+                "version": package.version,
+            }
+        print(json.dumps(packages, indent=2, sort_keys=True))
+        ' > "${EVIDENCE_DIRECTORY}/installed-runtime.json"
+
+        echo "container-name=${CONTAINER_NAME}" >> "${GITHUB_OUTPUT}"

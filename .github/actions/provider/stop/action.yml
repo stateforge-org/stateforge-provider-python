@@ -1,0 +1,74 @@
+name: Stop an installed StateForge Provider
+description: Stop one transient Provider service and verify owned cleanup.
+
+inputs:
+  container-name:
+    description: Fedora container running the Provider.
+    required: true
+  unit-name:
+    description: Transient systemd unit returned by the start action.
+    required: true
+  descriptor-path:
+    description: Stable descriptor path observed at startup.
+    required: true
+  socket-path:
+    description: Generation-specific socket path observed at startup.
+    required: true
+  event-log:
+    description: Lifecycle event log inside Fedora.
+    required: true
+  evidence-directory:
+    description: Host directory receiving shutdown evidence.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for graceful shutdown.
+    required: false
+    default: "30"
+
+runs:
+  using: composite
+  steps:
+    - name: Stop fixture and verify cleanup
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVENT_LOG: ${{ inputs.event-log }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        SOCKET_PATH: ${{ inputs.socket-path }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        UNIT_NAME: ${{ inputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        docker exec "${CONTAINER_NAME}" systemctl stop "${UNIT_NAME}"
+
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-active "${UNIT_NAME}" 2>/dev/null || true)"
+          if [[ "${state}" == "inactive" || "${state}" == "failed" ]]; then
+            break
+          fi
+          sleep 1
+        done
+        if [[ "${state:-}" != "inactive" && "${state:-}" != "failed" ]]; then
+          echo "Provider did not stop within ${TIMEOUT_SECONDS}s" >&2
+          exit 1
+        fi
+        if docker exec "${CONTAINER_NAME}" test -e "${SOCKET_PATH}"; then
+          echo "Provider socket remained after graceful shutdown" >&2
+          exit 1
+        fi
+        if docker exec "${CONTAINER_NAME}" test -e "${DESCRIPTOR_PATH}"; then
+          echo "Provider descriptor remained after graceful shutdown" >&2
+          exit 1
+        fi
+        lifecycle="$(docker exec "${CONTAINER_NAME}" cat "${EVENT_LOG}")"
+        grep -Fxq startup <<< "${lifecycle}"
+        grep -Fxq shutdown <<< "${lifecycle}"
+        printf '%s\n' "${lifecycle}" \
+          > "${EVIDENCE_DIRECTORY}/lifecycle-events.txt"
+        docker exec "${CONTAINER_NAME}" \
+          journalctl -u "${UNIT_NAME}" --no-pager \
+          > "${EVIDENCE_DIRECTORY}/provider-journal.txt"

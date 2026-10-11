@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from stateforge_provider._runtime import identity as identity_module
 from stateforge_provider._runtime.identity import (
     ProviderIdentityError,
     ProviderIdentityStore,
@@ -122,3 +123,26 @@ def test_rejects_symbolic_link_state_directory(tmp_path: Path) -> None:
 
     with pytest.raises(ProviderIdentityError, match="symbolic link"):
         ProviderIdentityStore(linked_directory).allocate_endpoint()
+
+
+def test_importable_package_reports_unavailable_posix_locking(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep public imports portable while rejecting unsupported runtime use."""
+
+    def unavailable(_name: str) -> None:
+        raise ModuleNotFoundError("No module named 'fcntl'")
+
+    monkeypatch.setattr(
+        identity_module.importlib, "import_module", unavailable
+    )
+    store = ProviderIdentityStore(tmp_path / "state")
+
+    with pytest.raises(
+        ProviderIdentityError,
+        match="requires POSIX advisory file locking",
+    ):
+        store.allocate_endpoint()
+
+    assert not store.lock_path.exists()

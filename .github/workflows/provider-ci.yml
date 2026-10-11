@@ -1,0 +1,29 @@
+name: Provider CI
+
+on:
+  pull_request:
+    branches:
+      - main
+      - mvp/implementation
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: provider-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  provider:
+    name: Build and verify Provider
+    uses: ./.github/workflows/provider-build-and-verify.yml
+    with:
+      artifact-name: stateforge-provider-pr-${{ github.run_id }}-${{ github.run_attempt }}
+      agent-ref: mvp/implementation
+      protocol-ref: mvp/implementation
+      scenario-tier: full
+      retention-days: 7
+    secrets:
+      source_app_id: ${{ secrets.STATEFORGE_CI_APP_ID }}
+      source_private_key: ${{ secrets.STATEFORGE_CI_PRIVATE_KEY }}

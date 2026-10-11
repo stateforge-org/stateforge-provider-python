@@ -35,3 +35,11 @@ python -m pip install -e . --group dev --group docs
 
 Validate with Ruff, strict mypy, pytest, `python -m build`, and
 `mkdocs build --strict`.
+
+The repository also provides reusable package and installed-runtime pipelines.
+They build the Provider, a selected Protocol revision, and a selected Agent RPM
+once; install those exact artifacts outside all source checkouts; start the
+packaged Agent service; and exercise public-API Provider fixtures through the
+real Agent. See the
+[CI/CD automation guide](docs/ci-automation.md) for the action catalog, local
+parity commands, scenario tiers, inputs, and retained evidence.

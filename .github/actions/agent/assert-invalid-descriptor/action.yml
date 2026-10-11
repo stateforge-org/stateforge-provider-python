@@ -1,0 +1,50 @@
+name: Assert rejection of invalid Provider discovery data
+description: Publish a malformed descriptor and prove Agent recovery.
+
+inputs:
+  container-name:
+    description: Fedora container running the installed Agent.
+    required: true
+  evidence-directory:
+    description: Host directory receiving rejection evidence.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for rejection.
+    required: false
+    default: "60"
+
+runs:
+  using: composite
+  steps:
+    - name: Reject malformed discovery data
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        provider_id="$(docker exec "${CONTAINER_NAME}" \
+          python3 -c 'import uuid; print(uuid.uuid4())')"
+        descriptor="/run/stateforge-agent/providers/${provider_id}.sfp.json"
+        docker exec "${CONTAINER_NAME}" bash -c \
+          'umask 0027; printf "{" > "$1"' -- "${descriptor}"
+
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          journal="$(docker exec "${CONTAINER_NAME}" \
+            journalctl -u stateforge-agent.service --no-pager -o cat)"
+          if grep -F 'Ignoring invalid Provider endpoint descriptor:' \
+            <<< "${journal}" | grep -Fq "path=${descriptor}"; then
+            printf 'Rejected malformed descriptor %s.\n' "${descriptor}" \
+              > "${EVIDENCE_DIRECTORY}/invalid-descriptor.txt"
+            docker exec "${CONTAINER_NAME}" \
+              systemctl is-active --quiet stateforge-agent.service
+            exit 0
+          fi
+          sleep 1
+        done
+
+        echo "Agent did not reject malformed Provider discovery data" >&2
+        exit 1
