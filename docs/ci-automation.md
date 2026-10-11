@@ -32,8 +32,11 @@ containing:
 - the combined Provider, Protocol, Agent, Python, runner, and source
   provenance.
 
-Every installed-package and runtime job downloads that same bundle. No test job
-rebuilds a distribution or RPM.
+Every source-verification, installed-package, and runtime job downloads that
+same bundle. The source gate installs its exact Provider and Protocol wheels
+before running tests, then validates the working-tree source with Ruff, mypy,
+pytest, and MkDocs. No verification job rebuilds a distribution or RPM or
+resolves an unpublished StateForge package from PyPI.
 
 ## Local parity
 

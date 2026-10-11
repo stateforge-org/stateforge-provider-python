@@ -55,16 +55,8 @@ permissions:
   contents: read
 
 jobs:
-  source:
-    name: Verify source and automation
-    uses: ./.github/workflows/provider-source-verify.yml
-    with:
-      evidence-name: stateforge-provider-source-${{ github.run_id }}-${{ github.run_attempt }}
-      retention-days: ${{ inputs.retention-days }}
-
   build:
     name: Build immutable runtime bundle
-    needs: source
     uses: ./.github/workflows/provider-build.yml
     with:
       artifact-name: ${{ inputs.artifact-name }}
@@ -72,9 +64,20 @@ jobs:
       protocol-ref: ${{ inputs.protocol-ref }}
       retention-days: ${{ inputs.retention-days }}
 
+  source:
+    name: Verify source and automation
+    needs: build
+    uses: ./.github/workflows/provider-source-verify.yml
+    with:
+      artifact-name: ${{ needs.build.outputs.artifact-name }}
+      evidence-name: stateforge-provider-source-${{ github.run_id }}-${{ github.run_attempt }}
+      retention-days: ${{ inputs.retention-days }}
+
   installed:
     name: Verify installed packages
-    needs: build
+    needs:
+      - build
+      - source
     uses: ./.github/workflows/provider-installed-test.yml
     with:
       artifact-name: ${{ needs.build.outputs.artifact-name }}
@@ -83,7 +86,9 @@ jobs:
 
   runtime:
     name: Verify installed runtime
-    needs: build
+    needs:
+      - build
+      - source
     uses: ./.github/workflows/provider-runtime-scenarios.yml
     with:
       artifact-name: ${{ needs.build.outputs.artifact-name }}

@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
 SCENARIO_COUNT = 6
-DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 2
+DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 
 
 def read(path: Path) -> str:
@@ -122,6 +122,25 @@ def test_installed_checks_cannot_use_source_imports() -> None:
     assert "was imported from the checkout" in verifier
     assert 'distribution("stateforge-provider")' in verifier
     assert "stateforge_provider.__all__" in verifier
+
+
+def test_source_verification_uses_the_immutable_bundle() -> None:
+    """Do not resolve the unpublished Protocol dependency from PyPI."""
+    source = read(WORKFLOWS / "provider-source-verify.yml")
+    aggregate = read(WORKFLOWS / "provider-build-and-verify.yml")
+
+    assert "artifact-name:" in source
+    assert "actions/download-artifact@" in source
+    assert "stateforge_protocol-*.whl" in source
+    assert "stateforge_provider-*.whl" in source
+    assert "sha256sum --check SHA256SUMS" in source
+    assert "--group dev" in source
+    assert "--group docs" in source
+    assert "    .\n" not in source
+    assert (
+        "source:\n    name: Verify source and automation\n    needs: build"
+        in aggregate
+    )
 
 
 def test_fixture_uses_only_the_public_provider_api() -> None:

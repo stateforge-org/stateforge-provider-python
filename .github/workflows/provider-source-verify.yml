@@ -3,6 +3,10 @@ name: Provider / Source verification
 on:
   workflow_call:
     inputs:
+      artifact-name:
+        description: Immutable runtime bundle produced by provider-build.yml.
+        required: true
+        type: string
       evidence-name:
         description: Name used to upload source-verification evidence.
         required: false
@@ -35,14 +39,35 @@ jobs:
           cache: pip
           cache-dependency-path: pyproject.toml
 
+      - name: Download exact runtime bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/stateforge-provider-bundle
+
       - name: Install development dependencies
         shell: bash
+        env:
+          BUNDLE_DIRECTORY: ${{ runner.temp }}/stateforge-provider-bundle
         run: |
+          set -euo pipefail
           python -m pip install --disable-pip-version-check --upgrade pip
+          (
+            cd "${BUNDLE_DIRECTORY}/protocol"
+            sha256sum --check SHA256SUMS
+          )
+          (
+            cd "${BUNDLE_DIRECTORY}/provider"
+            sha256sum --check SHA256SUMS
+          )
+          python -m pip install --disable-pip-version-check \
+            "${BUNDLE_DIRECTORY}"/protocol/stateforge_protocol-*.whl \
+            "${BUNDLE_DIRECTORY}"/provider/stateforge_provider-*.whl
           python -m pip install --disable-pip-version-check \
             --group dev \
-            --group docs \
-            .
+            --group docs
+          python -m pip freeze --all \
+            > evidence-source-environment.txt
 
       - name: Install actionlint
         shell: bash
@@ -84,6 +109,8 @@ jobs:
             python -m pytest
             python -m mkdocs build --strict
           } 2>&1 | tee evidence/source/quality.log
+          install -m 0644 evidence-source-environment.txt \
+            evidence/source/environment.txt
 
       - name: Upload source-verification evidence
         if: ${{ always() }}
