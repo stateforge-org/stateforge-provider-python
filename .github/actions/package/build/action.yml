@@ -1,0 +1,101 @@
+name: Build StateForge Provider distributions
+description: Build one wheel and sdist with checksums and source provenance.
+
+inputs:
+  output-directory:
+    description: Directory receiving Provider distributions and identity records.
+    required: false
+    default: dist/provider
+  evidence-directory:
+    description: Directory receiving the package build log.
+    required: false
+    default: evidence/build/provider
+
+outputs:
+  version:
+    description: Version read from the built wheel metadata.
+    value: ${{ steps.identity.outputs.version }}
+  wheel-path:
+    description: Absolute path to the built Provider wheel.
+    value: ${{ steps.identity.outputs.wheel-path }}
+  wheel-sha256:
+    description: SHA-256 digest of the built Provider wheel.
+    value: ${{ steps.identity.outputs.wheel-sha256 }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build wheel and source distribution once
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        set -euo pipefail
+        source_directory="$(cd "${ACTION_PATH}/../../../.." && pwd -P)"
+        evidence_directory="$(mkdir -p "${EVIDENCE_DIRECTORY}" && \
+          cd "${EVIDENCE_DIRECTORY}" && pwd -P)"
+        output_directory="$(mkdir -p "${OUTPUT_DIRECTORY}" && \
+          cd "${OUTPUT_DIRECTORY}" && pwd -P)"
+        python -m build \
+          --sdist \
+          --wheel \
+          --outdir "${output_directory}" \
+          "${source_directory}" \
+          2>&1 | tee "${evidence_directory}/build.log"
+
+    - name: Record Provider artifact identity
+      id: identity
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        set -euo pipefail
+        source_directory="$(cd "${ACTION_PATH}/../../../.." && pwd -P)"
+        output_directory="$(cd "${OUTPUT_DIRECTORY}" && pwd -P)"
+        shopt -s nullglob
+        wheels=("${output_directory}"/stateforge_provider-*.whl)
+        sdists=("${output_directory}"/stateforge_provider-*.tar.gz)
+        if [[ ${#wheels[@]} -ne 1 || ${#sdists[@]} -ne 1 ]]; then
+          echo "Expected exactly one Provider wheel and one sdist" >&2
+          exit 1
+        fi
+
+        wheel="${wheels[0]}"
+        sdist="${sdists[0]}"
+        distribution="$(unzip -p "${wheel}" '*.dist-info/METADATA' | sed -n 's/^Name: //p')"
+        version="$(unzip -p "${wheel}" '*.dist-info/METADATA' | sed -n 's/^Version: //p')"
+        if [[ "${distribution}" != "stateforge-provider" || -z "${version}" ]]; then
+          echo "Built wheel has unexpected package metadata" >&2
+          exit 1
+        fi
+
+        source_sha="$(git -C "${source_directory}" rev-parse --verify HEAD)"
+        source_ref="$(
+          git -C "${source_directory}" symbolic-ref --quiet --short HEAD || \
+            printf 'detached'
+        )"
+        (
+          cd "${output_directory}"
+          printf '%s\n' \
+            "distribution=${distribution}" \
+            "version=${version}" \
+            "source-sha=${source_sha}" \
+            "source-ref=${source_ref}" \
+            "builder-python=$(python --version 2>&1)" \
+            "runner-os=${RUNNER_OS:-local}" \
+            "runner-arch=${RUNNER_ARCH:-unknown}" \
+            > PROVENANCE
+          sha256sum "$(basename "${wheel}")" "$(basename "${sdist}")" \
+            PROVENANCE > SHA256SUMS
+        )
+
+        wheel_path="${output_directory}/$(basename "${wheel}")"
+        wheel_sha256="$(sha256sum "${wheel}" | awk '{print $1}')"
+        {
+          echo "version=${version}"
+          echo "wheel-path=${wheel_path}"
+          echo "wheel-sha256=${wheel_sha256}"
+        } >> "${GITHUB_OUTPUT}"

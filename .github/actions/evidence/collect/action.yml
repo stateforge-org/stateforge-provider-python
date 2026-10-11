@@ -1,15 +1,18 @@
-name: Collect bounded Provider runtime evidence
-description: Preserve safe scenario evidence and remove temporary runtime state.
+name: Collect bounded installed-runtime evidence
+description: Capture Agent and Provider state, then remove the Fedora system.
 
 inputs:
   stage:
     description: Stable scenario name.
     required: true
+  container-name:
+    description: Fedora container owning this scenario.
+    required: true
   runtime-directory:
-    description: Scenario-owned directory below the runner temp directory.
+    description: Scenario-owned host directory below the runner temp directory.
     required: true
   evidence-directory:
-    description: Directory containing and receiving scenario evidence.
+    description: Host directory containing and receiving scenario evidence.
     required: true
   max-file-bytes:
     description: Maximum retained size of an individual evidence file.
@@ -22,6 +25,7 @@ runs:
     - name: Preserve evidence and clean scenario state
       shell: bash
       env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
         EVIDENCE_STAGE: ${{ inputs.stage }}
         MAX_FILE_BYTES: ${{ inputs.max-file-bytes }}
@@ -51,37 +55,45 @@ runs:
           "runner-arch=${RUNNER_ARCH:-unknown}" \
           > "${EVIDENCE_DIRECTORY}/runner-context.txt"
 
-        while IFS= read -r -d '' pid_file; do
-          pid="$(cat "${pid_file}")"
-          if [[ "${pid}" =~ ^[0-9]+$ ]] && kill -0 "${pid}" 2>/dev/null; then
-            kill -TERM "${pid}" 2>/dev/null || true
-            for _ in {1..30}; do
-              state="$(ps -o stat= -p "${pid}" 2>/dev/null || true)"
-              if [[ -z "${state}" || "${state}" == Z* ]]; then
-                break
-              fi
-              sleep 0.1
-            done
-            kill -KILL "${pid}" 2>/dev/null || true
-          fi
-        done < <(find "${EVIDENCE_DIRECTORY}" -name provider.pid -print0)
+        status=0
+        if docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+          docker inspect "${CONTAINER_NAME}" \
+            > "${EVIDENCE_DIRECTORY}/container-inspect.json" 2>&1 || true
+          docker logs "${CONTAINER_NAME}" \
+            > "${EVIDENCE_DIRECTORY}/container.log" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" \
+            systemctl status stateforge-agent.service --no-pager \
+            > "${EVIDENCE_DIRECTORY}/agent-service-status.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" \
+            journalctl -u stateforge-agent.service --no-pager -n 500 \
+            > "${EVIDENCE_DIRECTORY}/agent-journal.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" bash -lc \
+            "journalctl --no-pager -n 500 -u 'stateforge-test-*'" \
+            > "${EVIDENCE_DIRECTORY}/provider-journal.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" ps -ef \
+            > "${EVIDENCE_DIRECTORY}/processes.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" bash -lc \
+            'find /run/stateforge-agent/providers -maxdepth 1 -printf "%M %u:%g %s %p\n" -type f -name "*.sfp.json" -exec cat {} \;' \
+            > "${EVIDENCE_DIRECTORY}/provider-descriptors.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" rpm -V --nodeps stateforge-agent \
+            > "${EVIDENCE_DIRECTORY}/agent-rpm-final-verify.txt" 2>&1 || true
+
+          docker exec "${CONTAINER_NAME}" \
+            systemctl stop 'stateforge-test-*' stateforge-agent.service \
+            > "${EVIDENCE_DIRECTORY}/service-stop.txt" 2>&1 || true
+          docker exec "${CONTAINER_NAME}" rpm -e stateforge-agent \
+            > "${EVIDENCE_DIRECTORY}/agent-rpm-remove.txt" 2>&1 || status=$?
+          docker rm --force "${CONTAINER_NAME}" >/dev/null 2>&1 || status=1
+        else
+          echo "Scenario container was not created" \
+            > "${EVIDENCE_DIRECTORY}/container-missing.txt"
+        fi
 
         if [[ -d "${RUNTIME_DIRECTORY}" ]]; then
           find "${RUNTIME_DIRECTORY}" -maxdepth 5 \
-            -path "${RUNTIME_DIRECTORY}/environment" -prune -o \
             -printf '%M %u:%g %s %p\n' \
             > "${EVIDENCE_DIRECTORY}/runtime-inventory.txt"
-          find "${RUNTIME_DIRECTORY}" \
-            -path "${RUNTIME_DIRECTORY}/environment" -prune -o -type f \
-            \( -name '*.json' -o -name '*.log' -o -name '*.txt' \) \
-            -print0 | while IFS= read -r -d '' file; do
-              relative="${file#"${RUNTIME_DIRECTORY}"/}"
-              destination="${EVIDENCE_DIRECTORY}/runtime/${relative}"
-              mkdir -p "$(dirname "${destination}")"
-              cp "${file}" "${destination}"
-            done
         fi
-
         while IFS= read -r -d '' file; do
           size="$(wc -c < "${file}")"
           if (( size > MAX_FILE_BYTES )); then
@@ -91,3 +103,4 @@ runs:
         done < <(find "${EVIDENCE_DIRECTORY}" -type f -print0)
 
         rm -rf -- "${RUNTIME_DIRECTORY}"
+        exit "${status}"

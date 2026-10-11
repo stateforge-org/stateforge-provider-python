@@ -1,9 +1,12 @@
 name: Stop an installed StateForge Provider
-description: Request bounded shutdown and verify generation-owned cleanup.
+description: Stop one transient Provider service and verify owned cleanup.
 
 inputs:
-  pid:
-    description: Fixture process ID returned by the start action.
+  container-name:
+    description: Fedora container running the Provider.
+    required: true
+  unit-name:
+    description: Transient systemd unit returned by the start action.
     required: true
   descriptor-path:
     description: Stable descriptor path observed at startup.
@@ -12,19 +15,15 @@ inputs:
     description: Generation-specific socket path observed at startup.
     required: true
   event-log:
-    description: Lifecycle event log written by the fixture.
+    description: Lifecycle event log inside Fedora.
     required: true
   evidence-directory:
-    description: Directory receiving shutdown evidence.
+    description: Host directory receiving shutdown evidence.
     required: true
-  descriptor-expectation:
-    description: Whether the stable descriptor must be removed or preserved.
-    required: false
-    default: removed
   timeout-seconds:
     description: Maximum time to wait for graceful shutdown.
     required: false
-    default: "15"
+    default: "30"
 
 runs:
   using: composite
@@ -32,56 +31,44 @@ runs:
     - name: Stop fixture and verify cleanup
       shell: bash
       env:
-        DESCRIPTOR_EXPECTATION: ${{ inputs.descriptor-expectation }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
         DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
         EVENT_LOG: ${{ inputs.event-log }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
-        PROVIDER_PID: ${{ inputs.pid }}
         SOCKET_PATH: ${{ inputs.socket-path }}
         TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        UNIT_NAME: ${{ inputs.unit-name }}
       run: |
         set -euo pipefail
-        if [[ "${DESCRIPTOR_EXPECTATION}" != "removed" && \
-              "${DESCRIPTOR_EXPECTATION}" != "preserved" ]]; then
-          echo "descriptor-expectation must be removed or preserved" >&2
-          exit 1
-        fi
-        if kill -0 "${PROVIDER_PID}" 2>/dev/null; then
-          kill -TERM "${PROVIDER_PID}"
-        fi
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        docker exec "${CONTAINER_NAME}" systemctl stop "${UNIT_NAME}"
 
         deadline=$((SECONDS + TIMEOUT_SECONDS))
         while (( SECONDS < deadline )); do
-          state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
-          if [[ -z "${state}" || "${state}" == Z* ]]; then
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-active "${UNIT_NAME}" 2>/dev/null || true)"
+          if [[ "${state}" == "inactive" || "${state}" == "failed" ]]; then
             break
           fi
-          sleep 0.1
+          sleep 1
         done
-        state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
-        if [[ -n "${state}" && "${state}" != Z* ]]; then
-          kill -KILL "${PROVIDER_PID}" 2>/dev/null || true
+        if [[ "${state:-}" != "inactive" && "${state:-}" != "failed" ]]; then
           echo "Provider did not stop within ${TIMEOUT_SECONDS}s" >&2
           exit 1
         fi
-
-        if [[ -e "${SOCKET_PATH}" ]]; then
+        if docker exec "${CONTAINER_NAME}" test -e "${SOCKET_PATH}"; then
           echo "Provider socket remained after graceful shutdown" >&2
           exit 1
         fi
-        if [[ "${DESCRIPTOR_EXPECTATION}" == "removed" && \
-              -e "${DESCRIPTOR_PATH}" ]]; then
+        if docker exec "${CONTAINER_NAME}" test -e "${DESCRIPTOR_PATH}"; then
           echo "Provider descriptor remained after graceful shutdown" >&2
           exit 1
         fi
-        if [[ "${DESCRIPTOR_EXPECTATION}" == "preserved" && \
-              ! -e "${DESCRIPTOR_PATH}" ]]; then
-          echo "Older generation removed the replacement descriptor" >&2
-          exit 1
-        fi
-        if ! grep -Fxq startup "${EVENT_LOG}" || \
-           ! grep -Fxq shutdown "${EVENT_LOG}"; then
-          echo "Provider lifecycle hooks did not both complete" >&2
-          exit 1
-        fi
-        cp "${EVENT_LOG}" "${EVIDENCE_DIRECTORY}/lifecycle-events.txt"
+        lifecycle="$(docker exec "${CONTAINER_NAME}" cat "${EVENT_LOG}")"
+        grep -Fxq startup <<< "${lifecycle}"
+        grep -Fxq shutdown <<< "${lifecycle}"
+        printf '%s\n' "${lifecycle}" \
+          > "${EVIDENCE_DIRECTORY}/lifecycle-events.txt"
+        docker exec "${CONTAINER_NAME}" \
+          journalctl -u "${UNIT_NAME}" --no-pager \
+          > "${EVIDENCE_DIRECTORY}/provider-journal.txt"

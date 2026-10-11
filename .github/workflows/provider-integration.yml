@@ -7,6 +7,11 @@ on:
       - mvp/implementation
   workflow_dispatch:
     inputs:
+      agent-ref:
+        description: Agent branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
       protocol-ref:
         description: Protocol branch, tag, or commit SHA.
         required: false
@@ -26,6 +31,7 @@ jobs:
     uses: ./.github/workflows/provider-build-and-verify.yml
     with:
       artifact-name: stateforge-provider-integration-${{ github.run_id }}-${{ github.run_attempt }}
+      agent-ref: ${{ inputs.agent-ref || 'mvp/implementation' }}
       protocol-ref: ${{ inputs.protocol-ref || 'mvp/implementation' }}
       scenario-tier: full
       retention-days: 14

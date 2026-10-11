@@ -19,11 +19,14 @@ def read(path: Path) -> str:
 def test_action_library_has_focused_domain_boundaries() -> None:
     """Keep repeated operations and scenarios independently reusable."""
     expected = {
+        "agent/assert-invalid-descriptor",
+        "agent/assert-session",
+        "agent/install",
+        "agent/start",
         "environment/install",
         "evidence/collect",
         "package/build",
         "package/verify-installed",
-        "protocol/build",
         "provider/crash",
         "provider/create-fixture",
         "provider/start",
@@ -34,9 +37,6 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/lifecycle/same-instance-replacement",
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
-        "sfp/assert-bootstrap",
-        "sfp/assert-invalid-peer",
-        "sfp/assert-manifest",
     }
     observed = {
         str(path.parent.relative_to(ACTIONS))
@@ -46,18 +46,22 @@ def test_action_library_has_focused_domain_boundaries() -> None:
 
 
 def test_build_is_single_and_provenance_bound() -> None:
-    """Build each package once and pass one immutable bundle downstream."""
+    """Use each repository's builder once and pass one bundle downstream."""
     build = read(WORKFLOWS / "provider-build.yml")
     aggregate = read(WORKFLOWS / "provider-build-and-verify.yml")
     provider = read(ACTIONS / "package" / "build" / "action.yml")
-    protocol = read(ACTIONS / "protocol" / "build" / "action.yml")
 
     assert "python -m build" in provider
-    assert "python -m build" in protocol
     assert build.count("./.github/actions/package/build") == 1
-    assert build.count("./.github/actions/protocol/build") == 1
+    assert (
+        build.count("./.stateforge-ci/protocol/.github/actions/python/build")
+        == 1
+    )
+    assert build.count("./.stateforge-ci/agent/.github/actions/rpm/build") == 1
     assert "dist/BUNDLE_PROVENANCE" in build
     assert "protocol-resolved-commit=" in build
+    assert "agent-resolved-commit=" in build
+    assert "dist/agent" in build
     assert "needs: build" in aggregate
     assert (
         aggregate.count("needs.build.outputs.artifact-name")
@@ -65,20 +69,44 @@ def test_build_is_single_and_provenance_bound() -> None:
     )
 
 
+def test_provider_builder_is_location_independent() -> None:
+    """Allow other repositories to invoke the canonical Provider builder."""
+    action = read(ACTIONS / "package" / "build" / "action.yml")
+
+    assert "ACTION_PATH: ${{ github.action_path }}" in action
+    assert "${ACTION_PATH}/../../../.." in action
+    assert 'git -C "${source_directory}" rev-parse --verify HEAD' in action
+    assert '"${source_directory}"' in action
+    assert "${GITHUB_SHA" not in action
+
+
 def test_protocol_ref_is_configurable_and_resolved() -> None:
     """Support convenient refs while recording an immutable Protocol commit."""
     build = read(WORKFLOWS / "provider-build.yml")
     aggregate = read(WORKFLOWS / "provider-build-and-verify.yml")
     release = read(WORKFLOWS / "provider-release-candidate.yml")
-    action = read(ACTIONS / "protocol" / "build" / "action.yml")
 
     for content in (build, aggregate, release):
         assert "protocol-ref:" in content
         assert "default: mvp/implementation" in content
-    assert 'git -C "${PROTOCOL_SOURCE}" rev-parse --verify HEAD' in action
-    assert "requested-ref=${PROTOCOL_REF}" in action
-    assert "resolved-commit=${resolved_commit}" in action
-    assert "PROTOCOL_SHA256SUMS" in action
+    assert "repository: stateforge-org/stateforge-protocol" in build
+    assert "git -C .stateforge-ci/protocol rev-parse --verify HEAD" in build
+    assert "protocol-requested-ref=${PROTOCOL_REF}" in build
+
+
+def test_agent_ref_is_configurable_and_resolved() -> None:
+    """Build the exact selected Agent through its portable RPM action."""
+    build = read(WORKFLOWS / "provider-build.yml")
+    aggregate = read(WORKFLOWS / "provider-build-and-verify.yml")
+    release = read(WORKFLOWS / "provider-release-candidate.yml")
+
+    for content in (build, aggregate, release):
+        assert "agent-ref:" in content
+        assert "default: mvp/implementation" in content
+    assert "repository: stateforge-org/stateforge-agent" in build
+    assert "git -C .stateforge-ci/agent rev-parse --verify HEAD" in build
+    assert "agent-requested-ref=${AGENT_REF}" in build
+    assert "agent-rpm-sha256=${AGENT_RPM_SHA256}" in build
 
 
 def test_installed_checks_cannot_use_source_imports() -> None:
@@ -108,13 +136,20 @@ def test_fixture_uses_only_the_public_provider_api() -> None:
     assert "on_shutdown" in fixture
 
 
-def test_provider_start_waits_for_a_new_generation() -> None:
-    """Do not confuse an existing stable descriptor with new publication."""
+def test_provider_start_uses_installed_runtime_in_agent_system() -> None:
+    """Run public fixtures beside the RPM-installed Agent."""
     action = read(ACTIONS / "provider" / "start" / "action.yml")
 
+    assert 'docker exec "${CONTAINER_NAME}" systemd-run' in action
+    assert "/usr/bin/python3" in action
+    assert "/run/stateforge-agent/providers" in action
+    assert "import stateforge_provider" not in action
     assert "previous_generation=0" in action
-    assert ".last_endpoint_generation // 0" in action
     assert "generation > previous_generation" in action
+    assert (
+        'log_directory="/var/log/stateforge-provider-tests/${INSTANCE_NAME}"'
+        in action
+    )
 
 
 def test_each_runtime_scenario_is_an_independent_action() -> None:
@@ -124,7 +159,8 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
     assert len(scenarios) == SCENARIO_COUNT
     for scenario in scenarios:
         content = read(scenario)
-        assert "./.github/actions/environment/install" in content
+        assert "./.github/actions/agent/install" in content
+        assert "./.github/actions/agent/start" in content
         assert "./.github/actions/provider/create-fixture" in content
         assert "./.github/actions/evidence/collect" in content
         assert "if: ${{ always() }}" in content
@@ -143,13 +179,38 @@ def test_runtime_catalog_covers_required_behavior() -> None:
     }
     for scenario in scenarios:
         assert scenario in workflow
-    assert 'python: "3.11"' in workflow
-    assert 'python: "3.12"' in workflow
-    assert 'python-version: "3.13"' in workflow
     assert "if: ${{ inputs.scenario-tier == 'full' }}" in workflow
     assert "runtime-directory: ${{ runner.temp }}/sfp" in workflow
     assert "stateforge-provider-${{ matrix.scenario }}" not in workflow
     assert "runs-on: ubuntu-24.04" in workflow
+    assert "agent-commit:" in workflow
+
+
+def test_runtime_uses_real_agent_instead_of_synthetic_sfp_client() -> None:
+    """Exercise Provider behavior through the installed Agent daemon."""
+    install = read(ACTIONS / "agent" / "install" / "action.yml")
+    start = read(ACTIONS / "agent" / "start" / "action.yml")
+    session = read(ACTIONS / "agent" / "assert-session" / "action.yml")
+
+    assert not (ACTIONS / "sfp" / "probe.py").exists()
+    assert "rpm -Uvh --nodeps" in install
+    assert "stateforge-agent.service" in start
+    assert "SFP session established:" in session
+    assert "Rejecting Provider manifest:" in session
+
+
+def test_provider_reinstall_expands_the_wheel_inside_fedora() -> None:
+    """Do not leave a container-local wheel glob for the host shell."""
+    action = read(
+        ACTIONS
+        / "scenarios"
+        / "destructive"
+        / "uninstall-reinstall"
+        / "action.yml"
+    )
+
+    assert 'docker exec "${CONTAINER_NAME}" bash -lc' in action
+    assert "/artifacts/provider/stateforge_provider-*.whl'" in action
 
 
 def test_package_matrix_is_separate_from_unix_runtime() -> None:
@@ -224,4 +285,6 @@ def test_failure_evidence_and_cleanup_are_bounded() -> None:
     assert "runner-context.txt" in collector
     assert "runtime-inventory.txt" in collector
     assert 'rm -rf -- "${RUNTIME_DIRECTORY}"' in collector
-    assert "provider.pid" in collector
+    assert "agent-journal.txt" in collector
+    assert "provider-journal.txt" in collector
+    assert "rpm -e stateforge-agent" in collector

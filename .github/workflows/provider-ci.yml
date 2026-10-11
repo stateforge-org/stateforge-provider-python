@@ -20,6 +20,7 @@ jobs:
     uses: ./.github/workflows/provider-build-and-verify.yml
     with:
       artifact-name: stateforge-provider-pr-${{ github.run_id }}-${{ github.run_attempt }}
+      agent-ref: mvp/implementation
       protocol-ref: mvp/implementation
       scenario-tier: full
       retention-days: 7

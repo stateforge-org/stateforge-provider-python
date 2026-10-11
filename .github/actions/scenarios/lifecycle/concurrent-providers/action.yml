@@ -1,7 +1,13 @@
 name: Test concurrent installed Providers
-description: Verify two distinct Provider installations can run concurrently.
+description: Verify the real Agent accepts two independent Provider installations.
 
 inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-source-directory:
+    description: Exact Agent checkout providing its Fedora test image.
+    required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider build.
     required: true
@@ -19,13 +25,19 @@ runs:
   using: composite
   steps:
     - name: Install exact runtime artifacts
-      id: environment
-      uses: ./.github/actions/environment/install
+      id: system
+      uses: ./.github/actions/agent/install
       with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-source-directory: ${{ inputs.agent-source-directory }}
         provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
         protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
-        environment-directory: ${{ inputs.runtime-directory }}/environment
         evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
 
     - name: Create first Provider fixture
       id: fixture-a
@@ -47,27 +59,25 @@ runs:
       id: provider-a
       uses: ./.github/actions/provider/start
       with:
-        python: ${{ steps.environment.outputs.python }}
+        container-name: ${{ steps.system.outputs.container-name }}
         fixture-path: ${{ steps.fixture-a.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture-a.outputs.instance-name }}
+        state-name: ${{ steps.fixture-a.outputs.state-name }}
         identity: stateforge.test.concurrent.a
-        discovery-directory: ${{ steps.fixture-a.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture-a.outputs.state-directory }}
-        event-log: ${{ steps.fixture-a.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-a
 
     - name: Start second Provider
       id: provider-b
       uses: ./.github/actions/provider/start
       with:
-        python: ${{ steps.environment.outputs.python }}
+        container-name: ${{ steps.system.outputs.container-name }}
         fixture-path: ${{ steps.fixture-b.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture-b.outputs.instance-name }}
+        state-name: ${{ steps.fixture-b.outputs.state-name }}
         identity: stateforge.test.concurrent.b
-        discovery-directory: ${{ steps.fixture-b.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture-b.outputs.state-directory }}
-        event-log: ${{ steps.fixture-b.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-b
 
-    - name: Assert distinct Provider identities
+    - name: Assert independent Provider identities
       shell: bash
       env:
         FIRST_ID: ${{ steps.provider-a.outputs.provider-instance-id }}
@@ -78,38 +88,40 @@ runs:
           exit 1
         fi
 
-    - name: Assert first Manifest
-      uses: ./.github/actions/sfp/assert-manifest
+    - name: Assert first Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
       with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider-a.outputs.descriptor-path }}
-        identity: stateforge.test.concurrent.a
-        evidence-directory: ${{ inputs.evidence-directory }}/provider-a/sfp
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider-a.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider-a.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-a/agent
 
-    - name: Assert second Manifest
-      uses: ./.github/actions/sfp/assert-manifest
+    - name: Assert second Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
       with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider-b.outputs.descriptor-path }}
-        identity: stateforge.test.concurrent.b
-        evidence-directory: ${{ inputs.evidence-directory }}/provider-b/sfp
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider-b.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider-b.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-b/agent
 
     - name: Stop first Provider
       uses: ./.github/actions/provider/stop
       with:
-        pid: ${{ steps.provider-a.outputs.pid }}
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider-a.outputs.unit-name }}
         descriptor-path: ${{ steps.provider-a.outputs.descriptor-path }}
         socket-path: ${{ steps.provider-a.outputs.socket-path }}
-        event-log: ${{ steps.fixture-a.outputs.event-log }}
+        event-log: ${{ steps.provider-a.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-a
 
     - name: Stop second Provider
       uses: ./.github/actions/provider/stop
       with:
-        pid: ${{ steps.provider-b.outputs.pid }}
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider-b.outputs.unit-name }}
         descriptor-path: ${{ steps.provider-b.outputs.descriptor-path }}
         socket-path: ${{ steps.provider-b.outputs.socket-path }}
-        event-log: ${{ steps.fixture-b.outputs.event-log }}
+        event-log: ${{ steps.provider-b.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-b
 
     - name: Preserve bounded evidence and clean up
@@ -117,5 +129,6 @@ runs:
       uses: ./.github/actions/evidence/collect
       with:
         stage: concurrent-providers
+        container-name: ${{ steps.system.outputs.container-name }}
         runtime-directory: ${{ inputs.runtime-directory }}
         evidence-directory: ${{ inputs.evidence-directory }}

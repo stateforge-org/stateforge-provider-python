@@ -10,8 +10,9 @@ Bootstrap, or Manifest behavior.
 The automation has three layers:
 
 1. Focused composite actions in `.github/actions/` own one repeated operation:
-   package construction, isolated installation, fixture staging, process
-   lifecycle, SFP assertions, or evidence collection.
+   package construction, isolated installation, Agent service lifecycle,
+   Provider fixture lifecycle, Agent-observed assertions, or evidence
+   collection.
 2. Each directory under `.github/actions/scenarios/` is one independently
    selectable runtime scenario. A scenario composes the focused actions and
    always collects evidence and removes its temporary state.
@@ -19,16 +20,20 @@ The automation has three layers:
    artifact transfer, and retention. The pull-request, integration, and
    release-candidate workflows are thin callers.
 
-The build job produces one bundle containing:
+The build job checks out the selected Protocol and Agent revisions, invokes
+each repository's canonical portable builder, and produces one bundle
+containing:
 
 - the Provider wheel and source distribution;
 - the Protocol wheel and source distribution built from `protocol-ref`;
-- SHA-256 checksum files;
-- the requested Protocol ref and its resolved commit; and
-- Provider, Protocol, Python, runner, and source provenance.
+- the Agent binary and source RPMs built from `agent-ref`;
+- each component's SHA-256 checksum and provenance files;
+- the requested Agent and Protocol refs and their resolved commits; and
+- the combined Provider, Protocol, Agent, Python, runner, and source
+  provenance.
 
 Every installed-package and runtime job downloads that same bundle. No test job
-rebuilds either distribution.
+rebuilds a distribution or RPM.
 
 ## Local parity
 
@@ -49,6 +54,27 @@ action:
 ```sh
 python -m build --sdist --wheel --outdir dist/provider
 ```
+
+The Provider-owned build action is location-independent. Another StateForge
+repository can check out an exact Provider revision below its own workspace
+and invoke the action from that checkout:
+
+```yaml
+- uses: actions/checkout@<immutable-sha>
+  with:
+    repository: stateforge-org/stateforge-provider-python
+    ref: <provider-ref-or-commit>
+    path: .stateforge-ci/provider
+    persist-credentials: false
+
+- uses: ./.stateforge-ci/provider/.github/actions/package/build
+  with:
+    output-directory: dist/provider
+    evidence-directory: evidence/provider-build
+```
+
+The action locates and builds the repository snapshot that contains it. It
+does not assume that the caller's workspace root is Provider source.
 
 To reproduce an installed-package check, create a clean environment outside the
 repository and install an explicitly selected Protocol wheel together with the
@@ -75,36 +101,44 @@ inputs are:
 
 | Input | Default | Meaning |
 | --- | --- | --- |
+| `agent-ref` | `mvp/implementation` | Agent branch, tag, or commit to resolve and package as an RPM |
 | `protocol-ref` | `mvp/implementation` | Protocol branch, tag, or commit to resolve and package |
-| `scenario-tier` | `full` | `smoke` runs normal lifecycle on every supported Python; `full` adds the complete catalog |
+| `scenario-tier` | `full` | `smoke` runs the normal installed-service lifecycle; `full` adds the complete catalog |
 | `retention-days` | `14` | Retention for distributions and bounded evidence |
 
 Release-candidate runs may use the convenient default branch during
-development, but should pass an immutable Protocol commit SHA when selecting a
-candidate.
+development, but should pass immutable Agent and Protocol commit SHAs when
+selecting a candidate.
 
 ## Runtime scenarios
 
 The runtime suite currently covers:
 
-- normal Bootstrap, Manifest, graceful shutdown, and cleanup;
+- normal startup, Agent-observed Bootstrap and Manifest acceptance, graceful
+  shutdown, and cleanup;
 - two distinct Provider installations running concurrently;
 - same-installation replacement with a stable identity and newer generation;
-- rejection of invalid Bootstrap identity and Manifest session data;
+- rejection of malformed Provider discovery data followed by valid recovery;
 - abrupt process failure followed by a valid newer generation; and
 - uninstall and reinstall of the exact Provider wheel.
 
-The fixtures import only the public `stateforge_provider` API. Runtime scenarios
-run on Linux because the current endpoint contract uses Unix-domain sockets.
-Package identity and import checks run independently on Linux, macOS, and
-Windows for Python 3.11, 3.12, and 3.13.
+The fixtures import only the public `stateforge_provider` API. Each runtime
+scenario installs the exact Agent RPM into an isolated Fedora system, starts
+the packaged `stateforge-agent.service`, installs the exact Provider and
+Protocol wheels beside it, and observes acceptance or rejection through the
+real Agent journal. Runtime scenarios run on Linux because the current endpoint
+contract uses Unix-domain sockets and the Agent is packaged as a Linux service.
+Package identity and import checks remain independent and run on Linux, macOS,
+and Windows for Python 3.11, 3.12, and 3.13.
 
 ## Evidence and security
 
 Build provenance and checksums are retained with the immutable artifact bundle.
-Each scenario retains bounded package-install logs, descriptors, SFP responses,
-lifecycle events, runtime inventory, and failure logs. Temporary runtime state
-is removed even when an assertion fails.
+Each scenario retains bounded RPM and wheel installation logs, Agent and
+Provider journals, descriptors, lifecycle events, runtime inventory, and
+failure diagnostics. It stops transient services, verifies and removes the
+Agent RPM, destroys the Fedora system, and deletes temporary runtime state even
+when an assertion fails.
 
 External actions are pinned to complete commit SHAs. Workflows have read-only
 repository permissions, do not persist checkout credentials, use bounded job

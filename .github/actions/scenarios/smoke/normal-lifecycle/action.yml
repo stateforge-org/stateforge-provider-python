@@ -1,7 +1,13 @@
 name: Test normal installed Provider lifecycle
-description: Verify installation, Bootstrap, Manifest, shutdown, and cleanup.
+description: Verify the real Agent accepts one Provider and observes shutdown.
 
 inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-source-directory:
+    description: Exact Agent checkout providing its Fedora test image.
+    required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider build.
     required: true
@@ -19,13 +25,19 @@ runs:
   using: composite
   steps:
     - name: Install exact runtime artifacts
-      id: environment
-      uses: ./.github/actions/environment/install
+      id: system
+      uses: ./.github/actions/agent/install
       with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-source-directory: ${{ inputs.agent-source-directory }}
         provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
         protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
-        environment-directory: ${{ inputs.runtime-directory }}/environment
         evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
 
     - name: Create Provider fixture
       id: fixture
@@ -39,36 +51,29 @@ runs:
       id: provider
       uses: ./.github/actions/provider/start
       with:
-        python: ${{ steps.environment.outputs.python }}
+        container-name: ${{ steps.system.outputs.container-name }}
         fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
         identity: stateforge.test.normal
-        discovery-directory: ${{ steps.fixture.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture.outputs.state-directory }}
-        event-log: ${{ steps.fixture.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider
 
-    - name: Assert Bootstrap
-      uses: ./.github/actions/sfp/assert-bootstrap
+    - name: Assert Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
       with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
-        evidence-directory: ${{ inputs.evidence-directory }}/sfp
-
-    - name: Assert Manifest
-      uses: ./.github/actions/sfp/assert-manifest
-      with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
-        identity: stateforge.test.normal
-        evidence-directory: ${{ inputs.evidence-directory }}/sfp
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
 
     - name: Stop Provider fixture
       uses: ./.github/actions/provider/stop
       with:
-        pid: ${{ steps.provider.outputs.pid }}
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
         descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
         socket-path: ${{ steps.provider.outputs.socket-path }}
-        event-log: ${{ steps.fixture.outputs.event-log }}
+        event-log: ${{ steps.provider.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider
 
     - name: Preserve bounded evidence and clean up
@@ -76,5 +81,6 @@ runs:
       uses: ./.github/actions/evidence/collect
       with:
         stage: normal-lifecycle
+        container-name: ${{ steps.system.outputs.container-name }}
         runtime-directory: ${{ inputs.runtime-directory }}
         evidence-directory: ${{ inputs.evidence-directory }}

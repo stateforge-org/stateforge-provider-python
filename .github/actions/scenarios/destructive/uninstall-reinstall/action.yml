@@ -1,7 +1,13 @@
 name: Test Provider uninstall and reinstall
-description: Verify the exact Provider wheel remains usable after replacement.
+description: Verify the real Agent accepts the exact Provider after reinstallation.
 
 inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-source-directory:
+    description: Exact Agent checkout providing its Fedora test image.
+    required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider build.
     required: true
@@ -19,45 +25,40 @@ runs:
   using: composite
   steps:
     - name: Install exact runtime artifacts
-      id: environment
-      uses: ./.github/actions/environment/install
+      id: system
+      uses: ./.github/actions/agent/install
       with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-source-directory: ${{ inputs.agent-source-directory }}
         provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
         protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
-        environment-directory: ${{ inputs.runtime-directory }}/environment
         evidence-directory: ${{ inputs.evidence-directory }}/installation
 
-    - name: Uninstall and reinstall the exact Provider wheel
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Uninstall and reinstall exact Provider wheel
       shell: bash
       env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
-        EXPECTED_VERSION: ${{ steps.environment.outputs.provider-version }}
-        ISOLATED_PYTHON: ${{ steps.environment.outputs.python }}
-        PROVIDER_WHEEL: ${{ steps.environment.outputs.provider-wheel }}
-        VERIFY_SCRIPT: ${{ github.workspace }}/.github/actions/package/verify-installed/verify.py
       run: |
         set -euo pipefail
         {
-          "${ISOLATED_PYTHON}" -m pip uninstall --yes stateforge-provider
-          if (
-            cd "${RUNNER_TEMP}"
-            unset PYTHONPATH PYTHONHOME
-            "${ISOLATED_PYTHON}" -I -c 'import stateforge_provider'
-          ); then
+          docker exec "${CONTAINER_NAME}" \
+            python3 -m pip uninstall --yes stateforge-provider
+          if docker exec "${CONTAINER_NAME}" \
+            python3 -I -c 'import stateforge_provider'; then
             echo "Provider remained importable after uninstall" >&2
             exit 1
           fi
-          "${ISOLATED_PYTHON}" -m pip install --disable-pip-version-check \
-            "${PROVIDER_WHEEL}"
-        } 2>&1 | tee "${EVIDENCE_DIRECTORY}/uninstall-reinstall.log"
-        (
-          cd "${RUNNER_TEMP}"
-          unset PYTHONPATH PYTHONHOME
-          "${ISOLATED_PYTHON}" -I "${VERIFY_SCRIPT}" \
-            --expected-version "${EXPECTED_VERSION}" \
-            --workspace "${GITHUB_WORKSPACE}" \
-            --output "${GITHUB_WORKSPACE}/${EVIDENCE_DIRECTORY}/reinstalled.json"
-        )
+          docker exec "${CONTAINER_NAME}" bash -lc \
+            'python3 -m pip install --no-cache-dir --break-system-packages --prefix /usr --no-deps /artifacts/provider/stateforge_provider-*.whl'
+          docker exec "${CONTAINER_NAME}" python3 -I -c \
+            'from importlib.metadata import version; import stateforge_provider; print(version("stateforge-provider")); print(stateforge_provider.__file__)'
+        } > "${EVIDENCE_DIRECTORY}/uninstall-reinstall.txt" 2>&1
 
     - name: Create reinstalled Provider fixture
       id: fixture
@@ -71,29 +72,29 @@ runs:
       id: provider
       uses: ./.github/actions/provider/start
       with:
-        python: ${{ steps.environment.outputs.python }}
+        container-name: ${{ steps.system.outputs.container-name }}
         fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
         identity: stateforge.test.reinstalled
-        discovery-directory: ${{ steps.fixture.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture.outputs.state-directory }}
-        event-log: ${{ steps.fixture.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider
 
-    - name: Assert reinstalled Manifest
-      uses: ./.github/actions/sfp/assert-manifest
+    - name: Assert reinstalled Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
       with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
-        identity: stateforge.test.reinstalled
-        evidence-directory: ${{ inputs.evidence-directory }}/sfp
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
 
     - name: Stop reinstalled Provider
       uses: ./.github/actions/provider/stop
       with:
-        pid: ${{ steps.provider.outputs.pid }}
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
         descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
         socket-path: ${{ steps.provider.outputs.socket-path }}
-        event-log: ${{ steps.fixture.outputs.event-log }}
+        event-log: ${{ steps.provider.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider
 
     - name: Preserve bounded evidence and clean up
@@ -101,5 +102,6 @@ runs:
       uses: ./.github/actions/evidence/collect
       with:
         stage: uninstall-reinstall
+        container-name: ${{ steps.system.outputs.container-name }}
         runtime-directory: ${{ inputs.runtime-directory }}
         evidence-directory: ${{ inputs.evidence-directory }}

@@ -1,0 +1,61 @@
+name: Assert Agent acceptance of a Provider session
+description: Wait until the installed Agent accepts the expected generation.
+
+inputs:
+  container-name:
+    description: Fedora container running the Agent and Provider.
+    required: true
+  provider-instance-id:
+    description: Stable Provider installation identity.
+    required: true
+  endpoint-generation:
+    description: Provider endpoint generation that must be accepted.
+    required: true
+  evidence-directory:
+    description: Host directory receiving the accepted session record.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for Agent acceptance.
+    required: false
+    default: "60"
+
+runs:
+  using: composite
+  steps:
+    - name: Assert current Bootstrap and Manifest session
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        ENDPOINT_GENERATION: ${{ inputs.endpoint-generation }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        PROVIDER_INSTANCE_ID: ${{ inputs.provider-instance-id }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        deadline=$((SECONDS + TIMEOUT_SECONDS))
+        while (( SECONDS < deadline )); do
+          journal="$(docker exec "${CONTAINER_NAME}" \
+            journalctl -u stateforge-agent.service --no-pager -o cat)"
+          if grep -F 'Rejecting Provider manifest:' <<< "${journal}" \
+            | grep -F "provider_instance_id=${PROVIDER_INSTANCE_ID}" \
+            | grep -Fq "endpoint_generation=${ENDPOINT_GENERATION}"; then
+            echo "Agent rejected the expected Provider manifest" >&2
+            exit 1
+          fi
+          session="$(grep -F 'SFP session established:' <<< "${journal}" \
+            | grep -F "provider_instance_id=${PROVIDER_INSTANCE_ID}" \
+            | grep -F "endpoint_generation=${ENDPOINT_GENERATION}" \
+            | tail -n 1 || true)"
+          if [[ -n "${session}" ]]; then
+            printf '%s\n' "${session}" \
+              > "${EVIDENCE_DIRECTORY}/accepted-session.txt"
+            exit 0
+          fi
+          sleep 1
+        done
+
+        docker exec "${CONTAINER_NAME}" \
+          journalctl -u stateforge-agent.service --no-pager || true
+        echo "Agent did not accept the expected Provider generation" >&2
+        exit 1

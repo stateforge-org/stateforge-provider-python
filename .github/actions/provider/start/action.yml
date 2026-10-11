@@ -1,12 +1,18 @@
 name: Start an installed StateForge Provider
-description: Start a staged public-API fixture and wait for its descriptor.
+description: Run a public-API fixture beside the installed Agent in Fedora.
 
 inputs:
-  python:
-    description: Python interpreter containing the installed Provider package.
+  container-name:
+    description: Fedora container running the installed Agent.
     required: true
   fixture-path:
     description: Staged Provider fixture entry point.
+    required: true
+  instance-name:
+    description: Safe name used for the fixture process and service.
+    required: true
+  state-name:
+    description: Stable state name; reuse it to preserve installation identity.
     required: true
   identity:
     description: Author-declared Provider identity.
@@ -15,39 +21,33 @@ inputs:
     description: Author-declared Provider display name.
     required: false
     default: StateForge CI Provider
-  discovery-directory:
-    description: Shared discovery directory.
-    required: true
-  state-directory:
-    description: Persistent state directory for this Provider identity.
-    required: true
-  event-log:
-    description: Lifecycle event log written by the fixture.
-    required: true
   evidence-directory:
-    description: Directory receiving process and descriptor evidence.
+    description: Host directory receiving process and descriptor evidence.
     required: true
   timeout-seconds:
-    description: Maximum time to wait for publication.
+    description: Maximum time to wait for endpoint publication.
     required: false
-    default: "15"
+    default: "60"
 
 outputs:
-  pid:
-    description: Fixture process ID.
-    value: ${{ steps.start.outputs.pid }}
+  unit-name:
+    description: Transient systemd unit running the Provider.
+    value: ${{ steps.start.outputs.unit-name }}
   descriptor-path:
-    description: Published endpoint descriptor path.
+    description: Descriptor path inside the Fedora system.
     value: ${{ steps.start.outputs.descriptor-path }}
   provider-instance-id:
-    description: Stable installation identity.
+    description: Stable Provider installation identity.
     value: ${{ steps.start.outputs.provider-instance-id }}
   endpoint-generation:
     description: Allocated endpoint generation.
     value: ${{ steps.start.outputs.endpoint-generation }}
   socket-path:
-    description: Generation-specific Unix socket.
+    description: Generation-specific Unix socket inside Fedora.
     value: ${{ steps.start.outputs.socket-path }}
+  event-log:
+    description: Lifecycle event log inside Fedora.
+    value: ${{ steps.start.outputs.event-log }}
 
 runs:
   using: composite
@@ -56,83 +56,111 @@ runs:
       id: start
       shell: bash
       env:
-        DISCOVERY_DIRECTORY: ${{ inputs.discovery-directory }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
         DISPLAY_NAME: ${{ inputs.display-name }}
-        EVENT_LOG: ${{ inputs.event-log }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
         FIXTURE_PATH: ${{ inputs.fixture-path }}
         IDENTITY: ${{ inputs.identity }}
-        ISOLATED_PYTHON: ${{ inputs.python }}
-        STATE_DIRECTORY: ${{ inputs.state-directory }}
+        INSTANCE_NAME: ${{ inputs.instance-name }}
+        STATE_NAME: ${{ inputs.state-name }}
         TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
       run: |
         set -euo pipefail
-        if [[ ! "${TIMEOUT_SECONDS}" =~ ^[0-9]+$ ]] || (( TIMEOUT_SECONDS < 1 )); then
-          echo "timeout-seconds must be a positive integer" >&2
-          exit 1
+        if [[ ! "${INSTANCE_NAME}" =~ ^[a-z][a-z0-9-]{0,20}$ || \
+              ! "${STATE_NAME}" =~ ^[a-z][a-z0-9-]{0,20}$ ]]; then
+          echo "Provider fixture and state names must be safe identifiers" >&2
+          exit 2
         fi
         mkdir -p "${EVIDENCE_DIRECTORY}"
-        log="${EVIDENCE_DIRECTORY}/provider.log"
+
+        fixture_root="/opt/stateforge-provider-tests/${INSTANCE_NAME}"
+        state_directory="/var/lib/stateforge-provider-tests/${STATE_NAME}"
+        log_directory="/var/log/stateforge-provider-tests/${INSTANCE_NAME}"
+        event_log="${log_directory}/events.log"
+        service_user="sf-${STATE_NAME}"
+        unit_name="stateforge-test-${INSTANCE_NAME}.service"
+
+        docker exec "${CONTAINER_NAME}" mkdir -p \
+          "${fixture_root}" "${state_directory}" "${log_directory}"
+        docker cp "${FIXTURE_PATH}" \
+          "${CONTAINER_NAME}:${fixture_root}/provider.py"
+        if ! docker exec "${CONTAINER_NAME}" id "${service_user}" \
+          >/dev/null 2>&1; then
+          docker exec "${CONTAINER_NAME}" \
+            useradd --system --no-create-home \
+              --groups stateforge-providers "${service_user}"
+        fi
+        docker exec "${CONTAINER_NAME}" chown -R \
+          "${service_user}:${service_user}" \
+          "${state_directory}" "${log_directory}"
+        docker exec "${CONTAINER_NAME}" chmod 0700 "${state_directory}"
+        docker exec "${CONTAINER_NAME}" chmod -R a+rX "${fixture_root}"
+
+        identity_path="${state_directory}/identity.json"
         previous_generation=0
-        if [[ -f "${STATE_DIRECTORY}/identity.json" ]]; then
-          previous_generation="$(jq -r '.last_endpoint_generation // 0' \
-            "${STATE_DIRECTORY}/identity.json")"
-          if [[ ! "${previous_generation}" =~ ^[0-9]+$ ]]; then
-            echo "Existing endpoint generation is invalid" >&2
-            exit 1
+        if docker exec "${CONTAINER_NAME}" test -f "${identity_path}"; then
+          provider_id="$(docker exec "${CONTAINER_NAME}" \
+            jq -r .provider_instance_id "${identity_path}")"
+          descriptor="/run/stateforge-agent/providers/${provider_id}.sfp.json"
+          if docker exec "${CONTAINER_NAME}" test -f "${descriptor}"; then
+            previous_generation="$(docker exec "${CONTAINER_NAME}" \
+              jq -r '.endpoint_generation // 0' "${descriptor}")"
           fi
         fi
-        nohup env -u PYTHONPATH -u PYTHONHOME \
-          "${ISOLATED_PYTHON}" -I "${FIXTURE_PATH}" \
+
+        docker exec "${CONTAINER_NAME}" systemd-run \
+          --unit "${unit_name}" \
+          --property "User=${service_user}" \
+          --property "Group=${service_user}" \
+          --property "SupplementaryGroups=stateforge-providers" \
+          --property "WorkingDirectory=${fixture_root}" \
+          /usr/bin/python3 "${fixture_root}/provider.py" \
           --identity "${IDENTITY}" \
           --display-name "${DISPLAY_NAME}" \
-          --discovery-directory "${DISCOVERY_DIRECTORY}" \
-          --state-directory "${STATE_DIRECTORY}" \
-          --event-log "${EVENT_LOG}" \
-          > "${log}" 2>&1 &
-        pid=$!
-        printf '%s\n' "${pid}" > "${EVIDENCE_DIRECTORY}/provider.pid"
+          --discovery-directory /run/stateforge-agent/providers \
+          --state-directory "${state_directory}" \
+          --event-log "${event_log}"
 
         deadline=$((SECONDS + TIMEOUT_SECONDS))
-        descriptor=""
         while (( SECONDS < deadline )); do
-          if ! kill -0 "${pid}" 2>/dev/null; then
-            cat "${log}" >&2
-            echo "Provider exited before publishing its descriptor" >&2
-            exit 1
-          fi
-          if [[ -f "${STATE_DIRECTORY}/identity.json" ]]; then
-            provider_id="$(jq -r '.provider_instance_id' \
-              "${STATE_DIRECTORY}/identity.json")"
-            descriptor="${DISCOVERY_DIRECTORY}/${provider_id}.sfp.json"
-            if [[ -f "${descriptor}" ]]; then
-              generation="$(jq -r '.endpoint_generation // 0' \
-                "${descriptor}")"
+          if docker exec "${CONTAINER_NAME}" test -f "${identity_path}"; then
+            provider_id="$(docker exec "${CONTAINER_NAME}" \
+              jq -r .provider_instance_id "${identity_path}")"
+            descriptor="/run/stateforge-agent/providers/${provider_id}.sfp.json"
+            if docker exec "${CONTAINER_NAME}" test -f "${descriptor}"; then
+              generation="$(docker exec "${CONTAINER_NAME}" \
+                jq -r '.endpoint_generation // 0' "${descriptor}")"
               if [[ "${generation}" =~ ^[0-9]+$ ]] && \
                  (( generation > previous_generation )); then
                 break
               fi
             fi
           fi
-          sleep 0.1
+          if ! docker exec "${CONTAINER_NAME}" \
+            systemctl is-active --quiet "${unit_name}"; then
+            break
+          fi
+          sleep 1
         done
-        if [[ -z "${descriptor}" || ! -f "${descriptor}" ]]; then
-          cat "${log}" >&2
-          echo "Provider did not publish within ${TIMEOUT_SECONDS}s" >&2
+        if [[ -z "${descriptor:-}" || ! "${generation:-}" =~ ^[0-9]+$ ]] || \
+           (( generation <= previous_generation )) || \
+           ! docker exec "${CONTAINER_NAME}" test -f "${descriptor}"; then
+          docker exec "${CONTAINER_NAME}" \
+            journalctl -u "${unit_name}" --no-pager || true
+          echo "Provider did not publish its endpoint" >&2
           exit 1
         fi
 
-        generation="$(jq -r '.endpoint_generation' "${descriptor}")"
-        socket_path="$(jq -r '.transport.socket_path' "${descriptor}")"
-        if [[ ! -S "${socket_path}" ]]; then
-          echo "Published Provider socket is not available" >&2
-          exit 1
-        fi
-        cp "${descriptor}" "${EVIDENCE_DIRECTORY}/descriptor.json"
+        socket_path="$(docker exec "${CONTAINER_NAME}" \
+          jq -r .transport.socket_path "${descriptor}")"
+        docker exec "${CONTAINER_NAME}" test -S "${socket_path}"
+        docker exec "${CONTAINER_NAME}" cat "${descriptor}" \
+          > "${EVIDENCE_DIRECTORY}/descriptor.json"
         {
-          echo "pid=${pid}"
+          echo "unit-name=${unit_name}"
           echo "descriptor-path=${descriptor}"
           echo "provider-instance-id=${provider_id}"
           echo "endpoint-generation=${generation}"
           echo "socket-path=${socket_path}"
+          echo "event-log=${event_log}"
         } >> "${GITHUB_OUTPUT}"

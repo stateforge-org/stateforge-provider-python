@@ -59,7 +59,7 @@ runs:
         ) > "${EVIDENCE_DIRECTORY}/provider-checksums.txt"
         (
           cd "${PROTOCOL_ARTIFACT_DIRECTORY}"
-          "${checksum_command[@]}" PROTOCOL_SHA256SUMS
+          "${checksum_command[@]}" SHA256SUMS
         ) > "${EVIDENCE_DIRECTORY}/protocol-checksums.txt"
 
         shopt -s nullglob

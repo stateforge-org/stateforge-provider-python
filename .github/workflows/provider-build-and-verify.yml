@@ -4,12 +4,17 @@ on:
   workflow_call:
     inputs:
       artifact-name:
-        description: Name of the immutable Provider and Protocol bundle.
+        description: Name of the immutable Provider, Protocol, and Agent bundle.
         required: false
         type: string
         default: stateforge-provider-runtime-bundle
       protocol-ref:
         description: Protocol branch, tag, or commit SHA.
+        required: false
+        type: string
+        default: mvp/implementation
+      agent-ref:
+        description: Agent branch, tag, or commit SHA.
         required: false
         type: string
         default: mvp/implementation
@@ -25,7 +30,7 @@ on:
         default: 14
     outputs:
       artifact-name:
-        description: Exact tested Provider and Protocol bundle.
+        description: Exact tested Provider, Protocol, and Agent bundle.
         value: ${{ jobs.build.outputs.artifact-name }}
       provider-version:
         description: Version read from the tested Provider wheel.
@@ -39,6 +44,12 @@ on:
       protocol-wheel-sha256:
         description: SHA-256 digest of the tested Protocol wheel.
         value: ${{ jobs.build.outputs.protocol-wheel-sha256 }}
+      agent-commit:
+        description: Resolved Agent commit used by every runtime scenario.
+        value: ${{ jobs.build.outputs.agent-commit }}
+      agent-rpm-sha256:
+        description: SHA-256 digest of the tested Agent RPM.
+        value: ${{ jobs.build.outputs.agent-rpm-sha256 }}
 
 permissions:
   contents: read
@@ -57,6 +68,7 @@ jobs:
     uses: ./.github/workflows/provider-build.yml
     with:
       artifact-name: ${{ inputs.artifact-name }}
+      agent-ref: ${{ inputs.agent-ref }}
       protocol-ref: ${{ inputs.protocol-ref }}
       retention-days: ${{ inputs.retention-days }}
 
@@ -75,6 +87,7 @@ jobs:
     uses: ./.github/workflows/provider-runtime-scenarios.yml
     with:
       artifact-name: ${{ needs.build.outputs.artifact-name }}
+      agent-commit: ${{ needs.build.outputs.agent-commit }}
       scenario-tier: ${{ inputs.scenario-tier }}
       evidence-prefix: stateforge-provider-runtime-${{ github.run_id }}-${{ github.run_attempt }}
       retention-days: ${{ inputs.retention-days }}

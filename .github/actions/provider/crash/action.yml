@@ -1,9 +1,12 @@
 name: Crash an installed StateForge Provider
-description: Terminate one fixture abruptly and record its stale endpoint.
+description: Kill one fixture and preserve its stale endpoint evidence.
 
 inputs:
-  pid:
-    description: Fixture process ID returned by the start action.
+  container-name:
+    description: Fedora container running the Provider.
+    required: true
+  unit-name:
+    description: Transient systemd unit returned by the start action.
     required: true
   descriptor-path:
     description: Stable descriptor path observed before the crash.
@@ -12,12 +15,12 @@ inputs:
     description: Generation-specific socket path observed before the crash.
     required: true
   evidence-directory:
-    description: Directory receiving deterministic fault evidence.
+    description: Host directory receiving deterministic fault evidence.
     required: true
   timeout-seconds:
     description: Maximum time to wait for process termination.
     required: false
-    default: "10"
+    default: "30"
 
 runs:
   using: composite
@@ -25,34 +28,34 @@ runs:
     - name: Terminate fixture without graceful cleanup
       shell: bash
       env:
+        CONTAINER_NAME: ${{ inputs.container-name }}
         DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
-        PROVIDER_PID: ${{ inputs.pid }}
         SOCKET_PATH: ${{ inputs.socket-path }}
         TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        UNIT_NAME: ${{ inputs.unit-name }}
       run: |
         set -euo pipefail
         mkdir -p "${EVIDENCE_DIRECTORY}"
-        kill -KILL "${PROVIDER_PID}"
+        docker exec "${CONTAINER_NAME}" \
+          systemctl kill --kill-whom=main --signal=KILL "${UNIT_NAME}"
         deadline=$((SECONDS + TIMEOUT_SECONDS))
         while (( SECONDS < deadline )); do
-          state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
-          if [[ -z "${state}" || "${state}" == Z* ]]; then
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-active "${UNIT_NAME}" 2>/dev/null || true)"
+          if [[ "${state}" == "failed" || "${state}" == "inactive" ]]; then
             break
           fi
-          sleep 0.1
+          sleep 1
         done
-        state="$(ps -o stat= -p "${PROVIDER_PID}" 2>/dev/null || true)"
-        if [[ -n "${state}" && "${state}" != Z* ]]; then
+        if [[ "${state:-}" != "failed" && "${state:-}" != "inactive" ]]; then
           echo "Provider process survived SIGKILL" >&2
           exit 1
         fi
-        if [[ ! -f "${DESCRIPTOR_PATH}" || ! -S "${SOCKET_PATH}" ]]; then
-          echo "Crash did not leave the expected discovery evidence" >&2
-          exit 1
-        fi
+        docker exec "${CONTAINER_NAME}" test -f "${DESCRIPTOR_PATH}"
+        docker exec "${CONTAINER_NAME}" test -S "${SOCKET_PATH}"
         printf '%s\n' \
-          "pid=${PROVIDER_PID}" \
+          "unit=${UNIT_NAME}" \
           "descriptor=${DESCRIPTOR_PATH}" \
           "socket=${SOCKET_PATH}" \
           > "${EVIDENCE_DIRECTORY}/crash.txt"

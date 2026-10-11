@@ -1,7 +1,13 @@
 name: Test Provider crash and restart
-description: Verify a crashed installation can publish a newer valid generation.
+description: Verify the Agent replaces a crashed installation with a newer generation.
 
 inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-source-directory:
+    description: Exact Agent checkout providing its Fedora test image.
+    required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider build.
     required: true
@@ -19,15 +25,21 @@ runs:
   using: composite
   steps:
     - name: Install exact runtime artifacts
-      id: environment
-      uses: ./.github/actions/environment/install
+      id: system
+      uses: ./.github/actions/agent/install
       with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-source-directory: ${{ inputs.agent-source-directory }}
         provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
         protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
-        environment-directory: ${{ inputs.runtime-directory }}/environment
         evidence-directory: ${{ inputs.evidence-directory }}/installation
 
-    - name: Create first fixture
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Create first generation fixture
       id: fixture-old
       uses: ./.github/actions/provider/create-fixture
       with:
@@ -36,7 +48,35 @@ runs:
         state-name: restart
         identity: stateforge.test.restart
 
-    - name: Create restart fixture
+    - name: Start first generation
+      id: provider-old
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture-old.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture-old.outputs.instance-name }}
+        state-name: ${{ steps.fixture-old.outputs.state-name }}
+        identity: stateforge.test.restart
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-crashed
+
+    - name: Assert first Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider-old.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider-old.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-crashed/agent
+
+    - name: Crash first generation
+      uses: ./.github/actions/provider/crash
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider-old.outputs.unit-name }}
+        descriptor-path: ${{ steps.provider-old.outputs.descriptor-path }}
+        socket-path: ${{ steps.provider-old.outputs.socket-path }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-crashed
+
+    - name: Create restarted fixture
       id: fixture-new
       uses: ./.github/actions/provider/create-fixture
       with:
@@ -45,36 +85,15 @@ runs:
         state-name: restart
         identity: stateforge.test.restart
 
-    - name: Start first generation
-      id: provider-old
-      uses: ./.github/actions/provider/start
-      with:
-        python: ${{ steps.environment.outputs.python }}
-        fixture-path: ${{ steps.fixture-old.outputs.fixture-path }}
-        identity: stateforge.test.restart
-        discovery-directory: ${{ steps.fixture-old.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture-old.outputs.state-directory }}
-        event-log: ${{ steps.fixture-old.outputs.event-log }}
-        evidence-directory: ${{ inputs.evidence-directory }}/provider-crashed
-
-    - name: Crash first generation
-      uses: ./.github/actions/provider/crash
-      with:
-        pid: ${{ steps.provider-old.outputs.pid }}
-        descriptor-path: ${{ steps.provider-old.outputs.descriptor-path }}
-        socket-path: ${{ steps.provider-old.outputs.socket-path }}
-        evidence-directory: ${{ inputs.evidence-directory }}/provider-crashed
-
     - name: Start newer generation
       id: provider-new
       uses: ./.github/actions/provider/start
       with:
-        python: ${{ steps.environment.outputs.python }}
+        container-name: ${{ steps.system.outputs.container-name }}
         fixture-path: ${{ steps.fixture-new.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture-new.outputs.instance-name }}
+        state-name: ${{ steps.fixture-new.outputs.state-name }}
         identity: stateforge.test.restart
-        discovery-directory: ${{ steps.fixture-new.outputs.discovery-directory }}
-        state-directory: ${{ steps.fixture-new.outputs.state-directory }}
-        event-log: ${{ steps.fixture-new.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-restarted
 
     - name: Assert restart identity and generation
@@ -95,21 +114,22 @@ runs:
           exit 1
         fi
 
-    - name: Assert restarted Manifest
-      uses: ./.github/actions/sfp/assert-manifest
+    - name: Assert restarted Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
       with:
-        python: ${{ steps.environment.outputs.python }}
-        descriptor-path: ${{ steps.provider-new.outputs.descriptor-path }}
-        identity: stateforge.test.restart
-        evidence-directory: ${{ inputs.evidence-directory }}/provider-restarted/sfp
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider-new.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider-new.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-restarted/agent
 
     - name: Stop restarted generation
       uses: ./.github/actions/provider/stop
       with:
-        pid: ${{ steps.provider-new.outputs.pid }}
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider-new.outputs.unit-name }}
         descriptor-path: ${{ steps.provider-new.outputs.descriptor-path }}
         socket-path: ${{ steps.provider-new.outputs.socket-path }}
-        event-log: ${{ steps.fixture-new.outputs.event-log }}
+        event-log: ${{ steps.provider-new.outputs.event-log }}
         evidence-directory: ${{ inputs.evidence-directory }}/provider-restarted
 
     - name: Preserve bounded evidence and clean up
@@ -117,5 +137,6 @@ runs:
       uses: ./.github/actions/evidence/collect
       with:
         stage: crash-restart
+        container-name: ${{ steps.system.outputs.container-name }}
         runtime-directory: ${{ inputs.runtime-directory }}
         evidence-directory: ${{ inputs.evidence-directory }}

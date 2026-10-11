@@ -24,15 +24,12 @@ outputs:
   fixture-path:
     description: Absolute staged fixture entry point.
     value: ${{ steps.fixture.outputs.fixture-path }}
-  discovery-directory:
-    description: Shared scenario discovery directory.
-    value: ${{ steps.fixture.outputs.discovery-directory }}
-  state-directory:
-    description: Isolated state directory for this Provider installation.
-    value: ${{ steps.fixture.outputs.state-directory }}
-  event-log:
-    description: Author lifecycle event log.
-    value: ${{ steps.fixture.outputs.event-log }}
+  instance-name:
+    description: Safe process name used for the transient service.
+    value: ${{ steps.fixture.outputs.instance-name }}
+  state-name:
+    description: Stable installation-state name used inside Fedora.
+    value: ${{ steps.fixture.outputs.state-name }}
 
 runs:
   using: composite
@@ -50,13 +47,9 @@ runs:
       run: |
         set -euo pipefail
         root="${RUNTIME_DIRECTORY}/${INSTANCE_NAME}"
-        discovery="${RUNTIME_DIRECTORY}/discovery"
         state_name="${STATE_NAME:-${INSTANCE_NAME}}"
-        state="${RUNTIME_DIRECTORY}/state/${state_name}"
-        event_log="${root}/events.log"
         fixture="${root}/provider.py"
-        mkdir -p "${root}" "${discovery}"
-        chmod 2770 "${discovery}"
+        mkdir -p "${root}"
         install -m 0644 "${ACTION_PATH}/fixture.py" "${fixture}"
         printf '%s\n' \
           "identity=${IDENTITY}" \
@@ -64,7 +57,6 @@ runs:
           > "${root}/fixture-identity.txt"
         {
           echo "fixture-path=${fixture}"
-          echo "discovery-directory=${discovery}"
-          echo "state-directory=${state}"
-          echo "event-log=${event_log}"
+          echo "instance-name=${INSTANCE_NAME}"
+          echo "state-name=${state_name}"
         } >> "${GITHUB_OUTPUT}"
