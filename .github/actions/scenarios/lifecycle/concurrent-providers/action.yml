@@ -5,8 +5,8 @@ inputs:
   agent-artifact-directory:
     description: Directory containing the exact Agent RPM build.
     required: true
-  agent-source-directory:
-    description: Exact Agent checkout providing its Fedora test image.
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
     required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider build.
@@ -29,7 +29,7 @@ runs:
       uses: ./.github/actions/agent/install
       with:
         agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
-        agent-source-directory: ${{ inputs.agent-source-directory }}
+        agent-test-image-directory: ${{ inputs.agent-test-image-directory }}
         provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
         protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
         evidence-directory: ${{ inputs.evidence-directory }}/installation

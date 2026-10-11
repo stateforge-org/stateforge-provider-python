@@ -159,6 +159,19 @@ jobs:
         with:
           output-directory: dist/agent
 
+      - name: Bundle exact Agent runtime-test image
+        shell: bash
+        run: |
+          set -euo pipefail
+          image_directory="dist/agent/test-image"
+          install -D -m 0644 \
+            .stateforge-ci/agent/packaging/rpm/Dockerfile.test \
+            "${image_directory}/packaging/rpm/Dockerfile.test"
+          (
+            cd "${image_directory}"
+            sha256sum packaging/rpm/Dockerfile.test > SHA256SUMS
+          )
+
       - name: Record bundle identity
         shell: bash
         env:

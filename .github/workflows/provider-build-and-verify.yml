@@ -102,7 +102,6 @@ jobs:
     uses: ./.github/workflows/provider-runtime-scenarios.yml
     with:
       artifact-name: ${{ needs.build.outputs.artifact-name }}
-      agent-commit: ${{ needs.build.outputs.agent-commit }}
       scenario-tier: ${{ inputs.scenario-tier }}
       evidence-prefix: stateforge-provider-runtime-${{ github.run_id }}-${{ github.run_attempt }}
       retention-days: ${{ inputs.retention-days }}

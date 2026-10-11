@@ -5,8 +5,8 @@ inputs:
   agent-artifact-directory:
     description: Directory containing the exact Agent RPM build.
     required: true
-  agent-source-directory:
-    description: Exact Agent checkout providing its Fedora test image.
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
     required: true
   provider-artifact-directory:
     description: Directory containing the exact Provider wheel.
@@ -39,7 +39,7 @@ runs:
       shell: bash
       env:
         AGENT_ARTIFACT_DIRECTORY: ${{ inputs.agent-artifact-directory }}
-        AGENT_SOURCE_DIRECTORY: ${{ inputs.agent-source-directory }}
+        AGENT_TEST_IMAGE_DIRECTORY: ${{ inputs.agent-test-image-directory }}
         CONTAINER_IMAGE: ${{ inputs.container-image }}
         CONTAINER_NAME: ${{ inputs.container-name }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
@@ -73,6 +73,10 @@ runs:
           sha256sum --check SHA256SUMS
         ) > "${EVIDENCE_DIRECTORY}/agent-checksums.txt"
         (
+          cd "${AGENT_TEST_IMAGE_DIRECTORY}"
+          sha256sum --check SHA256SUMS
+        ) > "${EVIDENCE_DIRECTORY}/agent-test-image-checksums.txt"
+        (
           cd "${PROVIDER_ARTIFACT_DIRECTORY}"
           sha256sum --check SHA256SUMS
         ) > "${EVIDENCE_DIRECTORY}/provider-checksums.txt"
@@ -82,16 +86,18 @@ runs:
         ) > "${EVIDENCE_DIRECTORY}/protocol-checksums.txt"
 
         agent_artifacts="$(cd "${AGENT_ARTIFACT_DIRECTORY}" && pwd -P)"
-        agent_source="$(cd "${AGENT_SOURCE_DIRECTORY}" && pwd -P)"
+        agent_test_image="$(
+          cd "${AGENT_TEST_IMAGE_DIRECTORY}" && pwd -P
+        )"
         evidence="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"
         provider_artifacts="$(cd "${PROVIDER_ARTIFACT_DIRECTORY}" && pwd -P)"
         protocol_artifacts="$(cd "${PROTOCOL_ARTIFACT_DIRECTORY}" && pwd -P)"
         agent_rpm="$(basename "${agent_rpms[0]}")"
 
         docker build \
-          --file "${agent_source}/packaging/rpm/Dockerfile.test" \
+          --file "${agent_test_image}/packaging/rpm/Dockerfile.test" \
           --tag "${CONTAINER_IMAGE}" \
-          "${agent_source}/packaging/rpm"
+          "${agent_test_image}/packaging/rpm"
         docker rm --force "${CONTAINER_NAME}" >/dev/null 2>&1 || true
         docker run --detach \
           --name "${CONTAINER_NAME}" \

@@ -59,6 +59,8 @@ def test_build_is_single_and_provenance_bound() -> None:
         == 1
     )
     assert build.count("./.stateforge-ci/agent/.github/actions/rpm/build") == 1
+    assert ".stateforge-ci/agent/packaging/rpm/Dockerfile.test" in build
+    assert "dist/agent/test-image" in build
     assert "dist/BUNDLE_PROVENANCE" in build
     assert "protocol-resolved-commit=" in build
     assert "agent-resolved-commit=" in build
@@ -235,7 +237,10 @@ def test_runtime_catalog_covers_required_behavior() -> None:
     assert "runtime-directory: ${{ runner.temp }}/sfp" in workflow
     assert "stateforge-provider-${{ matrix.scenario }}" not in workflow
     assert "runs-on: ubuntu-24.04" in workflow
-    assert "agent-commit:" in workflow
+    assert "repository: stateforge-org/stateforge-agent" not in workflow
+    assert "agent-commit:" not in workflow
+    assert "agent-test-image-directory:" in workflow
+    assert "/agent/test-image" in workflow
 
 
 def test_runtime_uses_real_agent_instead_of_synthetic_sfp_client() -> None:
@@ -246,6 +251,7 @@ def test_runtime_uses_real_agent_instead_of_synthetic_sfp_client() -> None:
 
     assert not (ACTIONS / "sfp" / "probe.py").exists()
     assert "rpm -Uvh --nodeps" in install
+    assert "agent-test-image-checksums.txt" in install
     assert "stateforge-agent.service" in start
     assert "SFP session established:" in session
     assert "Rejecting Provider manifest:" in session

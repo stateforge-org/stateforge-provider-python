@@ -27,6 +27,7 @@ containing:
 - the Provider wheel and source distribution;
 - the Protocol wheel and source distribution built from `protocol-ref`;
 - the Agent binary and source RPMs built from `agent-ref`;
+- the exact Agent-owned Fedora runtime-test image definition;
 - each component's SHA-256 checksum and provenance files;
 - the requested Agent and Protocol refs and their resolved commits; and
 - the combined Provider, Protocol, Agent, Python, runner, and source
@@ -37,6 +38,11 @@ same bundle. The source gate installs its exact Provider and Protocol wheels
 before running tests, then validates the working-tree source with Ruff, mypy,
 pytest, and MkDocs. No verification job rebuilds a distribution or RPM or
 resolves an unpublished StateForge package from PyPI.
+
+The runtime jobs build their isolated Fedora system from the Agent test-image
+definition carried in that bundle. They do not perform a second private Agent
+checkout, so the RPM and its test environment stay bound to the same resolved
+Agent commit and dependency credentials remain confined to the build job.
 
 Because the Agent and Protocol repositories are private, entry-point workflows
 pass `STATEFORGE_CI_APP_ID` and `STATEFORGE_CI_PRIVATE_KEY` into the reusable
@@ -157,3 +163,8 @@ repository permissions, do not persist checkout credentials, use bounded job
 timeouts, and do not pass credentials to Provider processes. `actionlint`,
 Zizmor, Ruff, mypy, pytest with coverage, and strict MkDocs are part of the
 aggregate gate.
+
+The installed-package matrix verifies that the distribution, metadata, and
+public API can be imported on Linux, macOS, and Windows. Starting a Provider
+runtime still requires POSIX advisory locking and Unix-domain sockets; an
+unsupported platform receives an explicit runtime error when startup begins.

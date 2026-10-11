@@ -7,10 +7,6 @@ on:
         description: Runtime bundle produced by provider-build.yml.
         required: true
         type: string
-      agent-commit:
-        description: Exact Agent source commit matching the bundled RPM.
-        required: true
-        type: string
       scenario-tier:
         description: Run smoke coverage or the complete scenario catalog.
         required: false
@@ -41,14 +37,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check out exact Agent test image
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: stateforge-org/stateforge-agent
-          ref: ${{ inputs.agent-commit }}
-          path: .stateforge-ci/agent
-          persist-credentials: false
-
       - name: Download exact runtime bundle
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -59,7 +47,7 @@ jobs:
         uses: ./.github/actions/scenarios/smoke/normal-lifecycle
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
@@ -95,14 +83,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Check out exact Agent test image
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          repository: stateforge-org/stateforge-agent
-          ref: ${{ inputs.agent-commit }}
-          path: .stateforge-ci/agent
-          persist-credentials: false
-
       - name: Download exact runtime bundle
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
@@ -114,7 +94,7 @@ jobs:
         uses: ./.github/actions/scenarios/lifecycle/concurrent-providers
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
@@ -125,7 +105,7 @@ jobs:
         uses: ./.github/actions/scenarios/lifecycle/same-instance-replacement
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
@@ -136,7 +116,7 @@ jobs:
         uses: ./.github/actions/scenarios/adversarial/invalid-peer
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
@@ -147,7 +127,7 @@ jobs:
         uses: ./.github/actions/scenarios/resilience/crash-restart
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
@@ -158,7 +138,7 @@ jobs:
         uses: ./.github/actions/scenarios/destructive/uninstall-reinstall
         with:
           agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
-          agent-source-directory: ${{ github.workspace }}/.stateforge-ci/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
           provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
           protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
           runtime-directory: ${{ runner.temp }}/sfp
