@@ -74,7 +74,7 @@ runs:
         socket-path: ${{ steps.provider.outputs.socket-path }}
         evidence-directory: ${{ inputs.evidence-directory }}/health
 
-    - name: Stop Provider fixture
+    - name: Verify Provider shutdown cleanup
       uses: ./.github/actions/provider/stop
       with:
         container-name: ${{ steps.system.outputs.container-name }}

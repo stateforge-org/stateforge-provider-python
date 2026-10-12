@@ -41,7 +41,11 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "${EVIDENCE_DIRECTORY}"
-        docker exec "${CONTAINER_NAME}" systemctl stop "${UNIT_NAME}"
+        state="$(docker exec "${CONTAINER_NAME}" \
+          systemctl is-active "${UNIT_NAME}" 2>/dev/null || true)"
+        if [[ "${state}" != "inactive" && "${state}" != "failed" ]]; then
+          docker exec "${CONTAINER_NAME}" systemctl stop "${UNIT_NAME}"
+        fi
 
         deadline=$((SECONDS + TIMEOUT_SECONDS))
         while (( SECONDS < deadline )); do

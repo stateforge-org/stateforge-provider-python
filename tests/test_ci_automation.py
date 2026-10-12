@@ -252,6 +252,7 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
         ACTIONS / "scenarios" / "health" / "standard-health" / "action.yml"
     )
     action = read(ACTIONS / "provider" / "assert-health" / "action.yml")
+    stop = read(ACTIONS / "provider" / "stop" / "action.yml")
     verifier = read(
         ACTIONS / "provider" / "assert-health" / "assert_health.py"
     )
@@ -266,10 +267,14 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert "HealthStub" in verifier
     assert "SERVICE_UNKNOWN" in verifier
     assert "SIGUSR1" in verifier
+    assert '"stop"' in verifier
+    assert "_assert_shutdown_transition" in verifier
     assert "HealthStatus" in fixture
     assert "refresh_health" in fixture
     assert "docker exec" in action
     assert "/opt/stateforge-provider-tests/health" in action
+    assert 'state}" != "inactive"' in stop
+    assert 'state}" != "failed"' in stop
     assert "health:" in workflow
 
 

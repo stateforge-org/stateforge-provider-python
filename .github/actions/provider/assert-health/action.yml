@@ -1,5 +1,5 @@
 name: Assert standard Provider Health behavior
-description: Exercise Check and ordered Watch changes on the installed endpoint.
+description: Exercise Check, ordered Watch changes, and shutdown on the installed endpoint.
 
 inputs:
   container-name:
@@ -18,7 +18,7 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Exercise standard Check and Watch behavior
+    - name: Exercise standard Check, Watch, and shutdown behavior
       shell: bash
       env:
         ACTION_PATH: ${{ github.action_path }}

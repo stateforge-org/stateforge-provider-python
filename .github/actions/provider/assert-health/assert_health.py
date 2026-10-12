@@ -46,6 +46,40 @@ def _signal(unit_name: str, signal_name: str) -> None:
     )
 
 
+def _stop(unit_name: str) -> None:
+    """Stop the fixture while its overall Health Watch remains active."""
+    if not re.fullmatch(
+        r"stateforge-test-[a-z][a-z0-9-]{0,20}\.service",
+        unit_name,
+    ):
+        raise ValueError("unsafe Provider fixture unit name")
+    subprocess.run(  # noqa: S603
+        ["/usr/bin/systemctl", "stop", unit_name],
+        check=True,
+        timeout=20,
+    )
+
+
+async def _assert_shutdown_transition(
+    watch: grpc.aio.UnaryStreamCall[
+        health_pb2.HealthCheckRequest,
+        health_pb2.HealthCheckResponse,
+    ],
+    unit_name: str,
+) -> str:
+    """Stop the Provider and require fail-closed Watch delivery."""
+    stop = asyncio.create_task(asyncio.to_thread(_stop, unit_name))
+    try:
+        observed = await _read_status(watch)
+    finally:
+        await stop
+    if observed != "NOT_SERVING":
+        raise RuntimeError(
+            f"Provider shutdown produced {observed}, expected NOT_SERVING"
+        )
+    return observed
+
+
 async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
     """Exercise Check, Watch, author transitions, and hook failure."""
     channel = grpc.aio.insecure_channel(f"unix:{socket_path}")
@@ -104,6 +138,8 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
                     f"{signal_name} produced {observed}, expected {expected}"
                 )
             transitions.append(observed)
+
+        transitions.append(await _assert_shutdown_transition(watch, unit_name))
     finally:
         watch.cancel()
         if unknown_watch is not None:
@@ -116,6 +152,7 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
         "SERVING",
         "NOT_SERVING",
         "SERVING",
+        "NOT_SERVING",
     ]
     if transitions != expected_transitions:
         raise RuntimeError(f"unexpected Health transitions: {transitions}")
