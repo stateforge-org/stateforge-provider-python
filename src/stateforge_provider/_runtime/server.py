@@ -48,6 +48,10 @@ ProcedureFactory = Callable[
     [ProviderEndpointIdentity, SessionRegistry],
     Sequence[ProcedureRegistration],
 ]
+SupplementalProcedureFactory = Callable[
+    [Sequence[ProcedureRegistration]],
+    Sequence[ProcedureRegistration],
+]
 
 
 @dataclass(frozen=True, slots=True)
@@ -125,6 +129,9 @@ class ProviderServer:
         *,
         on_identity_allocated: Callable[[], Awaitable[None]] | None = None,
         procedure_factory: ProcedureFactory | None = None,
+        supplemental_procedure_factory: (
+            SupplementalProcedureFactory | None
+        ) = None,
     ) -> None:
         """Start gRPC and atomically advertise the ready endpoint.
 
@@ -166,6 +173,10 @@ class ProviderServer:
         if procedure_factory is not None:
             registrations.extend(
                 procedure_factory(self._allocated_identity, sessions)
+            )
+        if supplemental_procedure_factory is not None:
+            registrations.extend(
+                supplemental_procedure_factory(tuple(registrations))
             )
         server = create_server(registrations)
         self._sessions = sessions

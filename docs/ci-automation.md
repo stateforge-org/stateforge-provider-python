@@ -134,6 +134,8 @@ The runtime suite currently covers:
 
 - normal startup, Agent-observed Bootstrap and Manifest acceptance, graceful
   shutdown, and cleanup;
+- standard Health Check and Watch on the same Provider socket, including
+  initial replay, maintenance, recovery, unknown service, and hook failure;
 - two distinct Provider installations running concurrently;
 - same-installation replacement with a stable identity and newer generation;
 - rejection of malformed Provider discovery data followed by valid recovery;

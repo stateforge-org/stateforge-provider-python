@@ -24,7 +24,7 @@ generation, starts the protected local endpoint, and negotiates SFP with the
 Agent without any of that appearing in the author-facing API:
 
 ```python
-from stateforge_provider import Platform, Provider
+from stateforge_provider import HealthStatus, Platform, Provider
 
 
 class GitProvider(Provider):
@@ -39,6 +39,10 @@ class GitProvider(Provider):
     async def on_shutdown(self) -> None:
         """Release Provider resources."""
 
+    async def health(self) -> HealthStatus:
+        """Report whether this process can accept new SFP work."""
+        return HealthStatus.healthy()
+
 
 if __name__ == "__main__":
     GitProvider().run()
@@ -46,6 +50,8 @@ if __name__ == "__main__":
 
 See [Manifest declarations](manifest-authoring.md) for typed operation models,
 triggers, configuration schemas, requirements, and explicit compliance roles.
+See [Health and readiness](health-reporting.md) for fail-closed lifecycle
+states and event-driven health updates.
 An application that already owns an event loop calls
 `await GitProvider().serve()` instead. See
 `.claude/PROVIDER_AUTHORING_VISION.md` for the complete intended author

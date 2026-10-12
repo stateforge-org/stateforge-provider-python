@@ -7,7 +7,7 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 ACTIONS = ROOT / ".github" / "actions"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 6
+SCENARIO_COUNT = 7
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -28,12 +28,14 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "evidence/collect",
         "package/build",
         "package/verify-installed",
+        "provider/assert-health",
         "provider/crash",
         "provider/create-fixture",
         "provider/start",
         "provider/stop",
         "scenarios/adversarial/invalid-peer",
         "scenarios/destructive/uninstall-reinstall",
+        "scenarios/health/standard-health",
         "scenarios/lifecycle/concurrent-providers",
         "scenarios/lifecycle/same-instance-replacement",
         "scenarios/resilience/crash-restart",
@@ -230,6 +232,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "invalid-peer",
         "crash-restart",
         "uninstall-reinstall",
+        "standard-health",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -241,6 +244,32 @@ def test_runtime_catalog_covers_required_behavior() -> None:
     assert "agent-commit:" not in workflow
     assert "agent-test-image-directory:" in workflow
     assert "/agent/test-image" in workflow
+
+
+def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
+    """Keep R2 coverage on the real endpoint and installed runtime bundle."""
+    scenario = read(
+        ACTIONS / "scenarios" / "health" / "standard-health" / "action.yml"
+    )
+    action = read(ACTIONS / "provider" / "assert-health" / "action.yml")
+    verifier = read(
+        ACTIONS / "provider" / "assert-health" / "assert_health.py"
+    )
+    fixture = read(ACTIONS / "provider" / "create-fixture" / "fixture.py")
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    assert "./.github/actions/agent/install" in scenario
+    assert "./.github/actions/agent/start" in scenario
+    assert "./.github/actions/agent/assert-session" in scenario
+    assert "./.github/actions/provider/assert-health" in scenario
+    assert "grpc_health.v1" in verifier
+    assert "HealthStub" in verifier
+    assert "SERVICE_UNKNOWN" in verifier
+    assert "SIGUSR1" in verifier
+    assert "HealthStatus" in fixture
+    assert "refresh_health" in fixture
+    assert "docker exec" in action
+    assert "health:" in workflow
 
 
 def test_runtime_uses_real_agent_instead_of_synthetic_sfp_client() -> None:

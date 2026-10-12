@@ -13,6 +13,9 @@ The runtime validates an immutable schema-1 manifest and serves it after
 handshake on the existing endpoint. See the
 [authoring guide](docs/manifest-authoring.md) and
 [complete example](examples/reference_provider.py).
+The standard gRPC Health service is hosted on that same endpoint; authors
+return a typed `HealthStatus` and never handle health protobuf messages. See
+the [health guide](docs/health-reporting.md).
 
 Install the Provider framework from PyPI:
 
@@ -23,7 +26,13 @@ python -m pip install stateforge-provider
 Import the public authoring API from `stateforge_provider`:
 
 ```python
-from stateforge_provider import Platform, Provider, ProviderModel, operation
+from stateforge_provider import (
+    HealthStatus,
+    Platform,
+    Provider,
+    ProviderModel,
+    operation,
+)
 ```
 
 For repository development, install the project and its development tools

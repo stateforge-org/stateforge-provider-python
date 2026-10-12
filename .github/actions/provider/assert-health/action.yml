@@ -1,0 +1,38 @@
+name: Assert standard Provider Health behavior
+description: Exercise Check and ordered Watch changes on the installed endpoint.
+
+inputs:
+  container-name:
+    description: Fedora container running the Agent and Provider.
+    required: true
+  unit-name:
+    description: Transient systemd unit running the Provider fixture.
+    required: true
+  socket-path:
+    description: Generation-specific Provider Unix socket.
+    required: true
+  evidence-directory:
+    description: Host directory receiving bounded health evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Exercise standard Check and Watch behavior
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        SOCKET_PATH: ${{ inputs.socket-path }}
+        UNIT_NAME: ${{ inputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier="/tmp/stateforge-provider-assert-health.py"
+        docker cp "${ACTION_PATH}/assert_health.py" \
+          "${CONTAINER_NAME}:${verifier}"
+        docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \
+          --socket-path "${SOCKET_PATH}" \
+          --unit-name "${UNIT_NAME}" \
+          > "${EVIDENCE_DIRECTORY}/health.json"

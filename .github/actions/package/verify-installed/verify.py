@@ -47,6 +47,7 @@ def main() -> None:
         raise SystemExit("Installed Provider version is incorrect")
 
     required_api = {
+        "HealthStatus",
         "ManifestError",
         "Platform",
         "ProtocolVersion",
