@@ -29,7 +29,9 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "${EVIDENCE_DIRECTORY}"
-        verifier="/tmp/stateforge-provider-assert-health.py"
+        verifier_directory="/opt/stateforge-provider-tests/health"
+        verifier="${verifier_directory}/assert_health.py"
+        docker exec "${CONTAINER_NAME}" mkdir -p "${verifier_directory}"
         docker cp "${ACTION_PATH}/assert_health.py" \
           "${CONTAINER_NAME}:${verifier}"
         docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \

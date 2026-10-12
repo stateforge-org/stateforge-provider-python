@@ -269,6 +269,7 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert "HealthStatus" in fixture
     assert "refresh_health" in fixture
     assert "docker exec" in action
+    assert "/opt/stateforge-provider-tests/health" in action
     assert "health:" in workflow
 
 
