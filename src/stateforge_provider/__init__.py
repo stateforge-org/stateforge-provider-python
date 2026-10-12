@@ -9,10 +9,12 @@ from stateforge_provider.declarations import (
     Trigger,
     operation,
 )
+from stateforge_provider.health import HealthStatus
 from stateforge_provider.provider import Provider
 from stateforge_provider.version import ProtocolVersion
 
 __all__ = [
+    "HealthStatus",
     "ManifestError",
     "Platform",
     "ProtocolVersion",

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import logging
 import signal
+from collections.abc import Sequence
 from pathlib import Path
 from typing import ClassVar, final
 
@@ -16,6 +18,7 @@ from stateforge_provider._runtime.grpc import ProcedureRegistration
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._runtime.server import ProviderServer
 from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.health.service import ProviderHealthService
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
 )
@@ -28,6 +31,9 @@ from stateforge_provider.declarations import (
     RuntimeRequirement,
     Trigger,
 )
+from stateforge_provider.health import HealthStatus
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class Provider:
@@ -81,6 +87,8 @@ class Provider:
         )
         self._server = ProviderServer(self._configuration)
         self._shutdown_requested = asyncio.Event()
+        self._health_service: ProviderHealthService | None = None
+        self._health_refresh_lock = asyncio.Lock()
 
     async def on_startup(self) -> None:
         """Override to initialize Provider resources before publication."""
@@ -93,6 +101,33 @@ class Provider:
         Runs if startup was entered, even if startup or publication failed.
         Must tolerate partially initialized resources and no ready endpoint.
         """
+
+    async def health(self) -> HealthStatus:
+        """Report whether this Provider can accept new SFP work.
+
+        Override this hook when readiness depends on Provider-owned resources.
+        Return only a typed :class:`HealthStatus`; raw probe details and
+        exceptions remain local to the Provider process. Call
+        :meth:`refresh_health` when the underlying readiness evidence changes.
+        """
+        return HealthStatus.healthy()
+
+    @final
+    async def refresh_health(self) -> HealthStatus:
+        """Re-evaluate the health hook and publish a fail-closed result.
+
+        Returns:
+            The accepted author-facing health state. Hook failures and invalid
+            return values are logged locally and become ``NOT_SERVING``.
+
+        Raises:
+            ProviderServerError: The Provider runtime is not active.
+        """
+        service = self._health_service
+        if service is None:
+            raise ProviderServerError("Provider health runtime is not active")
+        async with self._health_refresh_lock:
+            return await self._refresh_health(service)
 
     @final
     def run(self) -> None:
@@ -119,12 +154,23 @@ class Provider:
             type(self),
             limits=self._configuration.limits,
         )
+        health_service = ProviderHealthService(
+            max_watchers=self._configuration.limits.max_health_watchers,
+            watch_queue_capacity=(
+                self._configuration.limits.health_watch_queue_capacity
+            ),
+            watch_delivery_timeout_seconds=(
+                self._configuration.health_watch_delivery_timeout_seconds
+            ),
+        )
+        self._health_service = health_service
         startup_entered = False
 
         async def startup() -> None:
             nonlocal startup_entered
             startup_entered = True
             await self.on_startup()
+            await self.refresh_health()
 
         def procedures(
             identity: ProviderEndpointIdentity,
@@ -133,18 +179,30 @@ class Provider:
             snapshot = declaration.snapshot(identity)
             return (manifest_registration(snapshot, sessions),)
 
+        def health_registration(
+            registrations: Sequence[ProcedureRegistration],
+        ) -> tuple[ProcedureRegistration, ...]:
+            return (
+                health_service.registration(
+                    registration.name for registration in registrations
+                ),
+            )
+
         try:
             await self._server.start(
                 on_identity_allocated=startup,
                 procedure_factory=procedures,
+                supplemental_procedure_factory=health_registration,
             )
             await self._shutdown_requested.wait()
         finally:
+            health_service.begin_shutdown()
             shutdown_called = False
 
             async def shutdown_author_resources() -> None:
                 nonlocal shutdown_called
                 shutdown_called = True
+                health_service.close()
                 if startup_entered:
                     async with asyncio.timeout(
                         self._configuration.shutdown_timeout_seconds
@@ -166,6 +224,7 @@ class Provider:
                 except BaseException as error:
                     shutdown_failure = error
 
+            self._health_service = None
             if endpoint_failure is not None:
                 if shutdown_failure is not None:
                     endpoint_failure.add_note(
@@ -179,7 +238,27 @@ class Provider:
     @final
     def request_shutdown(self) -> None:
         """Signal a running Provider to begin graceful shutdown."""
+        health_service = self._health_service
+        if health_service is not None:
+            health_service.begin_shutdown()
         self._shutdown_requested.set()
+
+    async def _refresh_health(
+        self,
+        service: ProviderHealthService,
+    ) -> HealthStatus:
+        """Evaluate one hook invocation without leaking its failure."""
+        try:
+            status = await self.health()
+            if not isinstance(status, HealthStatus):
+                raise TypeError("health() must return HealthStatus")
+        except Exception:
+            _LOGGER.exception(
+                "Provider health hook failed; reporting NOT_SERVING"
+            )
+            status = HealthStatus.not_serving()
+        service.publish(status)
+        return status
 
     def _install_signal_handlers(self) -> None:
         """Request graceful shutdown on SIGINT/SIGTERM where supported."""

@@ -3,6 +3,7 @@
 from pydantic import SecretStr
 
 from stateforge_provider import (
+    HealthStatus,
     Platform,
     Provider,
     ProviderModel,
@@ -49,6 +50,10 @@ class ReferenceProvider(Provider):
         RuntimeRequirement("runtime.python", "Python interpreter", ">=3.11"),
     )
     triggers = (Trigger("example.reference/changed@1", ReferenceChanged),)
+
+    async def health(self) -> HealthStatus:
+        """Report whether this Provider can accept new SFP work."""
+        return HealthStatus.healthy()
 
     @operation("example.reference/normalize@1")
     async def normalize(self, request: NormalizeInput) -> NormalizeResult:

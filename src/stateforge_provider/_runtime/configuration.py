@@ -14,10 +14,18 @@ class ProviderRuntimeLimits:
     max_sessions: int = 1_024
     max_json_nodes: int = 65_536
     max_schema_nodes: int = 4_096
+    max_health_watchers: int = 128
+    health_watch_queue_capacity: int = 16
 
     def __post_init__(self) -> None:
         """Reject unusable operational limits."""
-        for name in ("max_sessions", "max_json_nodes", "max_schema_nodes"):
+        for name in (
+            "max_sessions",
+            "max_json_nodes",
+            "max_schema_nodes",
+            "max_health_watchers",
+            "health_watch_queue_capacity",
+        ):
             value = getattr(self, name)
             if (
                 isinstance(value, bool)
@@ -37,6 +45,7 @@ class ProviderRuntimeConfiguration:
     state_directory: Path
     discovery_directory: Path
     shutdown_timeout_seconds: float = 5.0
+    health_watch_delivery_timeout_seconds: float = 1.0
     limits: ProviderRuntimeLimits = field(
         default_factory=ProviderRuntimeLimits
     )
@@ -69,13 +78,17 @@ class ProviderRuntimeConfiguration:
             value = getattr(self, name)
             if not isinstance(value, Path) or not value.is_absolute():
                 raise ValueError(f"{name} must be absolute")
-        timeout = self.shutdown_timeout_seconds
-        if (
-            isinstance(timeout, bool)
-            or not isinstance(timeout, (int, float))
-            or not math.isfinite(timeout)
-            or timeout <= 0
+        for name in (
+            "shutdown_timeout_seconds",
+            "health_watch_delivery_timeout_seconds",
         ):
-            raise ValueError("shutdown_timeout_seconds must be positive")
+            timeout = getattr(self, name)
+            if (
+                isinstance(timeout, bool)
+                or not isinstance(timeout, (int, float))
+                or not math.isfinite(timeout)
+                or timeout <= 0
+            ):
+                raise ValueError(f"{name} must be positive")
         if not isinstance(self.limits, ProviderRuntimeLimits):
             raise ValueError("limits must be ProviderRuntimeLimits")

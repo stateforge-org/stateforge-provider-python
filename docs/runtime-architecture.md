@@ -9,6 +9,7 @@ stateforge_provider/
   _runtime/             # shared endpoint and process infrastructure
   _services/
     bootstrap/           # Handshake implementation and local message limits
+    health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
 ```
 
@@ -40,6 +41,10 @@ registered.
 Versioned protobuf messages, generated bindings, and contract constants remain
 in `stateforge_protocol.sfp.<procedure>.v1`. The Provider library imports those
 contracts; it does not copy or regenerate them.
+
+Health is the intentional exception to that generated-module path: it uses the
+official `grpc.health.v1` bindings from `grpcio-health-checking`, registers the
+actual hosted SFP service names, and adds no StateForge health protobuf.
 
 To add a future procedure:
 

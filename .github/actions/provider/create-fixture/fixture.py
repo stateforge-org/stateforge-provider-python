@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import contextlib
+import signal
 from pathlib import Path
 
 from pydantic import SecretStr
 
 from stateforge_provider import (
+    HealthStatus,
     Platform,
     Provider,
     ProviderModel,
@@ -72,14 +76,48 @@ class FixtureProvider(Provider):
             state_directory=state_directory,
         )
         self._event_log = event_log
+        self._health_status = HealthStatus.healthy()
+        self._fail_health = False
+        self._health_tasks: set[asyncio.Task[None]] = set()
 
     async def on_startup(self) -> None:
         """Record that author resources were initialized."""
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(
+            signal.SIGUSR1,
+            self._schedule_health,
+            HealthStatus.maintenance(),
+            False,
+        )
+        loop.add_signal_handler(
+            signal.SIGUSR2,
+            self._schedule_health,
+            HealthStatus.healthy(),
+            False,
+        )
+        loop.add_signal_handler(
+            signal.SIGHUP,
+            self._schedule_health,
+            HealthStatus.not_serving(),
+            True,
+        )
         self._record("startup")
 
     async def on_shutdown(self) -> None:
         """Record that author resources were released."""
+        loop = asyncio.get_running_loop()
+        for signal_number in (signal.SIGUSR1, signal.SIGUSR2, signal.SIGHUP):
+            with contextlib.suppress(NotImplementedError, ValueError):
+                loop.remove_signal_handler(signal_number)
+        if self._health_tasks:
+            await asyncio.gather(*self._health_tasks, return_exceptions=True)
         self._record("shutdown")
+
+    async def health(self) -> HealthStatus:
+        """Report deterministic health controlled by scenario signals."""
+        if self._fail_health:
+            raise RuntimeError("fixture health hook failed")
+        return self._health_status
 
     @operation("stateforge.test/echo@1")
     async def echo(self, request: EchoInput) -> EchoResult:
@@ -90,6 +128,29 @@ class FixtureProvider(Provider):
         self._event_log.parent.mkdir(parents=True, exist_ok=True)
         with self._event_log.open("a", encoding="utf-8") as stream:
             stream.write(f"{event}\n")
+
+    def _schedule_health(
+        self,
+        status: HealthStatus,
+        fail_health: bool,
+    ) -> None:
+        """Schedule one event-driven public health refresh."""
+        task = asyncio.create_task(
+            self._publish_health(status, fail_health),
+        )
+        self._health_tasks.add(task)
+        task.add_done_callback(self._health_tasks.discard)
+
+    async def _publish_health(
+        self,
+        status: HealthStatus,
+        fail_health: bool,
+    ) -> None:
+        """Update fixture evidence and invoke the public refresh API."""
+        self._health_status = status
+        self._fail_health = fail_health
+        accepted = await self.refresh_health()
+        self._record(f"health:{accepted.value}")
 
 
 def _arguments() -> argparse.Namespace:

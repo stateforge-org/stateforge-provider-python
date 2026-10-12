@@ -1,0 +1,94 @@
+name: Test standard Provider Health lifecycle
+description: Verify Health Check and Watch through the installed Agent system.
+
+inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
+    required: true
+  provider-artifact-directory:
+    description: Directory containing the exact Provider build.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol build.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact runtime artifacts
+      id: system
+      uses: ./.github/actions/agent/install
+      with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-test-image-directory: ${{ inputs.agent-test-image-directory }}
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Create health-capable Provider fixture
+      id: fixture
+      uses: ./.github/actions/provider/create-fixture
+      with:
+        runtime-directory: ${{ inputs.runtime-directory }}
+        instance-name: health-provider
+        identity: stateforge.test.health
+
+    - name: Start Provider fixture
+      id: provider
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
+        identity: stateforge.test.health
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Assert Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
+
+    - name: Assert standard Provider Health behavior
+      uses: ./.github/actions/provider/assert-health
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
+        socket-path: ${{ steps.provider.outputs.socket-path }}
+        evidence-directory: ${{ inputs.evidence-directory }}/health
+
+    - name: Verify Provider shutdown cleanup
+      uses: ./.github/actions/provider/stop
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        socket-path: ${{ steps.provider.outputs.socket-path }}
+        event-log: ${{ steps.provider.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Preserve bounded evidence and clean up
+      if: ${{ always() }}
+      uses: ./.github/actions/evidence/collect
+      with:
+        stage: standard-health
+        container-name: ${{ steps.system.outputs.container-name }}
+        runtime-directory: ${{ inputs.runtime-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}
