@@ -18,6 +18,9 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2_grpc,
 )
 from stateforge_protocol.sfp.bootstrap.v1 import contract as bootstrap_contract
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
+)
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
 from stateforge_provider import ProtocolVersion
@@ -26,7 +29,6 @@ from stateforge_provider._runtime.configuration import (
     ProviderRuntimeLimits,
 )
 from stateforge_provider._runtime.descriptor import (
-    _MAXIMUM_DESCRIPTOR_BYTES,
     _read_descriptor,
 )
 from stateforge_provider._runtime.grpc import endpoint_message_limits
@@ -48,8 +50,6 @@ from stateforge_provider.version import SUPPORTED_SFP_VERSIONS
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
 _UUID_VERSION = 4
 _REPLACEMENT_ENDPOINT_GENERATION = 2
-_DESCRIPTOR_MODE = 0o640
-_SOCKET_MODE = 0o660
 
 
 @pytest.fixture
@@ -158,9 +158,14 @@ async def test_publishes_endpoint_and_negotiates_sfp_1_0(
         assert document["endpoint_generation"] == 1
         descriptor_status = server.descriptor_path.lstat()
         socket_status = server.socket_path.lstat()
-        assert stat.S_IMODE(descriptor_status.st_mode) == _DESCRIPTOR_MODE
+        assert stat.S_IMODE(descriptor_status.st_mode) == (
+            discovery_contract.DESCRIPTOR_MODE
+        )
         assert stat.S_ISSOCK(socket_status.st_mode)
-        assert stat.S_IMODE(socket_status.st_mode) == _SOCKET_MODE
+        assert (
+            stat.S_IMODE(socket_status.st_mode)
+            == discovery_contract.SOCKET_MODE
+        )
         assert socket_status.st_uid == descriptor_status.st_uid
         assert socket_status.st_gid == descriptor_status.st_gid
 
@@ -273,9 +278,11 @@ async def test_endpoint_modes_do_not_depend_on_process_umask(
 
     try:
         assert stat.S_IMODE(server.descriptor_path.stat().st_mode) == (
-            _DESCRIPTOR_MODE
+            discovery_contract.DESCRIPTOR_MODE
         )
-        assert stat.S_IMODE(server.socket_path.stat().st_mode) == _SOCKET_MODE
+        assert stat.S_IMODE(server.socket_path.stat().st_mode) == (
+            discovery_contract.SOCKET_MODE
+        )
     finally:
         await server.stop()
 
@@ -508,14 +515,18 @@ async def test_rejects_oversized_descriptor(
     descriptor_path = first_server.descriptor_path
     await first_server.stop()
 
-    descriptor_path.write_bytes(b"x" * (_MAXIMUM_DESCRIPTOR_BYTES + 1))
-    descriptor_path.chmod(_DESCRIPTOR_MODE)
+    descriptor_path.write_bytes(
+        b"x" * (discovery_contract.MAX_DESCRIPTOR_BYTES + 1)
+    )
+    descriptor_path.chmod(discovery_contract.DESCRIPTOR_MODE)
 
     second_server = ProviderServer(_configuration(socket_directory))
     with pytest.raises(ProviderServerError, match="exceeds"):
         await second_server.start()
 
-    assert descriptor_path.stat().st_size == _MAXIMUM_DESCRIPTOR_BYTES + 1
+    assert descriptor_path.stat().st_size == (
+        discovery_contract.MAX_DESCRIPTOR_BYTES + 1
+    )
 
 
 @pytest.mark.asyncio
@@ -542,7 +553,7 @@ def test_rejects_descriptor_not_owned_by_provider(
 ) -> None:
     descriptor_path = socket_directory / "provider.sfp.json"
     descriptor_path.write_text("{}")
-    descriptor_path.chmod(_DESCRIPTOR_MODE)
+    descriptor_path.chmod(discovery_contract.DESCRIPTOR_MODE)
     owner = descriptor_path.stat().st_uid
     monkeypatch.setattr(
         "stateforge_provider._runtime.descriptor.os.geteuid", lambda: owner + 1

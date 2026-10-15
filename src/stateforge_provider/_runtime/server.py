@@ -18,6 +18,9 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 import grpc
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
+)
 
 from stateforge_provider._runtime.configuration import (
     ProviderRuntimeConfiguration,
@@ -41,7 +44,6 @@ from stateforge_provider._services.bootstrap.service import (
     registration as bootstrap_registration,
 )
 
-_SOCKET_MODE = 0o660
 _LOGGER = logging.getLogger(__name__)
 
 ProcedureFactory = Callable[
@@ -100,7 +102,10 @@ class ProviderServer:
         """Return the generation-specific Unix socket path."""
         configuration = self.configuration
         return configuration.discovery_directory / (
-            f"{self.provider_instance_id}.{self.endpoint_generation}.sock"
+            discovery_contract.socket_filename(
+                self.provider_instance_id,
+                self.endpoint_generation,
+            )
         )
 
     @property
@@ -369,7 +374,7 @@ class ProviderServer:
             )
             os.chmod(
                 self.socket_path,
-                _SOCKET_MODE,
+                discovery_contract.SOCKET_MODE,
                 follow_symlinks=False,
             )
             secured_status = self.socket_path.lstat()
@@ -383,7 +388,8 @@ class ProviderServer:
             or _SocketIdentity.capture(secured_status) != socket_identity
             or secured_status.st_uid != os.geteuid()
             or secured_status.st_gid != directory_status.st_gid
-            or stat.S_IMODE(secured_status.st_mode) != _SOCKET_MODE
+            or stat.S_IMODE(secured_status.st_mode)
+            != discovery_contract.SOCKET_MODE
         ):
             raise ProviderServerError(
                 "Provider socket ownership or permissions changed while "

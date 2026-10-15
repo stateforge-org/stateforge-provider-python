@@ -10,8 +10,12 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, TypeGuard, cast
+from typing import Protocol, cast
 from uuid import UUID, uuid4
+
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
+)
 
 from stateforge_provider._runtime.filesystem import (
     SecureFileError,
@@ -25,8 +29,6 @@ _STATE_FILENAME = "identity.json"
 _LOCK_FILENAME = ".identity.lock"
 _STATE_FILE_MODE = 0o600
 _MAXIMUM_STATE_BYTES = 4096
-_MAXIMUM_ENDPOINT_GENERATION = (2**63) - 1
-_UUID_VERSION = 4
 _STATE_FIELDS = {
     "schema_version",
     "provider_instance_id",
@@ -65,15 +67,9 @@ def is_canonical_uuid4(value: str) -> bool:
         identifier = UUID(value)
     except ValueError:
         return False
-    return identifier.version == _UUID_VERSION and str(identifier) == value
-
-
-def is_allocated_endpoint_generation(value: object) -> TypeGuard[int]:
-    """Return whether a value identifies an allocated endpoint generation."""
     return (
-        isinstance(value, int)
-        and not isinstance(value, bool)
-        and 1 <= value <= _MAXIMUM_ENDPOINT_GENERATION
+        identifier.version == discovery_contract.PROVIDER_INSTANCE_UUID_VERSION
+        and str(identifier) == value
     )
 
 
@@ -94,13 +90,18 @@ class _ProviderIdentityState:
 
     def __post_init__(self) -> None:
         """Reject identity state outside the persisted format."""
-        if self.provider_instance_id.version != _UUID_VERSION:
+        if (
+            self.provider_instance_id.version
+            != discovery_contract.PROVIDER_INSTANCE_UUID_VERSION
+        ):
             raise ValueError("provider_instance_id must be a UUIDv4")
         generation = self.last_endpoint_generation
         if (
             not isinstance(generation, int)
             or isinstance(generation, bool)
-            or not 0 <= generation <= _MAXIMUM_ENDPOINT_GENERATION
+            or not 0
+            <= generation
+            <= discovery_contract.MAX_ENDPOINT_GENERATION
         ):
             raise ValueError(
                 "last_endpoint_generation must be a non-negative signed "
@@ -129,7 +130,10 @@ class ProviderIdentityStore:
                     provider_instance_id=uuid4(),
                     last_endpoint_generation=0,
                 )
-            if state.last_endpoint_generation == _MAXIMUM_ENDPOINT_GENERATION:
+            if (
+                state.last_endpoint_generation
+                == discovery_contract.MAX_ENDPOINT_GENERATION
+            ):
                 raise ProviderIdentityError(
                     "Provider endpoint generation space is exhausted"
                 )
