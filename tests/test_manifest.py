@@ -12,6 +12,13 @@ import pytest
 from google.protobuf.json_format import MessageToDict
 from pydantic import ConfigDict, Field, SecretStr
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
+from stateforge_protocol.sfp.manifest.v1.validation import (
+    ManifestValidationError,
+    ManifestValidationLimits,
+    bounded_json,
+    canonical_bytes,
+    validate_schema,
+)
 
 from stateforge_provider import (
     ManifestError,
@@ -26,12 +33,6 @@ from stateforge_provider._runtime.configuration import DEFAULT_RUNTIME_LIMITS
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
-)
-from stateforge_provider._services.manifest.schema import (
-    bounded_json,
-    canonical_bytes,
-    contract_validator,
-    validate_schema,
 )
 
 _FIXTURES = Path(__file__).parent / "fixtures" / "manifest"
@@ -284,33 +285,6 @@ def _schema(**overrides):
     return {"$schema": _DRAFT, "type": "object", **overrides}
 
 
-def test_versioned_contract_loader_does_not_sniff_individual_fields(
-    monkeypatch,
-):
-    class ContractResource:
-        def joinpath(self, name):
-            assert name == "manifest.schema.json"
-            return self
-
-        def read_text(self):
-            return json.dumps(
-                {
-                    "$schema": _DRAFT,
-                    "$defs": {"schemaDocument": {"type": "object"}},
-                }
-            )
-
-    contract_validator.cache_clear()
-    monkeypatch.setattr(
-        "stateforge_provider._services.manifest.schema.files",
-        lambda package: ContractResource(),
-    )
-    try:
-        contract_validator("schemaDocument").validate({})
-    finally:
-        contract_validator.cache_clear()
-
-
 @pytest.mark.parametrize("keyword", ["$ref", "$dynamicRef"])
 @pytest.mark.parametrize(
     "reference",
@@ -325,7 +299,7 @@ def test_versioned_contract_loader_does_not_sniff_individual_fields(
 def test_rejects_remote_unresolved_or_non_schema_references(
     keyword, reference
 ):
-    with pytest.raises(ManifestError):
+    with pytest.raises(ManifestValidationError):
         validate_schema(
             _schema(
                 title="not a schema", properties={"x": {keyword: reference}}
@@ -336,7 +310,7 @@ def test_rejects_remote_unresolved_or_non_schema_references(
 
 @pytest.mark.parametrize("keyword", ["$id", "type", "required", "$schema"])
 def test_rejects_invalid_or_base_changing_schemas(keyword):
-    with pytest.raises(ManifestError):
+    with pytest.raises(ManifestValidationError):
         validate_schema(_schema(**{keyword: "invalid"}), "configuration")
 
 
@@ -380,7 +354,7 @@ def test_rejects_indirect_secret_values_without_echoing_them(
         document.update(annotation)
     else:
         secret.update(type="object", properties={"part": annotation})
-    with pytest.raises(ManifestError) as error:
+    with pytest.raises(ManifestValidationError) as error:
         validate_schema(document, "configuration")
     assert secret_value not in str(error.value)
 
@@ -395,7 +369,7 @@ def test_dependent_schema_propagates_secret_policy_to_the_same_instance():
         dependentSchemas={"enabled": {"writeOnly": True}},
     )
 
-    with pytest.raises(ManifestError) as error:
+    with pytest.raises(ManifestValidationError) as error:
         validate_schema(document, "configuration")
 
     assert secret_value not in str(error.value)
@@ -441,7 +415,7 @@ def test_secret_model_default_fails_closed():
     "value", [float("nan"), float("inf"), 2**53 + 1, "\ud800"]
 )
 def test_rejects_non_interoperable_json(value):
-    with pytest.raises(ManifestError):
+    with pytest.raises(ManifestValidationError):
         validate_schema(_schema(examples=[value]), "input")
 
 
@@ -451,9 +425,9 @@ def test_rejects_excessive_nesting_and_bounded_serialization():
     for _ in range(65):
         cursor["not"] = {}
         cursor = cursor["not"]
-    with pytest.raises(ManifestError, match="nesting"):
+    with pytest.raises(ManifestValidationError, match="nesting"):
         validate_schema(document, "input")
-    with pytest.raises(ManifestError, match="resource"):
+    with pytest.raises(ManifestValidationError, match="resource"):
         bounded_json(
             {
                 "x": "x"
@@ -461,7 +435,7 @@ def test_rejects_excessive_nesting_and_bounded_serialization():
             },
             "input",
         )
-    with pytest.raises(ManifestError, match="preimage"):
+    with pytest.raises(ManifestValidationError, match="preimage"):
         canonical_bytes(
             {
                 "x": "\x00"
@@ -471,12 +445,13 @@ def test_rejects_excessive_nesting_and_bounded_serialization():
                 )
             }
         )
-    with pytest.raises(ManifestError, match="resource"):
+    with pytest.raises(ManifestValidationError, match="resource"):
         bounded_json(
             [None] * (DEFAULT_RUNTIME_LIMITS.max_json_nodes + 1),
             "input",
+            limits=_validation_limits(DEFAULT_RUNTIME_LIMITS),
         )
-    with pytest.raises(ManifestError, match="non-JSON"):
+    with pytest.raises(ManifestValidationError, match="non-JSON"):
         bounded_json({"x": object()}, "input")
 
 
@@ -629,7 +604,7 @@ def test_response_limit_checked_before_publication(monkeypatch):
 
 
 def test_local_schema_node_limit_and_nested_dialect():
-    with pytest.raises(ManifestError, match="node limit"):
+    with pytest.raises(ManifestValidationError, match="node limit"):
         validate_schema(
             _schema(
                 **{
@@ -640,8 +615,9 @@ def test_local_schema_node_limit_and_nested_dialect():
                 }
             ),
             "input",
+            limits=_validation_limits(DEFAULT_RUNTIME_LIMITS),
         )
-    with pytest.raises(ManifestError, match="nested schema dialect"):
+    with pytest.raises(ManifestValidationError, match="nested schema dialect"):
         validate_schema(
             _schema(
                 properties={
@@ -652,18 +628,29 @@ def test_local_schema_node_limit_and_nested_dialect():
         )
 
 
-def test_provider_owned_schema_limits_are_configurable():
+def test_provider_may_tighten_protocol_validation_limits():
     json_limits = replace(DEFAULT_RUNTIME_LIMITS, max_json_nodes=2)
-    with pytest.raises(ManifestError, match="resource limit"):
-        bounded_json({"value": None}, "input", limits=json_limits)
+    with pytest.raises(ManifestValidationError, match="resource limit"):
+        bounded_json(
+            {"value": None},
+            "input",
+            limits=_validation_limits(json_limits),
+        )
 
     schema_limits = replace(DEFAULT_RUNTIME_LIMITS, max_schema_nodes=1)
-    with pytest.raises(ManifestError, match="schema node limit"):
+    with pytest.raises(ManifestValidationError, match="schema node limit"):
         validate_schema(
             _schema(properties={"value": {}}),
             "input",
-            limits=schema_limits,
+            limits=_validation_limits(schema_limits),
         )
+
+
+def _validation_limits(limits) -> ManifestValidationLimits:
+    return ManifestValidationLimits(
+        max_json_nodes=limits.max_json_nodes,
+        max_schema_nodes=limits.max_schema_nodes,
+    )
 
 
 def test_unresolvable_type_annotations_and_invalid_model_generation():

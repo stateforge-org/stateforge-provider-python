@@ -12,14 +12,14 @@ from stateforge_protocol.sfp.manifest.v1 import (
     manifest_pb2,
     manifest_pb2_grpc,
 )
+from stateforge_protocol.sfp.manifest.v1.validation import (
+    ManifestValidationError,
+    contract_validator,
+)
 
 from stateforge_provider._runtime.grpc import ProcedureRegistration
 from stateforge_provider._runtime.sessions import SessionRegistry
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
-from stateforge_provider._services.manifest.schema import (
-    ManifestError,
-    contract_validator,
-)
 from stateforge_provider.version import ProtocolVersion
 
 
@@ -83,7 +83,7 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
             )
         try:
             response = self._snapshot.response(request.expected_session_id)
-        except (DecodeError, ManifestError, ValueError):
+        except (DecodeError, ManifestValidationError, ValueError):
             await context.abort(
                 grpc.StatusCode.INTERNAL, "Manifest snapshot is unavailable"
             )

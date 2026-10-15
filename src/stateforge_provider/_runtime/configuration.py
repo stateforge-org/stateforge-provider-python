@@ -6,6 +6,8 @@ import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
+
 
 @dataclass(frozen=True, slots=True)
 class ProviderRuntimeLimits:
@@ -33,6 +35,14 @@ class ProviderRuntimeLimits:
                 or value < 1
             ):
                 raise ValueError(f"{name} must be a positive integer")
+        if self.max_json_nodes > manifest_contract.MAX_JSON_NODES:
+            raise ValueError(
+                "max_json_nodes must not exceed the Manifest contract"
+            )
+        if self.max_schema_nodes > manifest_contract.MAX_SCHEMA_NODES:
+            raise ValueError(
+                "max_schema_nodes must not exceed the Manifest contract"
+            )
 
 
 DEFAULT_RUNTIME_LIMITS = ProviderRuntimeLimits()

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import inspect
 import json
 from dataclasses import dataclass
@@ -13,20 +12,24 @@ from pydantic.errors import PydanticUndefinedAnnotation, PydanticUserError
 from pydantic.json_schema import JsonSchemaMode
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2
+from stateforge_protocol.sfp.manifest.v1.validation import (
+    JSON_SCHEMA_DRAFT_2020_12_URI,
+    ManifestValidationError,
+    ManifestValidationLimits,
+    canonical_bytes,
+    compute_manifest_revision,
+    validate_manifest_document,
+    validate_manifest_response,
+    validate_schema,
+    validate_structure,
+)
 
 from stateforge_provider._runtime.configuration import (
     DEFAULT_RUNTIME_LIMITS,
     ProviderRuntimeLimits,
 )
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
-from stateforge_provider._services.manifest.schema import (
-    JSON_SCHEMA_DRAFT_2020_12_URI,
-    ManifestError,
-    bounded_json,
-    canonical_bytes,
-    validate_schema,
-    validate_structure,
-)
+from stateforge_provider._services.manifest.errors import ManifestError
 from stateforge_provider.declarations import (
     Platform,
     ProviderModel,
@@ -56,7 +59,7 @@ def _model_schema(
         raise ManifestError(f"{path}: cannot derive model schema") from None
     schema.setdefault("$schema", JSON_SCHEMA_DRAFT_2020_12_URI)
     schema.setdefault("type", "object")
-    validate_schema(schema, path, limits=limits)
+    validate_schema(schema, path, limits=_validation_limits(limits))
     return schema
 
 
@@ -191,6 +194,19 @@ class ManifestDeclaration:
         limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
     ) -> ManifestDeclaration:
         """Inspect class metadata without invoking business methods."""
+        try:
+            return cls._discover(owner, limits=limits)
+        except ManifestValidationError as error:
+            raise ManifestError(str(error)) from error
+
+    @classmethod
+    def _discover(
+        cls,
+        owner: type,
+        *,
+        limits: ProviderRuntimeLimits,
+    ) -> ManifestDeclaration:
+        """Build a declaration while the public boundary translates errors."""
         platforms = _sequence(
             owner, "platforms", manifest_contract.MAX_PLATFORMS
         )
@@ -266,48 +282,47 @@ class ManifestDeclaration:
             "operations": operations,
             "configurationSchema": configuration,
         }
-        bounded_json(
+        contract_limits = _validation_limits(limits)
+        content = validate_manifest_document(
             document,
-            "manifest",
-            depth_limit=manifest_contract.MAX_EMBEDDED_JSON_DEPTH + 4,
-            limits=limits,
+            limits=contract_limits,
         )
-        # Bound canonical content before recursive metaschema processing.
-        content = canonical_bytes(document)
-        validate_structure(document, "providerManifest", "manifest")
         return cls(content)
 
     def snapshot(self, identity: ProviderEndpointIdentity) -> ManifestSnapshot:
         """Construct the exchange after identity allocation and startup."""
+        try:
+            return self._snapshot(identity)
+        except ManifestValidationError as error:
+            raise ManifestError(str(error)) from error
+
+    def _snapshot(
+        self, identity: ProviderEndpointIdentity
+    ) -> ManifestSnapshot:
+        """Build a snapshot while the public boundary translates errors."""
         manifest = ParseDict(
             json.loads(self.document), manifest_pb2.ProviderManifest()
         )
         projected = MessageToDict(
             manifest, always_print_fields_with_no_presence=True
         )
-        preimage = canonical_bytes(
-            {
-                "manifest": projected,
-                "manifestSchemaVersion": 1,
-                "providerInstanceId": str(identity.provider_instance_id),
-            }
+        revision = compute_manifest_revision(
+            projected,
+            1,
+            str(identity.provider_instance_id),
         )
         response = manifest_pb2.GetManifestResponse(
             provider_instance_id=str(identity.provider_instance_id),
             endpoint_generation=identity.endpoint_generation,
             manifest_schema_version=1,
-            manifest_revision="sha256:" + hashlib.sha256(preimage).hexdigest(),
+            manifest_revision=revision,
             manifest=manifest,
             # Reserve the largest legal UTF-8 session header before serving.
             session_id="\U0001f600" * 255,
         )
         if response.ByteSize() > manifest_contract.MAX_RESPONSE_BYTES:
             raise ManifestError("manifest: response size limit exceeded")
-        validate_structure(
-            MessageToDict(response, always_print_fields_with_no_presence=True),
-            "getManifestResponse",
-            "response",
-        )
+        validate_manifest_response(response)
         response.ClearField("session_id")
         return ManifestSnapshot(response.SerializeToString())
 
@@ -323,3 +338,13 @@ class ManifestSnapshot:
         response = manifest_pb2.GetManifestResponse.FromString(self.document)
         response.session_id = session_id
         return response
+
+
+def _validation_limits(
+    limits: ProviderRuntimeLimits,
+) -> ManifestValidationLimits:
+    """Adapt tighter Provider budgets to the canonical validator."""
+    return ManifestValidationLimits(
+        max_json_nodes=limits.max_json_nodes,
+        max_schema_nodes=limits.max_schema_nodes,
+    )

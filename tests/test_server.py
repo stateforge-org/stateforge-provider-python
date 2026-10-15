@@ -372,6 +372,14 @@ def test_rejects_invalid_configuration(socket_directory: Path) -> None:
     for field in ("max_sessions", "max_json_nodes", "max_schema_nodes"):
         with pytest.raises(ValueError, match="positive integer"):
             ProviderRuntimeLimits(**{field: 0})
+    with pytest.raises(ValueError, match="Manifest contract"):
+        ProviderRuntimeLimits(
+            max_json_nodes=manifest_contract.MAX_JSON_NODES + 1
+        )
+    with pytest.raises(ValueError, match="Manifest contract"):
+        ProviderRuntimeLimits(
+            max_schema_nodes=manifest_contract.MAX_SCHEMA_NODES + 1
+        )
 
     with pytest.raises(ValueError, match="shutdown_timeout_seconds"):
         ProviderRuntimeConfiguration(
