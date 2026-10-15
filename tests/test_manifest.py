@@ -27,9 +27,6 @@ from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
 )
-from stateforge_provider._services.manifest.limits import (
-    MAX_CANONICAL_REVISION_PREIMAGE_BYTES,
-)
 from stateforge_provider._services.manifest.schema import (
     bounded_json,
     canonical_bytes,
@@ -458,12 +455,21 @@ def test_rejects_excessive_nesting_and_bounded_serialization():
         validate_schema(document, "input")
     with pytest.raises(ManifestError, match="resource"):
         bounded_json(
-            {"x": "x" * (MAX_CANONICAL_REVISION_PREIMAGE_BYTES + 1)},
+            {
+                "x": "x"
+                * (manifest_contract.MAX_CANONICAL_REVISION_PREIMAGE_BYTES + 1)
+            },
             "input",
         )
     with pytest.raises(ManifestError, match="preimage"):
         canonical_bytes(
-            {"x": "\x00" * (MAX_CANONICAL_REVISION_PREIMAGE_BYTES // 2)}
+            {
+                "x": "\x00"
+                * (
+                    manifest_contract.MAX_CANONICAL_REVISION_PREIMAGE_BYTES
+                    // 2
+                )
+            }
         )
     with pytest.raises(ManifestError, match="resource"):
         bounded_json(
@@ -614,7 +620,8 @@ def test_combined_model_schema_budget_stops_discovery():
 
 def test_response_limit_checked_before_publication(monkeypatch):
     monkeypatch.setattr(
-        "stateforge_provider._services.manifest.declaration.MAX_RESPONSE_BYTES",
+        manifest_contract,
+        "MAX_RESPONSE_BYTES",
         128,
     )
     with pytest.raises(ManifestError, match="response size"):

@@ -17,6 +17,7 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
+from stateforge_protocol.sfp.bootstrap.v1 import contract as bootstrap_contract
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
 from stateforge_provider import ProtocolVersion
@@ -35,11 +36,9 @@ from stateforge_provider._runtime.server import (
     ProviderServerError,
 )
 from stateforge_provider._runtime.sessions import SessionRegistry
-from stateforge_provider._services.bootstrap import limits as bootstrap_limits
 from stateforge_provider._services.bootstrap.service import (
     registration as bootstrap_registration,
 )
-from stateforge_provider._services.manifest import limits as manifest_limits
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
 from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
@@ -205,13 +204,13 @@ async def test_bootstrap_request_exact_limit_and_limit_plus_one(
     try:
         exact = _with_serialized_size(
             _request(server.provider_instance_id, server.endpoint_generation),
-            bootstrap_limits.MAX_REQUEST_BYTES,
+            bootstrap_contract.MAX_REQUEST_BYTES,
         )
         assert (await stub.Handshake(exact, timeout=2)).session_id
 
         oversized = _with_serialized_size(
             _request(server.provider_instance_id, server.endpoint_generation),
-            bootstrap_limits.MAX_REQUEST_BYTES + 1,
+            bootstrap_contract.MAX_REQUEST_BYTES + 1,
         )
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await stub.Handshake(oversized, timeout=2)
@@ -231,7 +230,7 @@ async def test_bootstrap_response_exact_limit_and_limit_plus_one(
     channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
     await asyncio.wait_for(channel.channel_ready(), timeout=2)
     stub = bootstrap_pb2_grpc.BootstrapServiceStub(channel)
-    target_size = bootstrap_limits.MAX_RESPONSE_BYTES
+    target_size = bootstrap_contract.MAX_RESPONSE_BYTES
 
     def negotiate(sessions, version):
         del sessions, version
@@ -243,9 +242,9 @@ async def test_bootstrap_response_exact_limit_and_limit_plus_one(
             _request(server.provider_instance_id, server.endpoint_generation),
             timeout=2,
         )
-        assert response.ByteSize() == bootstrap_limits.MAX_RESPONSE_BYTES
+        assert response.ByteSize() == bootstrap_contract.MAX_RESPONSE_BYTES
 
-        target_size = bootstrap_limits.MAX_RESPONSE_BYTES + 1
+        target_size = bootstrap_contract.MAX_RESPONSE_BYTES + 1
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await stub.Handshake(
                 _request(
@@ -306,12 +305,12 @@ def test_shared_endpoint_ceiling_uses_only_registered_procedures() -> None:
 
     assert endpoint_message_limits(registrations) == (
         max(
-            bootstrap_limits.MAX_REQUEST_BYTES,
-            manifest_limits.MAX_REQUEST_BYTES,
+            bootstrap_contract.MAX_REQUEST_BYTES,
+            manifest_contract.MAX_REQUEST_BYTES,
         ),
         max(
-            bootstrap_limits.MAX_RESPONSE_BYTES,
-            manifest_limits.MAX_RESPONSE_BYTES,
+            bootstrap_contract.MAX_RESPONSE_BYTES,
+            manifest_contract.MAX_RESPONSE_BYTES,
         ),
     )
     assert (

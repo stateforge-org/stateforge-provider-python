@@ -7,15 +7,15 @@ import asyncio
 import grpc
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import DecodeError
-from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
+from stateforge_protocol.sfp.manifest.v1 import (
+    contract,
+    manifest_pb2,
+    manifest_pb2_grpc,
+)
 
 from stateforge_provider._runtime.grpc import ProcedureRegistration
 from stateforge_provider._runtime.sessions import SessionRegistry
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
-from stateforge_provider._services.manifest.limits import (
-    MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES,
-)
 from stateforge_provider._services.manifest.schema import (
     ManifestError,
     contract_validator,
@@ -41,7 +41,7 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
         ],
     ) -> manifest_pb2.GetManifestResponse:
         """Check syntax, session, and compatibility before copying."""
-        if request.ByteSize() > MAX_REQUEST_BYTES:
+        if request.ByteSize() > contract.MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Manifest request limit exceeded",
@@ -87,7 +87,7 @@ class ManifestService(manifest_pb2_grpc.ManifestServiceServicer):
             await context.abort(
                 grpc.StatusCode.INTERNAL, "Manifest snapshot is unavailable"
             )
-        if response.ByteSize() > MAX_RESPONSE_BYTES:
+        if response.ByteSize() > contract.MAX_RESPONSE_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Manifest response limit exceeded",
@@ -109,8 +109,8 @@ def registration(
         )
 
     return ProcedureRegistration(
-        name="stateforge.sfp.manifest.v1.ManifestService",
-        max_request_bytes=MAX_REQUEST_BYTES,
-        max_response_bytes=MAX_RESPONSE_BYTES,
+        name=contract.SERVICE_NAME,
+        max_request_bytes=contract.MAX_REQUEST_BYTES,
+        max_response_bytes=contract.MAX_RESPONSE_BYTES,
         install=install,
     )

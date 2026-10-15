@@ -11,9 +11,75 @@ import sys
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc
+from stateforge_protocol.sfp import health_contract
 
-_BOOTSTRAP_SERVICE = "stateforge.sfp.bootstrap.v1.BootstrapService"
-_MANIFEST_SERVICE = "stateforge.sfp.manifest.v1.ManifestService"
+
+def _varint(value: int) -> bytes:
+    """Encode one nonnegative integer for a test-only unknown field."""
+    maximum_single_byte_value = 0x7F
+    encoded = bytearray()
+    while value > maximum_single_byte_value:
+        encoded.append((value & maximum_single_byte_value) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _request_with_serialized_size(
+    target_size: int,
+) -> health_pb2.HealthCheckRequest:
+    """Build one overall-health request at an exact serialized size."""
+    request = health_pb2.HealthCheckRequest(
+        service=health_contract.PROVIDER_HEALTH_SERVICE
+    )
+    content = request.SerializeToString()
+    tag = _varint((2_047 << 3) | 2)
+    payload_size = target_size - len(content) - len(tag) - 1
+    while True:
+        encoded_size = _varint(payload_size)
+        adjusted = target_size - len(content) - len(tag) - len(encoded_size)
+        if adjusted == payload_size:
+            break
+        payload_size = adjusted
+    if payload_size < 0:
+        raise RuntimeError("Health request target size is too small")
+    result = health_pb2.HealthCheckRequest.FromString(
+        content + tag + encoded_size + (b"x" * payload_size)
+    )
+    if result.ByteSize() != target_size:
+        raise RuntimeError("Health request does not match its target size")
+    return result
+
+
+async def _assert_request_boundaries(
+    stub: health_pb2_grpc.HealthStub,
+) -> dict[str, int | str]:
+    """Require the canonical Health request boundary on the real endpoint."""
+    exact_request = _request_with_serialized_size(
+        health_contract.MAX_REQUEST_BYTES
+    )
+    exact_response = await stub.Check(exact_request, timeout=10)
+    if exact_response.status != health_pb2.HealthCheckResponse.SERVING:
+        raise RuntimeError("exact-limit Health request was not accepted")
+
+    oversized_request = _request_with_serialized_size(
+        health_contract.MAX_REQUEST_BYTES + 1
+    )
+    try:
+        await stub.Check(oversized_request, timeout=10)
+    except grpc.aio.AioRpcError as error:
+        if error.code() is not grpc.StatusCode.RESOURCE_EXHAUSTED:
+            raise
+        oversized_status = error.code().name
+    else:
+        raise RuntimeError("oversized Health request was accepted")
+
+    return {
+        "acceptedRequestBytes": exact_request.ByteSize(),
+        "maximumResponseBytes": health_contract.MAX_RESPONSE_BYTES,
+        "oversizedRequestBytes": oversized_request.ByteSize(),
+        "oversizedRequestStatus": oversized_status,
+    }
 
 
 async def _read_status(
@@ -87,10 +153,18 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
     stub = health_pb2_grpc.HealthStub(channel)
     checks: dict[str, str] = {}
     transitions: list[str] = []
-    watch = stub.Watch(health_pb2.HealthCheckRequest(service=""))
+    watch = stub.Watch(
+        health_pb2.HealthCheckRequest(
+            service=health_contract.PROVIDER_HEALTH_SERVICE
+        )
+    )
     unknown_watch = None
     try:
-        for service in ("", _BOOTSTRAP_SERVICE, _MANIFEST_SERVICE):
+        for service in (
+            health_contract.PROVIDER_HEALTH_SERVICE,
+            health_contract.BOOTSTRAP_SERVICE,
+            health_contract.MANIFEST_SERVICE,
+        ):
             response = await stub.Check(
                 health_pb2.HealthCheckRequest(service=service),
                 timeout=10,
@@ -101,6 +175,8 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
             if name != "SERVING":
                 raise RuntimeError(f"{service!r} reported {name}")
             checks[service or "<overall>"] = name
+
+        contract_limits = await _assert_request_boundaries(stub)
 
         unknown_service = "stateforge.sfp.unknown.v1.UnknownService"
         try:
@@ -158,6 +234,7 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
         raise RuntimeError(f"unexpected Health transitions: {transitions}")
     return {
         "checks": checks,
+        "contractLimits": contract_limits,
         "unknownWatchInitial": unknown_initial,
         "watchTransitions": transitions,
     }

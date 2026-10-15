@@ -16,6 +16,7 @@ from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
 )
+from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1 import manifest_pb2, manifest_pb2_grpc
 
 from stateforge_provider import (
@@ -28,10 +29,6 @@ from stateforge_provider import (
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
     ManifestSnapshot,
-)
-from stateforge_provider._services.manifest.limits import (
-    MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES,
 )
 from stateforge_provider._services.manifest.service import ManifestService
 
@@ -179,7 +176,7 @@ async def test_manifest_request_exact_limit_and_limit_plus_one(directory):
         handshake = await _handshake(bootstrap, descriptor)
         exact = _with_serialized_size(
             _request(handshake),
-            MAX_REQUEST_BYTES,
+            manifest_contract.MAX_REQUEST_BYTES,
         )
         assert (await manifest.GetManifest(exact, timeout=2)).session_id == (
             handshake.session_id
@@ -187,7 +184,7 @@ async def test_manifest_request_exact_limit_and_limit_plus_one(directory):
 
         oversized = _with_serialized_size(
             _request(handshake),
-            MAX_REQUEST_BYTES + 1,
+            manifest_contract.MAX_REQUEST_BYTES + 1,
         )
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await manifest.GetManifest(oversized, timeout=2)
@@ -200,7 +197,7 @@ async def test_manifest_response_exact_limit_and_limit_plus_one(
     directory,
     monkeypatch,
 ):
-    target_size = MAX_RESPONSE_BYTES
+    target_size = manifest_contract.MAX_RESPONSE_BYTES
     original = ManifestSnapshot.response
 
     def sized_response(snapshot, session_id):
@@ -217,9 +214,9 @@ async def test_manifest_response_exact_limit_and_limit_plus_one(
     ):
         handshake = await _handshake(bootstrap, descriptor)
         response = await manifest.GetManifest(_request(handshake), timeout=2)
-        assert response.ByteSize() == MAX_RESPONSE_BYTES
+        assert response.ByteSize() == manifest_contract.MAX_RESPONSE_BYTES
 
-        target_size = MAX_RESPONSE_BYTES + 1
+        target_size = manifest_contract.MAX_RESPONSE_BYTES + 1
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await manifest.GetManifest(_request(handshake), timeout=2)
         assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
@@ -337,7 +334,11 @@ async def test_manifest_is_ready_on_publication_and_binds_each_session(
             grpc.StatusCode.INVALID_ARGUMENT,
         ),
         (
-            {"expected_session_id": "x" * MAX_REQUEST_BYTES},
+            {
+                "expected_session_id": (
+                    "x" * manifest_contract.MAX_REQUEST_BYTES
+                )
+            },
             grpc.StatusCode.RESOURCE_EXHAUSTED,
         ),
     ],

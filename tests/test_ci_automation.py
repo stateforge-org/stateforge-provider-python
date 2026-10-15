@@ -5,6 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOWS = ROOT / ".github" / "workflows"
 ACTIONS = ROOT / ".github" / "actions"
+SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
 SCENARIO_COUNT = 7
@@ -264,6 +265,10 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert "./.github/actions/agent/assert-session" in scenario
     assert "./.github/actions/provider/assert-health" in scenario
     assert "grpc_health.v1" in verifier
+    assert "from stateforge_protocol.sfp import health_contract" in verifier
+    assert "health_contract.MAX_REQUEST_BYTES" in verifier
+    assert "health_contract.MAX_RESPONSE_BYTES" in verifier
+    assert "health_contract.PROVIDER_HEALTH_SERVICE" in verifier
     assert "HealthStub" in verifier
     assert "SERVICE_UNKNOWN" in verifier
     assert "SIGUSR1" in verifier
@@ -276,6 +281,35 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert 'state}" != "inactive"' in stop
     assert 'state}" != "failed"' in stop
     assert "health:" in workflow
+
+
+def test_sfp_wire_contracts_are_protocol_owned() -> None:
+    """Prevent Provider-local wire constants from becoming authoritative."""
+    bootstrap = SERVICES / "bootstrap"
+    health = SERVICES / "health"
+    manifest = SERVICES / "manifest"
+    bootstrap_service = read(bootstrap / "service.py")
+    health_service = read(health / "service.py")
+    manifest_service = read(manifest / "service.py")
+
+    assert not (bootstrap / "limits.py").exists()
+    assert not (health / "limits.py").exists()
+    assert not (manifest / "limits.py").exists()
+    assert "contract.MAX_REQUEST_BYTES" in bootstrap_service
+    assert "contract.MAX_RESPONSE_BYTES" in bootstrap_service
+    assert "contract.SERVICE_NAME" in bootstrap_service
+    assert "health_contract.MAX_REQUEST_BYTES" in health_service
+    assert "health_contract.MAX_RESPONSE_BYTES" in health_service
+    assert "health_contract.STANDARD_HEALTH_SERVICE" in health_service
+    assert "health_contract.PROVIDER_HEALTH_SERVICE" in health_service
+    assert "contract.MAX_REQUEST_BYTES" in manifest_service
+    assert "contract.MAX_RESPONSE_BYTES" in manifest_service
+    assert "contract.SERVICE_NAME" in manifest_service
+
+    for directory in (bootstrap, health, manifest):
+        combined = "\n".join(read(path) for path in directory.glob("*.py"))
+        assert "MAX_REQUEST_BYTES =" not in combined
+        assert "MAX_RESPONSE_BYTES =" not in combined
 
 
 def test_runtime_uses_real_agent_instead_of_synthetic_sfp_client() -> None:

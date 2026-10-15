@@ -13,6 +13,7 @@ from pathlib import Path
 import grpc
 import pytest
 from grpc_health.v1 import health_pb2, health_pb2_grpc
+from stateforge_protocol.sfp import health_contract
 
 from stateforge_provider import HealthStatus, Platform, Provider
 from stateforge_provider._runtime.configuration import (
@@ -20,9 +21,6 @@ from stateforge_provider._runtime.configuration import (
     ProviderRuntimeLimits,
 )
 from stateforge_provider._services.health.service import ProviderHealthService
-
-_BOOTSTRAP_SERVICE = "stateforge.sfp.bootstrap.v1.BootstrapService"
-_MANIFEST_SERVICE = "stateforge.sfp.manifest.v1.ManifestService"
 
 
 @pytest.fixture
@@ -80,8 +78,39 @@ async def _running(
         await asyncio.wait_for(task, timeout=2)
 
 
-def _request(service: str = "") -> health_pb2.HealthCheckRequest:
+def _request(
+    service: str = health_contract.PROVIDER_HEALTH_SERVICE,
+) -> health_pb2.HealthCheckRequest:
     return health_pb2.HealthCheckRequest(service=service)
+
+
+def _varint(value: int) -> bytes:
+    maximum_single_byte_value = 0x7F
+    encoded = bytearray()
+    while value > maximum_single_byte_value:
+        encoded.append((value & maximum_single_byte_value) | 0x80)
+        value >>= 7
+    encoded.append(value)
+    return bytes(encoded)
+
+
+def _with_serialized_size(message, target_size: int):
+    """Pad a protobuf with one preserved unknown field to an exact size."""
+    content = message.SerializeToString()
+    tag = _varint((2_047 << 3) | 2)
+    payload_size = target_size - len(content) - len(tag) - 1
+    while True:
+        encoded_size = _varint(payload_size)
+        adjusted = target_size - len(content) - len(tag) - len(encoded_size)
+        if adjusted == payload_size:
+            break
+        payload_size = adjusted
+    assert payload_size >= 0
+    result = type(message).FromString(
+        content + tag + encoded_size + (b"x" * payload_size)
+    )
+    assert result.ByteSize() == target_size
+    return result
 
 
 @pytest.mark.asyncio
@@ -91,7 +120,11 @@ async def test_check_uses_standard_health_on_the_shared_endpoint(
     provider = _HealthProvider(endpoint_directory)
 
     async with _running(provider) as (stub, _, _):
-        for service in ("", _BOOTSTRAP_SERVICE, _MANIFEST_SERVICE):
+        for service in (
+            health_contract.PROVIDER_HEALTH_SERVICE,
+            health_contract.BOOTSTRAP_SERVICE,
+            health_contract.MANIFEST_SERVICE,
+        ):
             response = await stub.Check(_request(service), timeout=2)
             assert response.status == health_pb2.HealthCheckResponse.SERVING
 
@@ -247,13 +280,71 @@ class _BlockingContext:
 
 
 @pytest.mark.asyncio
+async def test_health_request_exact_limit_and_limit_plus_one(
+    endpoint_directory: Path,
+) -> None:
+    provider = _HealthProvider(endpoint_directory)
+
+    async with _running(provider) as (stub, _, _):
+        exact = _with_serialized_size(
+            _request(),
+            health_contract.MAX_REQUEST_BYTES,
+        )
+        response = await stub.Check(exact, timeout=2)
+        assert response.status == health_pb2.HealthCheckResponse.SERVING
+
+        oversized = _with_serialized_size(
+            _request(),
+            health_contract.MAX_REQUEST_BYTES + 1,
+        )
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await stub.Check(oversized, timeout=2)
+        assert error.value.code() is grpc.StatusCode.RESOURCE_EXHAUSTED
+        assert error.value.details() == "Health request limit exceeded"
+
+
+@pytest.mark.parametrize(
+    ("response_size", "accepted"),
+    [
+        (health_contract.MAX_RESPONSE_BYTES, True),
+        (health_contract.MAX_RESPONSE_BYTES + 1, False),
+    ],
+)
+@pytest.mark.asyncio
+async def test_health_response_exact_limit_and_limit_plus_one(
+    response_size: int,
+    accepted: bool,
+) -> None:
+    service = ProviderHealthService(
+        max_watchers=1,
+        watch_queue_capacity=1,
+        watch_delivery_timeout_seconds=1,
+    )
+    response = _with_serialized_size(
+        health_pb2.HealthCheckResponse(
+            status=health_pb2.HealthCheckResponse.SERVING
+        ),
+        response_size,
+    )
+    context = _BlockingContext()
+
+    if accepted:
+        await service._validate_response_size(response, context)
+    else:
+        with pytest.raises(_AbortError) as error:
+            await service._validate_response_size(response, context)
+        assert error.value.code is grpc.StatusCode.RESOURCE_EXHAUSTED
+        assert error.value.details == "Health response limit exceeded"
+
+
+@pytest.mark.asyncio
 async def test_slow_watch_is_bounded_without_blocking_the_publisher() -> None:
     service = ProviderHealthService(
         max_watchers=1,
         watch_queue_capacity=1,
         watch_delivery_timeout_seconds=1,
     )
-    service.register_services((_BOOTSTRAP_SERVICE,))
+    service.register_services((health_contract.BOOTSTRAP_SERVICE,))
     context = _BlockingContext()
     watch = asyncio.create_task(service.Watch(_request(), context))
     await asyncio.wait_for(context.first_write.wait(), timeout=1)

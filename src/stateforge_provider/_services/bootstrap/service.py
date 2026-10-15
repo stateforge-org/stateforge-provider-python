@@ -8,6 +8,7 @@ import grpc
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
+    contract,
 )
 
 from stateforge_provider._runtime.grpc import ProcedureRegistration
@@ -18,10 +19,6 @@ from stateforge_provider._runtime.identity import (
 from stateforge_provider._runtime.sessions import (
     SessionRegistry,
     SessionRegistryClosedError,
-)
-from stateforge_provider._services.bootstrap.limits import (
-    MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES,
 )
 from stateforge_provider.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
@@ -49,7 +46,7 @@ class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         ],
     ) -> bootstrap_pb2.HandshakeResponse:
         """Validate discovery identity and select the highest wire version."""
-        if request.ByteSize() > MAX_REQUEST_BYTES:
+        if request.ByteSize() > contract.MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Bootstrap request limit exceeded",
@@ -122,7 +119,7 @@ class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
             provider_runtime_id=str(self._provider_runtime_id),
             session_id=session_id,
         )
-        if response.ByteSize() > MAX_RESPONSE_BYTES:
+        if response.ByteSize() > contract.MAX_RESPONSE_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Bootstrap response limit exceeded",
@@ -150,8 +147,8 @@ def registration(
         )
 
     return ProcedureRegistration(
-        name="stateforge.sfp.bootstrap.v1.BootstrapService",
-        max_request_bytes=MAX_REQUEST_BYTES,
-        max_response_bytes=MAX_RESPONSE_BYTES,
+        name=contract.SERVICE_NAME,
+        max_request_bytes=contract.MAX_REQUEST_BYTES,
+        max_response_bytes=contract.MAX_RESPONSE_BYTES,
         install=install,
     )

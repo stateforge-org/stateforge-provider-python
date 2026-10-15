@@ -19,11 +19,6 @@ from stateforge_provider._runtime.configuration import (
     ProviderRuntimeLimits,
 )
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
-from stateforge_provider._services.manifest.limits import (
-    MAX_CANONICAL_REVISION_PREIMAGE_BYTES,
-    MAX_EMBEDDED_JSON_DEPTH,
-    MAX_RESPONSE_BYTES,
-)
 from stateforge_provider._services.manifest.schema import (
     JSON_SCHEMA_DRAFT_2020_12_URI,
     ManifestError,
@@ -176,7 +171,7 @@ def _check_combined_schema_budget(
     total = 0
     for schema in schemas:
         total += len(canonical_bytes(schema))
-        if total > MAX_CANONICAL_REVISION_PREIMAGE_BYTES:
+        if total > manifest_contract.MAX_CANONICAL_REVISION_PREIMAGE_BYTES:
             raise ManifestError(
                 "manifest: combined schema size limit exceeded"
             )
@@ -274,7 +269,7 @@ class ManifestDeclaration:
         bounded_json(
             document,
             "manifest",
-            depth_limit=MAX_EMBEDDED_JSON_DEPTH + 4,
+            depth_limit=manifest_contract.MAX_EMBEDDED_JSON_DEPTH + 4,
             limits=limits,
         )
         # Bound canonical content before recursive metaschema processing.
@@ -306,7 +301,7 @@ class ManifestDeclaration:
             # Reserve the largest legal UTF-8 session header before serving.
             session_id="\U0001f600" * 255,
         )
-        if response.ByteSize() > MAX_RESPONSE_BYTES:
+        if response.ByteSize() > manifest_contract.MAX_RESPONSE_BYTES:
             raise ManifestError("manifest: response size limit exceeded")
         validate_structure(
             MessageToDict(response, always_print_fields_with_no_presence=True),
