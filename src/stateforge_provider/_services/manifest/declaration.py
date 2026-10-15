@@ -318,7 +318,9 @@ class ManifestDeclaration:
             manifest_revision=revision,
             manifest=manifest,
             # Reserve the largest legal UTF-8 session header before serving.
-            session_id="\U0001f600" * 255,
+            session_id=(
+                "\U0001f600" * manifest_contract.MAX_SESSION_ID_CODE_POINTS
+            ),
         )
         if response.ByteSize() > manifest_contract.MAX_RESPONSE_BYTES:
             raise ManifestError("manifest: response size limit exceeded")

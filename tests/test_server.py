@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 
 import grpc
 import pytest
+from stateforge_protocol.sfp import primitives
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
@@ -48,7 +49,6 @@ from stateforge_provider._services.manifest.service import (
 from stateforge_provider.version import SUPPORTED_SFP_VERSIONS
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
-_UUID_VERSION = 4
 _REPLACEMENT_ENDPOINT_GENERATION = 2
 
 
@@ -190,8 +190,14 @@ async def test_publishes_endpoint_and_negotiates_sfp_1_0(
         assert response.endpoint_generation == server.endpoint_generation
         assert response.selected_sfp_version.major == 1
         assert response.selected_sfp_version.minor == 0
-        assert UUID(response.provider_runtime_id).version == _UUID_VERSION
-        assert UUID(response.session_id).version == _UUID_VERSION
+        assert (
+            UUID(response.provider_runtime_id).version
+            == primitives.CANONICAL_UUID_VERSION
+        )
+        assert (
+            UUID(response.session_id).version
+            == primitives.CANONICAL_UUID_VERSION
+        )
 
     assert not server.descriptor_path.exists()
     assert not server.socket_path.exists()
@@ -226,7 +232,7 @@ async def test_bootstrap_request_exact_limit_and_limit_plus_one(
 
 
 @pytest.mark.asyncio
-async def test_bootstrap_response_exact_limit_and_limit_plus_one(
+async def test_bootstrap_response_limit_precedes_semantic_validation(
     socket_directory: Path,
     monkeypatch,
 ) -> None:
@@ -243,11 +249,18 @@ async def test_bootstrap_response_exact_limit_and_limit_plus_one(
 
     monkeypatch.setattr(SessionRegistry, "negotiate", negotiate)
     try:
-        response = await stub.Handshake(
-            _request(server.provider_instance_id, server.endpoint_generation),
-            timeout=2,
+        with pytest.raises(grpc.aio.AioRpcError) as semantic_error:
+            await stub.Handshake(
+                _request(
+                    server.provider_instance_id,
+                    server.endpoint_generation,
+                ),
+                timeout=2,
+            )
+        assert semantic_error.value.code() is grpc.StatusCode.INTERNAL
+        assert semantic_error.value.details() == (
+            "Provider produced an invalid Bootstrap response"
         )
-        assert response.ByteSize() == bootstrap_contract.MAX_RESPONSE_BYTES
 
         target_size = bootstrap_contract.MAX_RESPONSE_BYTES + 1
         with pytest.raises(grpc.aio.AioRpcError) as error:

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Protocol, cast
 from uuid import UUID, uuid4
 
+from stateforge_protocol.sfp import primitives
 from stateforge_protocol.sfp.endpoint_discovery.v1 import (
     contract as discovery_contract,
 )
@@ -61,18 +62,6 @@ def _advisory_file_locks() -> _AdvisoryFileLocks:
     return cast(_AdvisoryFileLocks, module)
 
 
-def is_canonical_uuid4(value: str) -> bool:
-    """Return whether a string is a canonical lowercase UUIDv4."""
-    try:
-        identifier = UUID(value)
-    except ValueError:
-        return False
-    return (
-        identifier.version == discovery_contract.PROVIDER_INSTANCE_UUID_VERSION
-        and str(identifier) == value
-    )
-
-
 @dataclass(frozen=True, slots=True)
 class ProviderEndpointIdentity:
     """Identify one generation of a stable Provider installation."""
@@ -92,7 +81,7 @@ class _ProviderIdentityState:
         """Reject identity state outside the persisted format."""
         if (
             self.provider_instance_id.version
-            != discovery_contract.PROVIDER_INSTANCE_UUID_VERSION
+            != primitives.CANONICAL_UUID_VERSION
         ):
             raise ValueError("provider_instance_id must be a UUIDv4")
         generation = self.last_endpoint_generation
@@ -271,7 +260,9 @@ class ProviderIdentityStore:
                 "Provider identity provider_instance_id must be a UUIDv4"
             )
         try:
-            provider_instance_id = UUID(provider_instance_value)
+            provider_instance_id = primitives.parse_canonical_uuid4(
+                provider_instance_value
+            )
             state = _ProviderIdentityState(
                 provider_instance_id=provider_instance_id,
                 last_endpoint_generation=endpoint_generation,
@@ -281,10 +272,6 @@ class ProviderIdentityStore:
                 f"Provider identity state contains invalid values: "
                 f"{self.state_path}"
             ) from error
-        if str(provider_instance_id) != provider_instance_value:
-            raise ProviderIdentityError(
-                "Provider identity provider_instance_id must be canonical"
-            )
         return state
 
     def _write_state(self, state: _ProviderIdentityState) -> None:
