@@ -6,6 +6,9 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import pytest
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
+)
 
 from stateforge_provider._runtime import identity as identity_module
 from stateforge_provider._runtime.identity import (
@@ -13,7 +16,6 @@ from stateforge_provider._runtime.identity import (
     ProviderIdentityStore,
 )
 
-_MAXIMUM_ENDPOINT_GENERATION = (2**63) - 1
 _SECOND_ENDPOINT_GENERATION = 2
 _STATE_FILE_MODE = 0o600
 
@@ -104,7 +106,9 @@ def test_rejects_exhausted_endpoint_generations(tmp_path: Path) -> None:
             {
                 "schema_version": "1",
                 "provider_instance_id": str(identity.provider_instance_id),
-                "last_endpoint_generation": _MAXIMUM_ENDPOINT_GENERATION,
+                "last_endpoint_generation": (
+                    discovery_contract.MAX_ENDPOINT_GENERATION
+                ),
             }
         ),
         encoding="utf-8",

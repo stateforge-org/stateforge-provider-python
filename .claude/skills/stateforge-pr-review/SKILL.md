@@ -65,6 +65,22 @@ RPC service code, trace more than the successful path:
 - Require behavioral evidence for the affected failure and cancellation paths;
   a happy-path test is not sufficient evidence for lifecycle or recovery code.
 
+## Review protocol ownership explicitly
+
+For any SFP-facing diff, inspect the matching Protocol, Agent, and Provider
+surfaces even when only one repository may be changed. Require a responsibility
+matrix covering wire shape, service and RPC identity, procedure limits,
+shared scalar semantics, context-independent validation, endpoint discovery,
+and aggregate transport ceilings.
+
+Treat copied constants, parsers, validators, names, or limits in a consumer as
+an ownership defect even when tests show matching behavior. Confirm that
+Protocol exposes the complete normative rule, that Agent and Provider import
+it, and that consumer-owned checks genuinely depend on local state or policy.
+Require Protocol contract tests plus consumer delegation or ownership tests.
+Do not report complete separation while a repository, registered procedure, or
+responsibility category remains unaudited.
+
 ## Report actionable findings
 
 Lead with concrete findings ordered by severity:

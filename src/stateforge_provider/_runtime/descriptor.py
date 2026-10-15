@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from uuid import UUID
+
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
+)
 
 from stateforge_provider._runtime.configuration import (
     ProviderRuntimeConfiguration,
@@ -21,13 +24,7 @@ from stateforge_provider._runtime.identity import (
     ProviderEndpointIdentity,
     ProviderIdentityError,
     ProviderIdentityStore,
-    is_allocated_endpoint_generation,
 )
-
-_DESCRIPTOR_SCHEMA_VERSION = "1"
-_DESCRIPTOR_SUFFIX = ".sfp.json"
-_DESCRIPTOR_MODE = 0o640
-_MAXIMUM_DESCRIPTOR_BYTES = 4096
 
 
 class EndpointDescriptor:
@@ -50,24 +47,20 @@ class EndpointDescriptor:
     def path(self) -> Path:
         """Return the stable descriptor path for this Provider instance."""
         return self._configuration.discovery_directory / (
-            f"{self._endpoint_identity.provider_instance_id}"
-            f"{_DESCRIPTOR_SUFFIX}"
+            discovery_contract.descriptor_filename(
+                self._endpoint_identity.provider_instance_id
+            )
         )
 
     def publish(self, socket_path: Path) -> None:
         """Atomically publish the endpoint only after gRPC is ready."""
         configuration = self._configuration
         identity = self._endpoint_identity
-        document = {
-            "schema_version": _DESCRIPTOR_SCHEMA_VERSION,
-            "provider_instance_id": str(identity.provider_instance_id),
-            "endpoint_generation": identity.endpoint_generation,
-            "transport": {
-                "type": "unix",
-                "socket_path": str(socket_path),
-            },
-        }
-        content = (json.dumps(document, indent=2) + "\n").encode()
+        content = discovery_contract.EndpointDescriptor(
+            provider_instance_id=identity.provider_instance_id,
+            endpoint_generation=identity.endpoint_generation,
+            socket_path=str(socket_path),
+        ).to_json_bytes()
         temporary_path = self.path.with_name(
             f".{self.path.name}.{self._runtime_id}.tmp"
         )
@@ -86,13 +79,20 @@ class EndpointDescriptor:
                 )
 
             try:
-                descriptor = os.open(temporary_path, flags, _DESCRIPTOR_MODE)
+                descriptor = os.open(
+                    temporary_path,
+                    flags,
+                    discovery_contract.DESCRIPTOR_MODE,
+                )
                 try:
                     directory_status = (
                         configuration.discovery_directory.lstat()
                     )
                     os.fchown(descriptor, -1, directory_status.st_gid)
-                    os.fchmod(descriptor, _DESCRIPTOR_MODE)
+                    os.fchmod(
+                        descriptor,
+                        discovery_contract.DESCRIPTOR_MODE,
+                    )
                     write_all(descriptor, content, resource="Descriptor")
                     os.fsync(descriptor)
                 finally:
@@ -114,9 +114,9 @@ class EndpointDescriptor:
                 if document is None:
                     return
                 if (
-                    document.get("provider_instance_id")
-                    != str(identity.provider_instance_id)
-                    or document.get("endpoint_generation")
+                    document.provider_instance_id
+                    != identity.provider_instance_id
+                    or document.endpoint_generation
                     != identity.endpoint_generation
                 ):
                     return
@@ -137,29 +137,23 @@ class EndpointDescriptor:
         if document is None:
             return None
         identity = self._endpoint_identity
-        if document.get("provider_instance_id") != str(
-            identity.provider_instance_id
-        ):
+        if document.provider_instance_id != identity.provider_instance_id:
             raise ProviderServerError(
                 "Existing Provider descriptor has a different identity: "
                 f"{self.path}"
             )
-        generation = document.get("endpoint_generation")
-        if not is_allocated_endpoint_generation(generation):
-            raise ProviderServerError(
-                "Existing Provider descriptor has an invalid generation: "
-                f"{self.path}"
-            )
-        return generation
+        return document.endpoint_generation
 
 
-def _read_descriptor(path: Path) -> dict[str, object] | None:
+def _read_descriptor(
+    path: Path,
+) -> discovery_contract.EndpointDescriptor | None:
     """Read one bounded, Provider-owned regular descriptor without links."""
     try:
         content = read_owned_regular_file(
             path,
-            expected_mode=_DESCRIPTOR_MODE,
-            maximum_bytes=_MAXIMUM_DESCRIPTOR_BYTES,
+            expected_mode=discovery_contract.DESCRIPTOR_MODE,
+            maximum_bytes=discovery_contract.MAX_DESCRIPTOR_BYTES,
             resource="Provider descriptor",
         )
     except SecureFileError as error:
@@ -168,11 +162,8 @@ def _read_descriptor(path: Path) -> dict[str, object] | None:
         return None
 
     try:
-        document = json.loads(content)
-    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        return discovery_contract.parse_descriptor(content)
+    except discovery_contract.EndpointDescriptorContractError as error:
         raise ProviderServerError(
             f"Cannot parse Provider descriptor {path}: {error}"
         ) from error
-    if not isinstance(document, dict):
-        raise ProviderServerError(f"Provider descriptor is invalid: {path}")
-    return document

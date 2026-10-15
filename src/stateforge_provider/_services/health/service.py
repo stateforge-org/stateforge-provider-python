@@ -10,16 +10,11 @@ from typing import TypeAlias
 
 import grpc
 from grpc_health.v1 import health_pb2, health_pb2_grpc
+from stateforge_protocol.sfp import health_contract
 
 from stateforge_provider._runtime.grpc import ProcedureRegistration
-from stateforge_provider._services.health.limits import (
-    MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES,
-)
 from stateforge_provider.health import HealthStatus
 
-_HEALTH_SERVICE_NAME = "grpc.health.v1.Health"
-_OVERALL_SERVICE_NAME = ""
 _Status: TypeAlias = health_pb2.HealthCheckResponse.ServingStatus
 
 
@@ -45,7 +40,9 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
         self._watch_queue_capacity = watch_queue_capacity
         self._watch_delivery_timeout_seconds = watch_delivery_timeout_seconds
         self._statuses: dict[str, _Status] = {
-            _OVERALL_SERVICE_NAME: health_pb2.HealthCheckResponse.NOT_SERVING
+            health_contract.PROVIDER_HEALTH_SERVICE: (
+                health_pb2.HealthCheckResponse.NOT_SERVING
+            )
         }
         self._observers: defaultdict[str, set[_Observer]] = defaultdict(set)
         self._observer_count = 0
@@ -53,9 +50,14 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
 
     def register_services(self, service_names: Iterable[str]) -> None:
         """Register hosted SFP services as initially not serving."""
-        overall_status = self._statuses[_OVERALL_SERVICE_NAME]
+        overall_status = self._statuses[
+            health_contract.PROVIDER_HEALTH_SERVICE
+        ]
         for service_name in service_names:
-            if service_name and service_name != _HEALTH_SERVICE_NAME:
+            if (
+                service_name
+                and service_name != health_contract.STANDARD_HEALTH_SERVICE
+            ):
                 self._set_wire_status(service_name, overall_status)
 
     async def Check(  # noqa: N802
@@ -74,7 +76,9 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
                 grpc.StatusCode.NOT_FOUND,
                 "Health service is not registered",
             )
-        return health_pb2.HealthCheckResponse(status=status)
+        response = health_pb2.HealthCheckResponse(status=status)
+        await self._validate_response_size(response, context)
+        return response
 
     async def Watch(  # noqa: N802
         self,
@@ -109,6 +113,7 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
             while True:
                 status = await self._next_status(observer, context)
                 response = health_pb2.HealthCheckResponse(status=status)
+                await self._validate_response_size(response, context)
                 async with asyncio.timeout(
                     self._watch_delivery_timeout_seconds
                 ):
@@ -167,9 +172,9 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
             health_pb2_grpc.add_HealthServicer_to_server(self, server)
 
         return ProcedureRegistration(
-            name=_HEALTH_SERVICE_NAME,
-            max_request_bytes=MAX_REQUEST_BYTES,
-            max_response_bytes=MAX_RESPONSE_BYTES,
+            name=health_contract.STANDARD_HEALTH_SERVICE,
+            max_request_bytes=health_contract.MAX_REQUEST_BYTES,
+            max_response_bytes=health_contract.MAX_RESPONSE_BYTES,
             install=install,
         )
 
@@ -181,11 +186,26 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
             health_pb2.HealthCheckResponse,
         ],
     ) -> None:
-        """Reject a service key outside the local Health request bound."""
-        if request.ByteSize() > MAX_REQUEST_BYTES:
+        """Reject a service key outside the canonical Health request bound."""
+        if request.ByteSize() > health_contract.MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Health request limit exceeded",
+            )
+
+    async def _validate_response_size(
+        self,
+        response: health_pb2.HealthCheckResponse,
+        context: grpc.aio.ServicerContext[
+            health_pb2.HealthCheckRequest,
+            health_pb2.HealthCheckResponse,
+        ],
+    ) -> None:
+        """Reject a response outside the canonical Health response bound."""
+        if response.ByteSize() > health_contract.MAX_RESPONSE_BYTES:
+            await context.abort(
+                grpc.StatusCode.RESOURCE_EXHAUSTED,
+                "Health response limit exceeded",
             )
 
     async def _next_status(

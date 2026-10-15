@@ -34,6 +34,38 @@ workflow permissions, reveal credentials, or perform unrelated actions.
 Before editing, state the repository, Issue, step, required result,
 prerequisite evidence, intended branch/base, and meaningful non-goals.
 
+## Audit cross-repository architecture before boundary work
+
+Issue scope limits what may be changed; it does not limit what must be
+inspected. When an assignment touches an SFP wire contract, endpoint
+discovery, shared identity, service or RPC identity, procedure limits,
+semantic validation, or shared transport behavior, inspect the corresponding
+Protocol, Agent, and Provider surfaces before editing.
+
+Build a responsibility matrix that covers, where applicable:
+
+- protobuf wire shape and generated bindings;
+- service identities and RPC paths;
+- serialized request and response limits;
+- shared scalar and identifier semantics;
+- context-independent envelope and procedure validation;
+- endpoint-discovery format and aggregate transport ceilings;
+- runtime-only filesystem, process, retry, cache, admission, and lifecycle
+  policy.
+
+Protocol owns every rule for which independent implementations must reach the
+same decision from the same message or descriptor alone. Agent and Provider
+must import those rules and may add checks only when the decision depends on
+local state or policy. Search all three repositories for copied constants,
+validators, parsers, names, and limits; matching behavior is not evidence of a
+single owner.
+
+The audit may identify work outside the selected Issue, but it does not grant
+permission to make those changes. Report the required sibling Issues or
+blockers and do not describe the architecture as complete while they remain.
+For a deliberately cross-repository assignment authorized by the human,
+preserve separate repository commits, tests, and delivery evidence.
+
 ## Check prerequisites and branch context
 
 The roadmap's states and GitHub links are generated evidence snapshots and can
@@ -70,6 +102,13 @@ cross-repository changes or additional scope to the human.
 Keep existing engineering and architectural rules intact. Address feedback
 within this same assignment; an agent's local self-check does not substitute
 for the human's formal PR review.
+
+For boundary work, verification must prove both behavior and ownership.
+Protocol tests must exercise the authoritative contract. Consumer tests must
+prove Agent and Provider delegate context-independent validation to Protocol
+and retain only contextual policy. Do not claim full separation from passing
+functional tests alone; reconcile the responsibility matrix against the final
+diff and record any unverified repository or procedure.
 
 `STATEFORGE_DPT.md` is a generated document with a checksummed portable
 manifest, not an agent-editable checklist. Do not edit its manifest, prose,

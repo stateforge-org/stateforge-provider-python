@@ -13,9 +13,14 @@ from uuid import UUID, uuid4
 
 import grpc
 import pytest
+from stateforge_protocol.sfp import primitives
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
+)
+from stateforge_protocol.sfp.bootstrap.v1 import contract as bootstrap_contract
+from stateforge_protocol.sfp.endpoint_discovery.v1 import (
+    contract as discovery_contract,
 )
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 
@@ -25,7 +30,6 @@ from stateforge_provider._runtime.configuration import (
     ProviderRuntimeLimits,
 )
 from stateforge_provider._runtime.descriptor import (
-    _MAXIMUM_DESCRIPTOR_BYTES,
     _read_descriptor,
 )
 from stateforge_provider._runtime.grpc import endpoint_message_limits
@@ -35,11 +39,9 @@ from stateforge_provider._runtime.server import (
     ProviderServerError,
 )
 from stateforge_provider._runtime.sessions import SessionRegistry
-from stateforge_provider._services.bootstrap import limits as bootstrap_limits
 from stateforge_provider._services.bootstrap.service import (
     registration as bootstrap_registration,
 )
-from stateforge_provider._services.manifest import limits as manifest_limits
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
 from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
@@ -47,10 +49,7 @@ from stateforge_provider._services.manifest.service import (
 from stateforge_provider.version import SUPPORTED_SFP_VERSIONS
 
 _PROVIDER_INSTANCE_ID = UUID("7f7db7d8-68b4-4f71-9769-065b5c4f941c")
-_UUID_VERSION = 4
 _REPLACEMENT_ENDPOINT_GENERATION = 2
-_DESCRIPTOR_MODE = 0o640
-_SOCKET_MODE = 0o660
 
 
 @pytest.fixture
@@ -159,9 +158,14 @@ async def test_publishes_endpoint_and_negotiates_sfp_1_0(
         assert document["endpoint_generation"] == 1
         descriptor_status = server.descriptor_path.lstat()
         socket_status = server.socket_path.lstat()
-        assert stat.S_IMODE(descriptor_status.st_mode) == _DESCRIPTOR_MODE
+        assert stat.S_IMODE(descriptor_status.st_mode) == (
+            discovery_contract.DESCRIPTOR_MODE
+        )
         assert stat.S_ISSOCK(socket_status.st_mode)
-        assert stat.S_IMODE(socket_status.st_mode) == _SOCKET_MODE
+        assert (
+            stat.S_IMODE(socket_status.st_mode)
+            == discovery_contract.SOCKET_MODE
+        )
         assert socket_status.st_uid == descriptor_status.st_uid
         assert socket_status.st_gid == descriptor_status.st_gid
 
@@ -186,8 +190,14 @@ async def test_publishes_endpoint_and_negotiates_sfp_1_0(
         assert response.endpoint_generation == server.endpoint_generation
         assert response.selected_sfp_version.major == 1
         assert response.selected_sfp_version.minor == 0
-        assert UUID(response.provider_runtime_id).version == _UUID_VERSION
-        assert UUID(response.session_id).version == _UUID_VERSION
+        assert (
+            UUID(response.provider_runtime_id).version
+            == primitives.CANONICAL_UUID_VERSION
+        )
+        assert (
+            UUID(response.session_id).version
+            == primitives.CANONICAL_UUID_VERSION
+        )
 
     assert not server.descriptor_path.exists()
     assert not server.socket_path.exists()
@@ -205,13 +215,13 @@ async def test_bootstrap_request_exact_limit_and_limit_plus_one(
     try:
         exact = _with_serialized_size(
             _request(server.provider_instance_id, server.endpoint_generation),
-            bootstrap_limits.MAX_REQUEST_BYTES,
+            bootstrap_contract.MAX_REQUEST_BYTES,
         )
         assert (await stub.Handshake(exact, timeout=2)).session_id
 
         oversized = _with_serialized_size(
             _request(server.provider_instance_id, server.endpoint_generation),
-            bootstrap_limits.MAX_REQUEST_BYTES + 1,
+            bootstrap_contract.MAX_REQUEST_BYTES + 1,
         )
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await stub.Handshake(oversized, timeout=2)
@@ -222,7 +232,7 @@ async def test_bootstrap_request_exact_limit_and_limit_plus_one(
 
 
 @pytest.mark.asyncio
-async def test_bootstrap_response_exact_limit_and_limit_plus_one(
+async def test_bootstrap_response_limit_precedes_semantic_validation(
     socket_directory: Path,
     monkeypatch,
 ) -> None:
@@ -231,7 +241,7 @@ async def test_bootstrap_response_exact_limit_and_limit_plus_one(
     channel = grpc.aio.insecure_channel(f"unix:{server.socket_path}")
     await asyncio.wait_for(channel.channel_ready(), timeout=2)
     stub = bootstrap_pb2_grpc.BootstrapServiceStub(channel)
-    target_size = bootstrap_limits.MAX_RESPONSE_BYTES
+    target_size = bootstrap_contract.MAX_RESPONSE_BYTES
 
     def negotiate(sessions, version):
         del sessions, version
@@ -239,13 +249,20 @@ async def test_bootstrap_response_exact_limit_and_limit_plus_one(
 
     monkeypatch.setattr(SessionRegistry, "negotiate", negotiate)
     try:
-        response = await stub.Handshake(
-            _request(server.provider_instance_id, server.endpoint_generation),
-            timeout=2,
+        with pytest.raises(grpc.aio.AioRpcError) as semantic_error:
+            await stub.Handshake(
+                _request(
+                    server.provider_instance_id,
+                    server.endpoint_generation,
+                ),
+                timeout=2,
+            )
+        assert semantic_error.value.code() is grpc.StatusCode.INTERNAL
+        assert semantic_error.value.details() == (
+            "Provider produced an invalid Bootstrap response"
         )
-        assert response.ByteSize() == bootstrap_limits.MAX_RESPONSE_BYTES
 
-        target_size = bootstrap_limits.MAX_RESPONSE_BYTES + 1
+        target_size = bootstrap_contract.MAX_RESPONSE_BYTES + 1
         with pytest.raises(grpc.aio.AioRpcError) as error:
             await stub.Handshake(
                 _request(
@@ -274,9 +291,11 @@ async def test_endpoint_modes_do_not_depend_on_process_umask(
 
     try:
         assert stat.S_IMODE(server.descriptor_path.stat().st_mode) == (
-            _DESCRIPTOR_MODE
+            discovery_contract.DESCRIPTOR_MODE
         )
-        assert stat.S_IMODE(server.socket_path.stat().st_mode) == _SOCKET_MODE
+        assert stat.S_IMODE(server.socket_path.stat().st_mode) == (
+            discovery_contract.SOCKET_MODE
+        )
     finally:
         await server.stop()
 
@@ -306,12 +325,12 @@ def test_shared_endpoint_ceiling_uses_only_registered_procedures() -> None:
 
     assert endpoint_message_limits(registrations) == (
         max(
-            bootstrap_limits.MAX_REQUEST_BYTES,
-            manifest_limits.MAX_REQUEST_BYTES,
+            bootstrap_contract.MAX_REQUEST_BYTES,
+            manifest_contract.MAX_REQUEST_BYTES,
         ),
         max(
-            bootstrap_limits.MAX_RESPONSE_BYTES,
-            manifest_limits.MAX_RESPONSE_BYTES,
+            bootstrap_contract.MAX_RESPONSE_BYTES,
+            manifest_contract.MAX_RESPONSE_BYTES,
         ),
     )
     assert (
@@ -366,6 +385,14 @@ def test_rejects_invalid_configuration(socket_directory: Path) -> None:
     for field in ("max_sessions", "max_json_nodes", "max_schema_nodes"):
         with pytest.raises(ValueError, match="positive integer"):
             ProviderRuntimeLimits(**{field: 0})
+    with pytest.raises(ValueError, match="Manifest contract"):
+        ProviderRuntimeLimits(
+            max_json_nodes=manifest_contract.MAX_JSON_NODES + 1
+        )
+    with pytest.raises(ValueError, match="Manifest contract"):
+        ProviderRuntimeLimits(
+            max_schema_nodes=manifest_contract.MAX_SCHEMA_NODES + 1
+        )
 
     with pytest.raises(ValueError, match="shutdown_timeout_seconds"):
         ProviderRuntimeConfiguration(
@@ -509,14 +536,18 @@ async def test_rejects_oversized_descriptor(
     descriptor_path = first_server.descriptor_path
     await first_server.stop()
 
-    descriptor_path.write_bytes(b"x" * (_MAXIMUM_DESCRIPTOR_BYTES + 1))
-    descriptor_path.chmod(_DESCRIPTOR_MODE)
+    descriptor_path.write_bytes(
+        b"x" * (discovery_contract.MAX_DESCRIPTOR_BYTES + 1)
+    )
+    descriptor_path.chmod(discovery_contract.DESCRIPTOR_MODE)
 
     second_server = ProviderServer(_configuration(socket_directory))
     with pytest.raises(ProviderServerError, match="exceeds"):
         await second_server.start()
 
-    assert descriptor_path.stat().st_size == _MAXIMUM_DESCRIPTOR_BYTES + 1
+    assert descriptor_path.stat().st_size == (
+        discovery_contract.MAX_DESCRIPTOR_BYTES + 1
+    )
 
 
 @pytest.mark.asyncio
@@ -543,7 +574,7 @@ def test_rejects_descriptor_not_owned_by_provider(
 ) -> None:
     descriptor_path = socket_directory / "provider.sfp.json"
     descriptor_path.write_text("{}")
-    descriptor_path.chmod(_DESCRIPTOR_MODE)
+    descriptor_path.chmod(discovery_contract.DESCRIPTOR_MODE)
     owner = descriptor_path.stat().st_uid
     monkeypatch.setattr(
         "stateforge_provider._runtime.descriptor.os.geteuid", lambda: owner + 1

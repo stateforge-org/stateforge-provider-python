@@ -48,6 +48,9 @@ logged locally and also fail closed as `NOT_SERVING`.
 
 ## Wire behavior
 
+- The standard Health service identity, empty Provider-wide key, and serialized
+  request/response bounds come from the canonical `stateforge-protocol`
+  contract rather than Provider configuration.
 - The empty service name (`""`) is the authoritative Provider-wide state.
 - The exact hosted Bootstrap and Manifest protobuf service names are also
   registered for diagnostics.

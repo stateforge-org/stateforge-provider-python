@@ -30,11 +30,18 @@ next procedure in the same pull request.
 - The Developer RPC Library and Provider implementation run in the same
   Provider process.
 - SFP uses one multiplexed local gRPC channel per active Provider endpoint.
-- `stateforge-protocol` owns protobuf sources and generated contracts only.
+- `stateforge-protocol` owns protobuf sources and generated bindings, fixed
+  service identities, versioned procedure limits, shared scalar semantics,
+  endpoint descriptor semantics, context-independent validation, and the
+  aggregate shared-endpoint procedure inventory and transport ceilings.
 - `stateforge-provider-python` owns generic Provider server and
   author-facing runtime behavior, not vendor-specific integrations.
 - `stateforge-agent` owns Agent-side coordination, workspaces, and
   BackupEngine tooling without embedding vendor knowledge.
+- Agent and Provider may add validation only when it depends on local process,
+  filesystem, session, retry, cache, admission, or lifecycle state. They map
+  Protocol validation failures into their local error surfaces rather than
+  redefining the rule.
 - Backup engines are in-process Agent tools and never SFP peers.
 - SF-AOP and the Control Plane are mandatory later MVP phases, but must not be
   invented during the active SFP phase.
@@ -66,6 +73,28 @@ their semantics fit.
 
 Do not duplicate the standard gRPC health protocol. Do not add a protobuf solely
 to make every documented procedure appear structurally identical.
+
+## Prove one authoritative owner
+
+Before implementing or reviewing a boundary change, inventory the matching
+surface in Protocol, Agent, and Provider. Include protobuf shape, service and
+RPC identity, message-size bounds, shared identifiers and scalar rules,
+context-independent request and response validation, endpoint discovery, and
+shared transport ceilings. Classify every rule as Protocol-owned or dependent
+on runtime state; do not leave an unclassified literal, parser, or validator.
+
+Search consumers for copies even when their values currently match. Agent and
+Provider must import the authoritative versioned contract instead of mirroring
+numbers, names, regular expressions, UUID parsing, or semantic checks. A local
+wrapper is justified only when it translates errors or combines canonical
+validation with local state.
+
+Verification must include Protocol tests for the normative contract and
+consumer evidence that Agent and Provider delegate to it. Passing equivalent
+behavior in three independent implementations is a failure of ownership, not
+proof of interoperability. Reconcile the inventory against the final diff and
+name any repository or procedure that was not inspected before claiming the
+boundary is complete.
 
 ## Preserve the shared Provider endpoint
 

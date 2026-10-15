@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-_MAXIMUM_PROTOBUF_UINT32 = (2**32) - 1
+from stateforge_protocol.sfp.bootstrap.v1 import validation
 
 
 @dataclass(frozen=True, order=True, slots=True)
@@ -14,12 +14,10 @@ class ProtocolVersion:
 
     def __post_init__(self) -> None:
         """Reject values that cannot be represented by the wire schema."""
-        if not 1 <= self.major <= _MAXIMUM_PROTOBUF_UINT32:
-            raise ValueError(
-                "Protocol major version must be a positive uint32"
-            )
-        if not 0 <= self.minor <= _MAXIMUM_PROTOBUF_UINT32:
-            raise ValueError("Protocol minor version must be a uint32")
+        try:
+            validation.validate_protocol_version(self.major, self.minor)
+        except validation.BootstrapValidationError as error:
+            raise ValueError(str(error)) from error
 
     def __str__(self) -> str:
         """Return the canonical MAJOR.MINOR representation."""

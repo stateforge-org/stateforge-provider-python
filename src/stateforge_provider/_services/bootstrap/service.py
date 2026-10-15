@@ -8,20 +8,15 @@ import grpc
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
+    contract,
+    validation,
 )
 
 from stateforge_provider._runtime.grpc import ProcedureRegistration
-from stateforge_provider._runtime.identity import (
-    ProviderEndpointIdentity,
-    is_canonical_uuid4,
-)
+from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._runtime.sessions import (
     SessionRegistry,
     SessionRegistryClosedError,
-)
-from stateforge_provider._services.bootstrap.limits import (
-    MAX_REQUEST_BYTES,
-    MAX_RESPONSE_BYTES,
 )
 from stateforge_provider.version import SUPPORTED_SFP_VERSIONS, ProtocolVersion
 
@@ -49,36 +44,29 @@ class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
         ],
     ) -> bootstrap_pb2.HandshakeResponse:
         """Validate discovery identity and select the highest wire version."""
-        if request.ByteSize() > MAX_REQUEST_BYTES:
+        if request.ByteSize() > contract.MAX_REQUEST_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Bootstrap request limit exceeded",
             )
         endpoint_identity = self._endpoint_identity
-        if not request.HasField("agent_runtime"):
+        try:
+            validated = validation.validate_handshake_request(request)
+        except validation.BootstrapValidationError as error:
             await context.abort(
                 grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime is required",
+                str(error),
             )
-        if not is_canonical_uuid4(request.agent_runtime.runtime_id):
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime.runtime_id must be a canonical UUIDv4",
-            )
-        if not request.agent_runtime.software_version:
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "agent_runtime.software_version is required",
-            )
-        if request.expected_provider_instance_id != str(
-            endpoint_identity.provider_instance_id
+        if (
+            validated.expected_provider_instance_id
+            != endpoint_identity.provider_instance_id
         ):
             await context.abort(
                 grpc.StatusCode.FAILED_PRECONDITION,
                 "Expected Provider identity does not match this endpoint",
             )
         if (
-            request.expected_endpoint_generation
+            validated.expected_endpoint_generation
             != endpoint_identity.endpoint_generation
         ):
             await context.abort(
@@ -86,16 +74,10 @@ class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
                 "Expected endpoint generation does not match this endpoint",
             )
 
-        try:
-            offered_versions = {
-                ProtocolVersion(major=version.major, minor=version.minor)
-                for version in request.supported_sfp_versions
-            }
-        except ValueError:
-            await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                "supported_sfp_versions contains an invalid wire version",
-            )
+        offered_versions = {
+            ProtocolVersion(major=version.major, minor=version.minor)
+            for version in validated.supported_sfp_versions
+        }
         selected_versions = offered_versions.intersection(
             SUPPORTED_SFP_VERSIONS
         )
@@ -122,10 +104,17 @@ class BootstrapService(bootstrap_pb2_grpc.BootstrapServiceServicer):
             provider_runtime_id=str(self._provider_runtime_id),
             session_id=session_id,
         )
-        if response.ByteSize() > MAX_RESPONSE_BYTES:
+        if response.ByteSize() > contract.MAX_RESPONSE_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Bootstrap response limit exceeded",
+            )
+        try:
+            validation.validate_handshake_response(response)
+        except validation.BootstrapValidationError:
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "Provider produced an invalid Bootstrap response",
             )
         return response
 
@@ -150,8 +139,8 @@ def registration(
         )
 
     return ProcedureRegistration(
-        name="stateforge.sfp.bootstrap.v1.BootstrapService",
-        max_request_bytes=MAX_REQUEST_BYTES,
-        max_response_bytes=MAX_RESPONSE_BYTES,
+        name=contract.SERVICE_NAME,
+        max_request_bytes=contract.MAX_REQUEST_BYTES,
+        max_response_bytes=contract.MAX_RESPONSE_BYTES,
         install=install,
     )

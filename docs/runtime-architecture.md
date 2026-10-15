@@ -8,7 +8,7 @@ SFP procedure:
 stateforge_provider/
   _runtime/             # shared endpoint and process infrastructure
   _services/
-    bootstrap/           # Handshake implementation and local message limits
+    bootstrap/           # Handshake and canonical contract enforcement
     health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
 ```
@@ -33,10 +33,10 @@ procedures.
 ## Procedure services
 
 Each `_services/<procedure>` package owns that procedure's implementation,
-including its servicer, validation, declarations where applicable, and
-serialized-message limits. A handler still enforces its own exact limit even
-when the shared endpoint ceiling is larger because another procedure is
-registered.
+including its servicer, validation, and declarations where applicable. The
+versioned contract in `stateforge-protocol` owns fixed wire limits and service
+identities. Provider handlers import and enforce those exact values even when
+the shared endpoint ceiling is larger because another procedure is registered.
 
 Versioned protobuf messages, generated bindings, and contract constants remain
 in `stateforge_protocol.sfp.<procedure>.v1`. The Provider library imports those
