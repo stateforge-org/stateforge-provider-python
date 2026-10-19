@@ -40,6 +40,8 @@ _UNKNOWN_REASON = "stateforge.capability_assessment.v1.insufficient_evidence"
 _SUPPORTED_WITH_REQUIREMENTS = (
     capability_assessment_pb2.SUPPORT_STATE_SUPPORTED_WITH_REQUIREMENTS
 )
+_INCOMPATIBLE_EXPLANATION = "A runtime requirement is incompatible"
+_UNKNOWN_EXPLANATION = "Runtime requirement evidence is unavailable"
 
 
 @dataclass(frozen=True, slots=True)
@@ -344,7 +346,12 @@ def _explanation(
 ) -> str:
     """Select a bounded nonempty explanation for a normalized reason."""
     item = next(item for item in evaluated if item.result.outcome is outcome)
-    return item.result.explanation or item.declaration.description
+    if item.result.explanation:
+        return item.result.explanation
+    return {
+        RequirementCheckOutcome.INCOMPATIBLE: _INCOMPATIBLE_EXPLANATION,
+        RequirementCheckOutcome.UNKNOWN: _UNKNOWN_EXPLANATION,
+    }[outcome]
 
 
 def _reason(

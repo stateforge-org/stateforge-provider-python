@@ -104,6 +104,22 @@ class _CapabilityProvider(Provider):
         self.checks["unknown"] += 1
         return RequirementCheckResult.unknown("Evidence is unavailable")
 
+    @requirement_check(
+        "runtime.incompatible_without_explanation",
+        "x" * 1_025,
+    )
+    async def incompatible_without_explanation(
+        self,
+    ) -> RequirementCheckResult:
+        return RequirementCheckResult.incompatible()
+
+    @requirement_check(
+        "runtime.unknown_without_explanation",
+        "x" * 1_025,
+    )
+    async def unknown_without_explanation(self) -> RequirementCheckResult:
+        return RequirementCheckResult.unknown()
+
     @requirement_check("runtime.invalid_result", "Typed result required")
     async def invalid(self) -> RequirementCheckResult:
         self.checks["invalid"] += 1
@@ -184,6 +200,26 @@ class _CapabilityProvider(Provider):
         requires=("runtime.slow",),
     )
     async def slow_operation(self, request: _Input) -> _Output:
+        return await self._operation(request)
+
+    @operation(
+        "example.capability/incompatible_without_explanation@1",
+        requires=("runtime.incompatible_without_explanation",),
+    )
+    async def incompatible_without_explanation_operation(
+        self,
+        request: _Input,
+    ) -> _Output:
+        return await self._operation(request)
+
+    @operation(
+        "example.capability/unknown_without_explanation@1",
+        requires=("runtime.unknown_without_explanation",),
+    )
+    async def unknown_without_explanation_operation(
+        self,
+        request: _Input,
+    ) -> _Output:
         return await self._operation(request)
 
 
@@ -378,6 +414,37 @@ async def test_assesses_over_real_socket_with_deduplication_and_precedence(
     ] == [
         "runtime.unknown",
         "runtime.incompatible",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_uses_bounded_defaults_for_missing_reason_explanations(
+    endpoint_directory: Path,
+) -> None:
+    provider = _CapabilityProvider(endpoint_directory)
+    async with _running(provider) as (
+        capability,
+        bootstrap,
+        manifest,
+        descriptor,
+    ):
+        handshake, snapshot = await _session(bootstrap, manifest, descriptor)
+        request = _request(
+            handshake,
+            snapshot,
+            [
+                "example.capability/incompatible_without_explanation@1",
+                "example.capability/unknown_without_explanation@1",
+            ],
+        )
+        response = await capability.AssessCapabilities(request, timeout=2)
+
+    capability_validation.validate_assessment_exchange(request, response)
+    assert [
+        finding.reasons[0].explanation for finding in response.findings
+    ] == [
+        "A runtime requirement is incompatible",
+        "Runtime requirement evidence is unavailable",
     ]
 
 
