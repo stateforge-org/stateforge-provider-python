@@ -192,10 +192,17 @@ class ManifestDeclaration:
         owner: type,
         *,
         limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
+        additional_runtime_requirements: tuple[RuntimeRequirement, ...] = (),
     ) -> ManifestDeclaration:
         """Inspect class metadata without invoking business methods."""
         try:
-            return cls._discover(owner, limits=limits)
+            return cls._discover(
+                owner,
+                limits=limits,
+                additional_runtime_requirements=(
+                    additional_runtime_requirements
+                ),
+            )
         except ManifestValidationError as error:
             raise ManifestError(str(error)) from error
 
@@ -205,6 +212,7 @@ class ManifestDeclaration:
         owner: type,
         *,
         limits: ProviderRuntimeLimits,
+        additional_runtime_requirements: tuple[RuntimeRequirement, ...],
     ) -> ManifestDeclaration:
         """Build a declaration while the public boundary translates errors."""
         platforms = _sequence(
@@ -221,14 +229,25 @@ class ManifestDeclaration:
         ]
         for item in platform_documents:
             validate_structure(item, "platform", "platforms")
-        requirements = {}
-        for index, requirement in enumerate(
-            _sequence(
-                owner,
-                "runtime_requirements",
-                manifest_contract.MAX_RUNTIME_REQUIREMENTS,
+        declared_requirements = _sequence(
+            owner,
+            "runtime_requirements",
+            manifest_contract.MAX_RUNTIME_REQUIREMENTS,
+        )
+        if not isinstance(additional_runtime_requirements, tuple):
+            raise ManifestError(
+                "runtime_requirements: additional declarations must be a tuple"
             )
+        combined_requirements = (
+            declared_requirements + additional_runtime_requirements
+        )
+        if (
+            len(combined_requirements)
+            > manifest_contract.MAX_RUNTIME_REQUIREMENTS
         ):
+            raise ManifestError("runtime_requirements: entry limit exceeded")
+        requirements = {}
+        for index, requirement in enumerate(combined_requirements):
             path = f"runtime_requirements[{index}]"
             if not isinstance(requirement, RuntimeRequirement):
                 raise ManifestError(f"{path}: expected RuntimeRequirement")
@@ -334,6 +353,19 @@ class ManifestSnapshot:
     """Retain an immutable serialized response template."""
 
     document: bytes
+
+    @property
+    def manifest_revision(self) -> str:
+        """Return the immutable revision served by this snapshot."""
+        return manifest_pb2.GetManifestResponse.FromString(
+            self.document
+        ).manifest_revision
+
+    @property
+    def operation_identifiers(self) -> frozenset[str]:
+        """Return the operations declared by this immutable snapshot."""
+        response = manifest_pb2.GetManifestResponse.FromString(self.document)
+        return frozenset(response.manifest.operations)
 
     def response(self, session_id: str) -> manifest_pb2.GetManifestResponse:
         """Return a fresh complete envelope bound to this validated call."""

@@ -54,9 +54,12 @@ def main() -> None:
         "Provider",
         "ProviderModel",
         "ProviderServerError",
+        "RequirementCheckOutcome",
+        "RequirementCheckResult",
         "RuntimeRequirement",
         "Trigger",
         "operation",
+        "requirement_check",
     }
     missing = sorted(required_api.difference(stateforge_provider.__all__))
     if missing:

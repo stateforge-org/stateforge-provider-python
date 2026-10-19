@@ -47,8 +47,10 @@ The intended public surface consists of:
 - a `Provider` base class;
 - `Provider.run()` for a normal executable entry point;
 - `Provider.serve()` for an existing asynchronous event loop;
-- overridable startup, shutdown, health, and capability hooks;
+- overridable startup, shutdown, and health hooks;
 - an `@operation()` decorator for namespaced operation identifiers;
+- a `@requirement_check()` decorator for read-only runtime prerequisites;
+- typed requirement outcomes without exposing Capability Assessment messages;
 - typed and runtime-validated request and result models;
 - an `OperationContext` for identity, deadlines, cancellation, workspaces,
   and progress reporting;
@@ -61,13 +63,16 @@ the Provider-author API.
 ## Intended author experience
 
 ```python
+from shutil import which
+
 from stateforge_provider import (
-    CapabilityAssessment,
     HealthStatus,
-    OperationContext,
+    Platform,
     Provider,
     ProviderModel,
+    RequirementCheckResult,
     operation,
+    requirement_check,
 )
 
 
@@ -84,6 +89,7 @@ class GitProvider(Provider):
     identity = "stateforge.git"
     display_name = "Git Provider"
     version = "1.0.0"
+    platforms = (Platform("linux", "x86_64"),)
 
     async def on_startup(self) -> None:
         """Initialize Provider resources."""
@@ -97,27 +103,29 @@ class GitProvider(Provider):
         """Report whether the Provider can accept work."""
         return HealthStatus.healthy()
 
-    async def assess_capability(
-        self,
-        operation_identifier: str,
-        target: dict[str, object],
-    ) -> CapabilityAssessment:
-        """Assess an operation against the current target."""
-        return CapabilityAssessment.supported()
+    @requirement_check(
+        "runtime.git.executable",
+        description="The Git executable is available to the Provider",
+    )
+    async def check_git_executable(self) -> RequirementCheckResult:
+        """Inspect one runtime prerequisite without mutating a target."""
+        if which("git") is None:
+            return RequirementCheckResult.incompatible(
+                "The Git executable is unavailable"
+            )
+        return RequirementCheckResult.satisfied()
 
-    @operation("git.resolve_reference")
+    @operation(
+        "stateforge.git/resolve_reference@1",
+        requires=("runtime.git.executable",),
+    )
     async def resolve_reference(
         self,
         request: ResolveReferenceInput,
-        context: OperationContext,
     ) -> ResolveReferenceOutput:
         commit = await self.git.resolve(
             repository=request.repository,
             reference=request.reference,
-        )
-        await context.report_progress(
-            message="Git reference resolved.",
-            percentage=100,
         )
         return ResolveReferenceOutput(commit=commit)
 
@@ -136,9 +144,11 @@ async def main() -> None:
 `run()` owns the event loop. `serve()` runs in the caller's event loop and
 blocks until the Provider shuts down.
 
-The names above define the intended public shape. Renaming or materially
-changing that shape requires an explicit product decision; it must not happen
-accidentally while implementing an internal SFP procedure.
+The requirement declaration and result names above define the implemented
+public capability-assessment shape. `OperationContext` and operation dispatch
+remain later procedure work. Renaming or materially changing the author-facing
+shape requires an explicit product decision; it must not happen accidentally
+while implementing an internal SFP procedure.
 
 ## Operations
 
@@ -154,6 +164,28 @@ The runtime discovers decorated methods, rejects duplicate or invalid
 identifiers, derives their declared schemas, and dispatches SFP requests. The
 default operation registry is in memory. Provider-controlled persistence is
 optional when a Provider needs stronger restart guarantees.
+
+## Dynamic runtime requirements
+
+Capability Assessment is an internal SFP procedure, not an author hook.
+Provider authors declare asynchronous, read-only checks with
+`@requirement_check(identifier, description, version_constraint="")`, then
+reference their stable IDs through `@operation(..., requires=(...))`.
+
+A check returns exactly one typed result: `satisfied`, `unsatisfied`,
+`incompatible`, or `unknown`. The runtime publishes the static requirement
+metadata in the manifest, deduplicates checks across a requested operation
+set, executes each distinct check once, and privately adapts the outcomes to
+P2 findings. Authors never create protobuf messages, findings, sessions,
+correlation identifiers, or response envelopes.
+
+Checks inspect Provider runtime facts such as filesystem access, service
+control, or executable availability. They do not dispatch operations, mutate
+targets, authorize work, or receive a generic target. Exceptions and invalid
+returns become sanitized remote failures while full diagnostics remain local.
+The runtime owns deadlines, cancellation, session and manifest fencing,
+readiness checks, deterministic result ordering, and final response
+validation.
 
 ## Backup and disaster-recovery compliance
 
@@ -190,8 +222,11 @@ does not receive a generic restore command.
 ## Manifest ownership
 
 Provider authors declare metadata, operations, trigger types, model schemas,
-runtime requirements, and compliance roles through the public Python API. They
-do not construct the wire manifest manually.
+static or dynamically checked runtime requirements, and compliance roles
+through the public Python API. They do not construct the wire manifest
+manually. Operation-to-check associations stay private to the Provider
+runtime; schema-1 manifests publish only the existing static requirement
+metadata.
 
 Before publishing an endpoint, the runtime builds and validates the effective
 manifest. Startup fails when declarations are incomplete, conflicting, or
@@ -261,6 +296,7 @@ The Developer RPC Library exclusively owns:
 - handshake and version negotiation;
 - manifest construction and exchange;
 - health-service exposure;
+- capability-assessment fencing, check execution, and result adaptation;
 - operation dispatch, admission, progress, cancellation, and result mapping;
 - trigger publication and acknowledgement; and
 - safe startup, replacement, disconnection, and shutdown behavior.

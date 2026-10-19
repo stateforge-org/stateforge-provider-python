@@ -151,6 +151,10 @@ contract uses Unix-domain sockets and the Agent is packaged as a Linux service.
 Package identity and import checks remain independent and run on Linux, macOS,
 and Windows for Python 3.11, 3.12, and 3.13.
 
+Provider-level tests exercise Capability Assessment over a real Unix socket.
+There is intentionally no installed runtime P2 scenario until A3 supplies the
+real Agent client; CI does not substitute a synthetic Agent-side caller.
+
 ## Evidence and security
 
 Build provenance and checksums are retained with the immutable artifact bundle.

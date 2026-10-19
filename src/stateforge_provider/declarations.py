@@ -53,13 +53,24 @@ class Trigger:
 class _Operation:
     identifier: str
     implements: tuple[str, ...]
+    requires: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _RequirementCheck:
+    identifier: str
+    description: str
+    version_constraint: str
 
 
 _Handler = TypeVar("_Handler", bound=Callable[..., Any])
 
 
 def operation(
-    identifier: str, *, implements: tuple[str, ...] = ()
+    identifier: str,
+    *,
+    implements: tuple[str, ...] = (),
+    requires: tuple[str, ...] = (),
 ) -> Callable[[_Handler], _Handler]:
     """Declare an async method's versioned input/result contract.
 
@@ -69,6 +80,8 @@ def operation(
     claim says the operation conforms to that profile's required schemas and
     behavior. Claims are not permissions or Control Plane contract identifiers
     and are never inferred from a method or model name.
+    ``requires`` contains stable IDs declared by :func:`requirement_check`.
+    The runtime evaluates each distinct check at most once per assessment.
     Inherited methods follow Python's MRO; overriding requires redeclaration.
     """
 
@@ -79,7 +92,33 @@ def operation(
         setattr(  # noqa: B010
             handler,
             "__stateforge_operation__",
-            _Operation(identifier, implements),
+            _Operation(identifier, implements, requires),
+        )
+        return handler
+
+    return decorate
+
+
+def requirement_check(
+    identifier: str,
+    description: str,
+    version_constraint: str = "",
+) -> Callable[[_Handler], _Handler]:
+    """Declare an asynchronous, read-only runtime prerequisite check.
+
+    Decorate a Provider instance method with a ``(self)`` signature returning
+    :class:`~stateforge_provider.RequirementCheckResult`. The runtime publishes
+    the static description in the manifest and privately adapts results to
+    Capability Assessment findings.
+    """
+
+    def decorate(handler: _Handler) -> _Handler:
+        if hasattr(handler, "__stateforge_requirement_check__"):
+            raise ValueError("A requirement check cannot be declared twice")
+        setattr(  # noqa: B010
+            handler,
+            "__stateforge_requirement_check__",
+            _RequirementCheck(identifier, description, version_constraint),
         )
         return handler
 

@@ -37,14 +37,18 @@ Providers must add the required declarations before they can serve R1.
 ## Typed operations, triggers, and configuration
 
 ```python
+from shutil import which
+
 from pydantic import SecretStr
 from stateforge_provider import (
     Platform,
     Provider,
     ProviderModel,
+    RequirementCheckResult,
     RuntimeRequirement,
     Trigger,
     operation,
+    requirement_check,
 )
 
 
@@ -72,7 +76,22 @@ class ReferenceProvider(Provider):
     )
     triggers = (Trigger("example.reference/changed@1", NormalizeResult),)
 
-    @operation("example.reference/normalize@1")
+    @requirement_check(
+        "runtime.git.executable",
+        description="Git is available to normalize repository references",
+        version_constraint=">=2",
+    )
+    async def git_executable(self) -> RequirementCheckResult:
+        if which("git") is None:
+            return RequirementCheckResult.incompatible(
+                "Git executable is unavailable"
+            )
+        return RequirementCheckResult.satisfied()
+
+    @operation(
+        "example.reference/normalize@1",
+        requires=("runtime.git.executable",),
+    )
     async def normalize(self, request: NormalizeInput) -> NormalizeResult:
         return NormalizeResult(reference=request.reference.strip())
 ```
@@ -101,9 +120,47 @@ Operation and trigger identifiers use `namespace/name@major`, with at
 least two lowercase dotted namespace segments and a positive major version.
 An incompatible input/result contract requires a new identifier version.
 Use tuples for platforms, requirements, triggers, and roles.
-Requirements are descriptive only; the runtime does not run probes or
-interpret their version constraints. An empty constraint means no declared
-version restriction.
+Plain `runtime_requirements` declarations are descriptive. Requirements
+declared by `@requirement_check` add an author-owned, dynamic inspection while
+publishing the same static metadata through the schema-1
+`runtime_requirements` map. The runtime does not interpret version-constraint
+syntax; the check must verify whatever the named requirement means. An empty
+constraint means no declared version restriction.
+
+## Dynamic requirement checks
+
+Use `@requirement_check(identifier, description, version_constraint="")` on
+an async `(self)` method returning `RequirementCheckResult`. Associate one or
+more IDs with an operation through `@operation(..., requires=(...))`.
+Operation associations stay private to the Provider runtime and therefore do
+not revise manifest schema 1.
+
+The four results have deliberately narrow meanings:
+
+| Result | Meaning | P2 support effect |
+| --- | --- | --- |
+| `satisfied()` | Current evidence proves the prerequisite is met. | Contributes to `SUPPORTED`. |
+| `unsatisfied()` | The prerequisite is currently unmet but can be satisfied. | `SUPPORTED_WITH_REQUIREMENTS`. |
+| `incompatible(explanation)` | Current evidence proves the operation cannot be supported. | `UNSUPPORTED`. |
+| `unknown(explanation)` | Available evidence cannot decide. | `INDETERMINATE`, unless another result is incompatible. |
+
+Checks inspect Provider-runtime facts such as filesystem access, service
+control, or executable availability. They are read-only: do not create a file
+as a writability probe, dispatch an operation, mutate a target, or treat an
+assessment as authorization. The API intentionally supplies no generic target
+or future operation payload.
+
+For one request, the runtime collects every referenced ID, preserves
+first-reference order, runs each distinct check once, and reuses its result
+across operations. RPC cancellation or a deadline cancels outstanding checks
+where possible. Unhandled exceptions and values other than
+`RequirementCheckResult` become sanitized `INTERNAL` failures; they are never
+silently converted to `unknown`, and full details remain only in local logs.
+
+Startup fails before endpoint publication when a check ID is malformed or
+duplicated, metadata exceeds Protocol bounds, the method is not async with an
+exact `(self)` signature and result annotation, or an operation has a missing,
+duplicate, or oversized requirement reference set.
 
 ## Compliance claims
 
@@ -202,7 +259,7 @@ Install the package and its development dependencies from `pyproject.toml`:
 python -m pip install -e . --group dev --group docs
 ```
 
-This milestone does not implement configuration loading, target assessment,
+This milestone does not implement configuration loading, target-specific assessment,
 dispatch, OperationContext, trigger publication, Agent caching/routing, or
 vendor work. Those remain their own milestones; these declarations are their
 shared input.
