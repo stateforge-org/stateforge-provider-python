@@ -97,6 +97,41 @@ jobs:
           if-no-files-found: warn
           retention-days: ${{ inputs.retention-days }}
 
+  capability:
+    name: Capability Assessment / installed Provider artifacts
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out scenario automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download exact runtime bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/stateforge-provider-bundle
+
+      - name: Run capability-assessment scenario
+        uses: ./.github/actions/scenarios/capability/assessment
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp-capability
+          evidence-directory: evidence/runtime/capability-assessment
+
+      - name: Upload runtime evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.evidence-prefix }}-capability-assessment
+          path: evidence/runtime/capability-assessment
+          if-no-files-found: warn
+          retention-days: ${{ inputs.retention-days }}
+
   full:
     name: ${{ matrix.scenario }} / installed Agent RPM
     if: ${{ inputs.scenario-tier == 'full' }}

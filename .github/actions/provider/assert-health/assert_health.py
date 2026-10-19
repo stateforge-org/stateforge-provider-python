@@ -164,6 +164,7 @@ async def _verify(socket_path: str, unit_name: str) -> dict[str, object]:
             health_contract.PROVIDER_HEALTH_SERVICE,
             health_contract.BOOTSTRAP_SERVICE,
             health_contract.MANIFEST_SERVICE,
+            health_contract.CAPABILITY_ASSESSMENT_SERVICE,
         ):
             response = await stub.Check(
                 health_pb2.HealthCheckRequest(service=service),

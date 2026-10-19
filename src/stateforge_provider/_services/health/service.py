@@ -48,6 +48,14 @@ class ProviderHealthService(health_pb2_grpc.HealthServicer):
         self._observer_count = 0
         self._stopping = False
 
+    def is_serving(self) -> bool:
+        """Return current Provider-wide readiness for local SFP services."""
+        return (
+            not self._stopping
+            and self._statuses[health_contract.PROVIDER_HEALTH_SERVICE]
+            == health_pb2.HealthCheckResponse.SERVING
+        )
+
     def register_services(self, service_names: Iterable[str]) -> None:
         """Register hosted SFP services as initially not serving."""
         overall_status = self._statuses[

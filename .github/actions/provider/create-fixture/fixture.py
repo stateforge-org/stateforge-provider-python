@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import contextlib
+import os
 import signal
 from pathlib import Path
 
@@ -15,9 +16,11 @@ from stateforge_provider import (
     Platform,
     Provider,
     ProviderModel,
+    RequirementCheckResult,
     RuntimeRequirement,
     Trigger,
     operation,
+    requirement_check,
 )
 
 
@@ -119,9 +122,75 @@ class FixtureProvider(Provider):
             raise RuntimeError("fixture health hook failed")
         return self._health_status
 
-    @operation("stateforge.test/echo@1")
+    @requirement_check(
+        "runtime.filesystem.writable",
+        "Provider event directory is writable",
+    )
+    async def writable(self) -> RequirementCheckResult:
+        """Inspect the fixture directory without mutating it."""
+        self._record("requirement:runtime.filesystem.writable")
+        if os.access(self._event_log.parent, os.W_OK):
+            return RequirementCheckResult.satisfied()
+        return RequirementCheckResult.unsatisfied()
+
+    @requirement_check("runtime.pending", "Pending fixture prerequisite")
+    async def pending(self) -> RequirementCheckResult:
+        """Expose a deterministic unmet requirement."""
+        self._record("requirement:runtime.pending")
+        return RequirementCheckResult.unsatisfied()
+
+    @requirement_check(
+        "runtime.incompatible",
+        "Incompatible fixture runtime",
+    )
+    async def incompatible(self) -> RequirementCheckResult:
+        """Expose deterministic negative evidence."""
+        self._record("requirement:runtime.incompatible")
+        return RequirementCheckResult.incompatible("Fixture incompatibility")
+
+    @requirement_check("runtime.unknown", "Unobservable fixture prerequisite")
+    async def unknown(self) -> RequirementCheckResult:
+        """Expose deterministic unknown evidence."""
+        self._record("requirement:runtime.unknown")
+        return RequirementCheckResult.unknown("Fixture evidence unavailable")
+
+    @operation(
+        "stateforge.test/echo@1",
+        requires=("runtime.filesystem.writable",),
+    )
     async def echo(self, request: EchoInput) -> EchoResult:
-        """Declare one typed operation without invoking it in R11."""
+        """Declare one typed operation without invoking it during P2."""
+        self._record("operation:echo")
+        return EchoResult(value=request.value)
+
+    @operation(
+        "stateforge.test/pending@1",
+        requires=("runtime.filesystem.writable", "runtime.pending"),
+    )
+    async def pending_operation(self, request: EchoInput) -> EchoResult:
+        """Declare a supportable operation with an unmet prerequisite."""
+        self._record("operation:pending")
+        return EchoResult(value=request.value)
+
+    @operation(
+        "stateforge.test/unsupported@1",
+        requires=("runtime.unknown", "runtime.incompatible"),
+    )
+    async def unsupported_operation(self, request: EchoInput) -> EchoResult:
+        """Declare an operation with conclusive negative evidence."""
+        self._record("operation:unsupported")
+        return EchoResult(value=request.value)
+
+    @operation(
+        "stateforge.test/indeterminate@1",
+        requires=("runtime.unknown",),
+    )
+    async def indeterminate_operation(
+        self,
+        request: EchoInput,
+    ) -> EchoResult:
+        """Declare an operation whose support cannot be established."""
+        self._record("operation:indeterminate")
         return EchoResult(value=request.value)
 
     def _record(self, event: str) -> None:

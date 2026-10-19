@@ -18,6 +18,12 @@ from stateforge_provider._runtime.grpc import ProcedureRegistration
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._runtime.server import ProviderServer
 from stateforge_provider._runtime.sessions import SessionRegistry
+from stateforge_provider._services.capability_assessment.declaration import (
+    RequirementRegistry,
+)
+from stateforge_provider._services.capability_assessment.service import (
+    registration as capability_assessment_registration,
+)
 from stateforge_provider._services.health.service import ProviderHealthService
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
@@ -150,10 +156,15 @@ class Provider:
             ManifestError: Declarations violate the P1 manifest contract.
             ProviderServerError: Endpoint allocation/publication fails.
         """
+        requirement_registry = RequirementRegistry.discover(type(self))
         declaration = ManifestDeclaration.discover(
             type(self),
             limits=self._configuration.limits,
+            additional_runtime_requirements=(
+                requirement_registry.manifest_requirements
+            ),
         )
+        bound_requirements = requirement_registry.bind(self)
         health_service = ProviderHealthService(
             max_watchers=self._configuration.limits.max_health_watchers,
             watch_queue_capacity=(
@@ -177,7 +188,16 @@ class Provider:
             sessions: SessionRegistry,
         ) -> tuple[ProcedureRegistration, ...]:
             snapshot = declaration.snapshot(identity)
-            return (manifest_registration(snapshot, sessions),)
+            return (
+                manifest_registration(snapshot, sessions),
+                capability_assessment_registration(
+                    endpoint=identity,
+                    snapshot=snapshot,
+                    sessions=sessions,
+                    health=health_service,
+                    requirements=bound_requirements,
+                ),
+            )
 
         def health_registration(
             registrations: Sequence[ProcedureRegistration],

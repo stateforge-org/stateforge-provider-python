@@ -1,0 +1,50 @@
+name: Assert Provider Capability Assessment
+description: Exercise installed P2 directly without claiming Agent-side consumption.
+
+inputs:
+  container-name:
+    description: Fedora container running the installed Provider artifacts.
+    required: true
+  socket-path:
+    description: Generation-specific Provider Unix socket.
+    required: true
+  provider-instance-id:
+    description: Stable Provider installation identity.
+    required: true
+  endpoint-generation:
+    description: Active Provider endpoint generation.
+    required: true
+  event-log:
+    description: Provider fixture event log used to prove check deduplication.
+    required: true
+  evidence-directory:
+    description: Host directory receiving bounded P2 evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Exercise installed Capability Assessment service
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        ENDPOINT_GENERATION: ${{ inputs.endpoint-generation }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        EVENT_LOG: ${{ inputs.event-log }}
+        PROVIDER_INSTANCE_ID: ${{ inputs.provider-instance-id }}
+        SOCKET_PATH: ${{ inputs.socket-path }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier_directory="/opt/stateforge-provider-tests/capability"
+        verifier="${verifier_directory}/assert_capability.py"
+        docker exec "${CONTAINER_NAME}" mkdir -p "${verifier_directory}"
+        docker cp "${ACTION_PATH}/assert_capability.py" \
+          "${CONTAINER_NAME}:${verifier}"
+        docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \
+          --socket-path "${SOCKET_PATH}" \
+          --provider-instance-id "${PROVIDER_INSTANCE_ID}" \
+          --endpoint-generation "${ENDPOINT_GENERATION}" \
+          --event-log "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/capability-assessment.json"

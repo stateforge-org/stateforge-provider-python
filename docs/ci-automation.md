@@ -136,6 +136,9 @@ The runtime suite currently covers:
   shutdown, and cleanup;
 - standard Health Check and Watch on the same Provider socket, including
   initial replay, maintenance, recovery, unknown service, and hook failure;
+- direct P2 Capability Assessment against the installed Provider endpoint,
+  including all four support outcomes, cross-operation check deduplication,
+  canonical exchange validation, and proof that no operation is dispatched;
 - two distinct Provider installations running concurrently;
 - same-installation replacement with a stable identity and newer generation;
 - rejection of malformed Provider discovery data followed by valid recovery;
@@ -150,6 +153,11 @@ real Agent journal. Runtime scenarios run on Linux because the current endpoint
 contract uses Unix-domain sockets and the Agent is packaged as a Linux service.
 Package identity and import checks remain independent and run on Linux, macOS,
 and Windows for Python 3.11, 3.12, and 3.13.
+
+The Capability Assessment scenario calls the Provider service directly using
+the exact installed Provider and Protocol artifacts. It deliberately does not
+claim Agent-side P2 consumption: A3 owns the real Agent client and complete
+Agent-to-Provider Capability Assessment scenario.
 
 ## Evidence and security
 

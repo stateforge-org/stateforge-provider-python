@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 7
+SCENARIO_COUNT = 8
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -29,12 +29,14 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "evidence/collect",
         "package/build",
         "package/verify-installed",
+        "provider/assert-capability",
         "provider/assert-health",
         "provider/crash",
         "provider/create-fixture",
         "provider/start",
         "provider/stop",
         "scenarios/adversarial/invalid-peer",
+        "scenarios/capability/assessment",
         "scenarios/destructive/uninstall-reinstall",
         "scenarios/health/standard-health",
         "scenarios/lifecycle/concurrent-providers",
@@ -189,6 +191,7 @@ def test_fixture_uses_only_the_public_provider_api() -> None:
     assert "stateforge_provider._" not in fixture
     assert "Provider(" in fixture
     assert "@operation(" in fixture
+    assert "@requirement_check(" in fixture
     assert "on_startup" in fixture
     assert "on_shutdown" in fixture
 
@@ -234,6 +237,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "crash-restart",
         "uninstall-reinstall",
         "standard-health",
+        "capability-assessment",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -283,18 +287,50 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert "health:" in workflow
 
 
+def test_capability_scenario_uses_private_p2_service_without_dispatch() -> (
+    None
+):
+    """Prove R3 on installed artifacts without claiming Agent consumption."""
+    scenario = read(
+        ACTIONS / "scenarios" / "capability" / "assessment" / "action.yml"
+    )
+    action = read(ACTIONS / "provider" / "assert-capability" / "action.yml")
+    verifier = read(
+        ACTIONS / "provider" / "assert-capability" / "assert_capability.py"
+    )
+    fixture = read(ACTIONS / "provider" / "create-fixture" / "fixture.py")
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    assert "./.github/actions/agent/install" in scenario
+    assert "./.github/actions/agent/start" in scenario
+    assert "./.github/actions/agent/assert-session" in scenario
+    assert "./.github/actions/provider/assert-capability" in scenario
+    assert "CapabilityAssessmentServiceStub" in verifier
+    assert "validate_assessment_exchange" in verifier
+    assert "requirementCheckCounts" in verifier
+    assert "Capability Assessment dispatched an operation" in verifier
+    assert "@requirement_check(" in fixture
+    assert "requires=(" in fixture
+    assert "docker exec" in action
+    assert "capability-assessment.json" in action
+    assert "capability:" in workflow
+
+
 def test_sfp_wire_contracts_are_protocol_owned() -> None:
     """Prevent Provider-local wire constants from becoming authoritative."""
     bootstrap = SERVICES / "bootstrap"
     health = SERVICES / "health"
     manifest = SERVICES / "manifest"
+    capability = SERVICES / "capability_assessment"
     bootstrap_service = read(bootstrap / "service.py")
     health_service = read(health / "service.py")
     manifest_service = read(manifest / "service.py")
+    capability_service = read(capability / "service.py")
 
     assert not (bootstrap / "limits.py").exists()
     assert not (health / "limits.py").exists()
     assert not (manifest / "limits.py").exists()
+    assert not (capability / "limits.py").exists()
     assert "contract.MAX_REQUEST_BYTES" in bootstrap_service
     assert "contract.MAX_RESPONSE_BYTES" in bootstrap_service
     assert "contract.SERVICE_NAME" in bootstrap_service
@@ -305,8 +341,15 @@ def test_sfp_wire_contracts_are_protocol_owned() -> None:
     assert "contract.MAX_REQUEST_BYTES" in manifest_service
     assert "contract.MAX_RESPONSE_BYTES" in manifest_service
     assert "contract.SERVICE_NAME" in manifest_service
+    assert "contract.MAX_REQUEST_BYTES" in capability_service
+    assert "contract.MAX_RESPONSE_BYTES" in capability_service
+    assert "contract.SERVICE_NAME" in capability_service
+    assert "validation.validate_assess_capabilities_request" in (
+        capability_service
+    )
+    assert "validation.validate_assessment_exchange" in capability_service
 
-    for directory in (bootstrap, health, manifest):
+    for directory in (bootstrap, health, manifest, capability):
         combined = "\n".join(read(path) for path in directory.glob("*.py"))
         assert "MAX_REQUEST_BYTES =" not in combined
         assert "MAX_RESPONSE_BYTES =" not in combined
