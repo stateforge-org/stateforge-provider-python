@@ -246,7 +246,7 @@ def test_author_result_factories_are_typed_and_immutable() -> None:
 
 
 def test_declaration_namespace_helper_has_one_owner() -> None:
-    """Keep class annotation resolution shared across declaration services."""
+    """Keep class reflection shared across declaration services."""
     assert (
         capability_declaration._mro_namespace
         is public_declarations._mro_namespace
@@ -254,4 +254,12 @@ def test_declaration_namespace_helper_has_one_owner() -> None:
     assert (
         manifest_declaration._mro_namespace
         is public_declarations._mro_namespace
+    )
+    assert (
+        capability_declaration._effective_methods
+        is public_declarations._effective_methods
+    )
+    assert (
+        manifest_declaration._effective_methods
+        is public_declarations._effective_methods
     )

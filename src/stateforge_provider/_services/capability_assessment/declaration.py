@@ -5,7 +5,7 @@ from __future__ import annotations
 import inspect
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, get_type_hints
+from typing import get_type_hints
 
 from stateforge_protocol.sfp.capability_assessment.v1 import (
     contract as capability_contract,
@@ -18,6 +18,7 @@ from stateforge_protocol.sfp.manifest.v1.validation import (
 from stateforge_provider._services.manifest.errors import ManifestError
 from stateforge_provider.declarations import (
     RuntimeRequirement,
+    _effective_methods,
     _mro_namespace,
     _Operation,
     _RequirementCheck,
@@ -64,7 +65,15 @@ class RequirementRegistry:
     def _discover(  # noqa: PLR0912
         cls, owner: type
     ) -> RequirementRegistry:
-        methods = _effective_methods(owner)
+        methods, metadata_erased = _effective_methods(
+            owner,
+            metadata_attribute="__stateforge_requirement_check__",
+            metadata_type=_RequirementCheck,
+        )
+        if metadata_erased:
+            raise ManifestError(
+                "requirement_checks: overrides must redeclare metadata"
+            )
         declarations: list[RequirementDeclaration] = []
         identifiers: set[str] = set()
         for method_name, (method, declaring_class) in methods.items():
@@ -187,24 +196,3 @@ class BoundRequirementRegistry:
     declarations: dict[str, RequirementDeclaration]
     checks: dict[str, _BoundCheck]
     operation_requirements: dict[str, tuple[str, ...]]
-
-
-def _effective_methods(owner: type) -> dict[str, tuple[Any, type]]:
-    """Resolve inherited methods while rejecting erased check metadata."""
-    methods: dict[str, tuple[Any, type]] = {}
-    for base in reversed(owner.__mro__):
-        for name, method in vars(base).items():
-            prior = methods.get(name)
-            if getattr(
-                prior[0] if prior is not None else None,
-                "__stateforge_requirement_check__",
-                None,
-            ) is not None and not isinstance(
-                getattr(method, "__stateforge_requirement_check__", None),
-                _RequirementCheck,
-            ):
-                raise ManifestError(
-                    "requirement_checks: overrides must redeclare metadata"
-                )
-            methods[name] = (method, base)
-    return methods

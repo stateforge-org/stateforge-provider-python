@@ -74,6 +74,31 @@ def _mro_namespace(owner: type) -> dict[str, Any]:
     return namespace
 
 
+def _effective_methods(
+    owner: type,
+    *,
+    metadata_attribute: str,
+    metadata_type: type[Any],
+) -> tuple[dict[str, tuple[Any, type]], bool]:
+    """Resolve inherited methods and report erased declaration metadata."""
+    methods: dict[str, tuple[Any, type]] = {}
+    metadata_erased = False
+    for base in reversed(owner.__mro__):
+        for name, method in vars(base).items():
+            prior = methods.get(name)
+            if getattr(
+                prior[0] if prior is not None else None,
+                metadata_attribute,
+                None,
+            ) is not None and not isinstance(
+                getattr(method, metadata_attribute, None),
+                metadata_type,
+            ):
+                metadata_erased = True
+            methods[name] = (method, base)
+    return methods, metadata_erased
+
+
 def operation(
     identifier: str,
     *,

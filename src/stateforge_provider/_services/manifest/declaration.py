@@ -35,6 +35,7 @@ from stateforge_provider.declarations import (
     ProviderModel,
     RuntimeRequirement,
     Trigger,
+    _effective_methods,
     _mro_namespace,
     _Operation,
 )
@@ -72,24 +73,14 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
 
 
 # Keep discovery and its rejection rules adjacent.
-def _operations(  # noqa: PLR0912
-    owner: type, limits: ProviderRuntimeLimits
-) -> dict[str, Any]:
-    methods: dict[str, tuple[Any, type]] = {}
-    for base in reversed(owner.__mro__):
-        for name, method in vars(base).items():
-            prior = methods.get(name)
-            if getattr(
-                prior[0] if prior is not None else None,
-                "__stateforge_operation__",
-                None,
-            ) is not None and not isinstance(
-                getattr(method, "__stateforge_operation__", None), _Operation
-            ):
-                raise ManifestError(
-                    "operations: overrides must redeclare metadata"
-                )
-            methods[name] = (method, base)
+def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
+    methods, metadata_erased = _effective_methods(
+        owner,
+        metadata_attribute="__stateforge_operation__",
+        metadata_type=_Operation,
+    )
+    if metadata_erased:
+        raise ManifestError("operations: overrides must redeclare metadata")
     declared_methods: list[tuple[Any, type, _Operation]] = []
     for method, declaring_class in methods.values():
         metadata = getattr(method, "__stateforge_operation__", None)
