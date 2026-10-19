@@ -36,6 +36,7 @@ _LOGGER = logging.getLogger(__name__)
 _SUPPORTED_WITH_REQUIREMENTS = (
     capability_assessment_pb2.SUPPORT_STATE_SUPPORTED_WITH_REQUIREMENTS
 )
+_UNSATISFIED_EXPLANATION = "A runtime requirement is not satisfied"
 _INCOMPATIBLE_EXPLANATION = "A runtime requirement is incompatible"
 _UNKNOWN_EXPLANATION = "Runtime requirement evidence is unavailable"
 
@@ -330,6 +331,14 @@ class CapabilityAssessmentService(
             )
         elif RequirementCheckOutcome.UNSATISFIED in outcomes:
             support = _SUPPORTED_WITH_REQUIREMENTS
+            reasons = (
+                _reason(
+                    contract.REASON_CODE_REQUIREMENT_UNMET,
+                    _explanation(
+                        evaluated, RequirementCheckOutcome.UNSATISFIED
+                    ),
+                ),
+            )
         else:
             support = capability_assessment_pb2.SUPPORT_STATE_SUPPORTED
         return capability_assessment_pb2.CapabilityFinding(
@@ -378,6 +387,7 @@ def _explanation(
     if item.result.explanation:
         return item.result.explanation
     return {
+        RequirementCheckOutcome.UNSATISFIED: _UNSATISFIED_EXPLANATION,
         RequirementCheckOutcome.INCOMPATIBLE: _INCOMPATIBLE_EXPLANATION,
         RequirementCheckOutcome.UNKNOWN: _UNKNOWN_EXPLANATION,
     }[outcome]

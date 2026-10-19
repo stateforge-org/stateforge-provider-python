@@ -140,16 +140,17 @@ The four results have deliberately narrow meanings:
 | Result | Meaning | P2 support effect |
 | --- | --- | --- |
 | `satisfied()` | Current evidence proves the prerequisite is met. | Contributes to `SUPPORTED`. |
-| `unsatisfied()` | The prerequisite is currently unmet but can be satisfied. | `SUPPORTED_WITH_REQUIREMENTS`. |
+| `unsatisfied(explanation)` | The prerequisite is currently unmet but can be satisfied. | `SUPPORTED_WITH_REQUIREMENTS` with a `requirement_unmet` reason. |
 | `incompatible(explanation)` | Current evidence proves the operation cannot be supported. | `UNSUPPORTED`. |
 | `unknown(explanation)` | Available evidence cannot decide. | `INDETERMINATE`, unless another result is incompatible. |
 
-The `explanation` supplied to `incompatible()` or `unknown()` is copied
-unchanged into the remote P2 response. It is therefore an author-sanitized,
-remote-visible diagnostic: never pass exception text, credentials, paths,
-configured values, or vendor responses. The canonical P2 limit is 1,024
-Unicode code points. Exceeding that limit fails the assessment with a
-sanitized `INTERNAL` response instead of truncating or leaking the value.
+The `explanation` supplied to `unsatisfied()`, `incompatible()`, or
+`unknown()` is copied unchanged into the remote P2 response. It is therefore
+an author-sanitized, remote-visible diagnostic: never pass exception text,
+credentials, paths, configured values, or vendor responses. The canonical P2
+limit is 1,024 Unicode code points. Exceeding that limit fails the assessment
+with a sanitized `INTERNAL` response instead of truncating or leaking the
+value.
 
 Checks inspect Provider-runtime facts such as filesystem access, service
 control, or executable availability. They are read-only: do not create a file

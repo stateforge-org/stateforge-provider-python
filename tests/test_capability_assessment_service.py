@@ -77,6 +77,9 @@ class _CapabilityProvider(Provider):
         self.operation_calls = 0
         self.invalid_result = False
         self.raise_check = False
+        self.unsatisfied_explanation = (
+            "A prerequisite is currently unavailable"
+        )
         self.unknown_explanation = "Evidence is unavailable"
         self.slow_started = asyncio.Event()
         self.slow_release = asyncio.Event()
@@ -93,7 +96,7 @@ class _CapabilityProvider(Provider):
     @requirement_check("runtime.unsatisfied", "Unmet prerequisite")
     async def unsatisfied(self) -> RequirementCheckResult:
         self.checks["unsatisfied"] += 1
-        return RequirementCheckResult.unsatisfied()
+        return RequirementCheckResult.unsatisfied(self.unsatisfied_explanation)
 
     @requirement_check("runtime.incompatible", "Incompatible runtime")
     async def incompatible(self) -> RequirementCheckResult:
@@ -406,6 +409,15 @@ async def test_assesses_over_real_socket_with_deduplication_and_precedence(
         "unknown": 1,
     }
     assert provider.operation_calls == 0
+    unmet = response.findings[2]
+    assert (
+        unmet.reasons[0].reason_code
+        == capability_contract.REASON_CODE_REQUIREMENT_UNMET
+    )
+    assert (
+        unmet.reasons[0].explanation
+        == "A prerequisite is currently unavailable"
+    )
     unsupported = response.findings[3]
     assert (
         unsupported.reasons[0].reason_code
@@ -424,6 +436,7 @@ async def test_uses_bounded_defaults_for_missing_reason_explanations(
     endpoint_directory: Path,
 ) -> None:
     provider = _CapabilityProvider(endpoint_directory)
+    provider.unsatisfied_explanation = ""
     async with _running(provider) as (
         capability,
         bootstrap,
@@ -435,6 +448,7 @@ async def test_uses_bounded_defaults_for_missing_reason_explanations(
             handshake,
             snapshot,
             [
+                "example.capability/unmet@1",
                 "example.capability/incompatible_without_explanation@1",
                 "example.capability/unknown_without_explanation@1",
             ],
@@ -445,6 +459,7 @@ async def test_uses_bounded_defaults_for_missing_reason_explanations(
     assert [
         finding.reasons[0].explanation for finding in response.findings
     ] == [
+        "A runtime requirement is not satisfied",
         "A runtime requirement is incompatible",
         "Runtime requirement evidence is unavailable",
     ]

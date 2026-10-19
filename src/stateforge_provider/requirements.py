@@ -20,10 +20,11 @@ class RequirementCheckResult:
     """Return a requirement outcome without exposing SFP wire models.
 
     ``explanation`` is optional for satisfied and unsatisfied results. It is
-    copied unchanged into the remote P2 response for incompatible and unknown
-    results. Authors must supply sanitized, non-secret text rather than raw
-    exception details. The canonical Protocol limit is 1,024 Unicode code
-    points; the runtime rejects an assessment that exceeds it.
+    copied unchanged into the remote P2 response for unsatisfied,
+    incompatible, and unknown results. Authors must supply sanitized,
+    non-secret text rather than raw exception details. The canonical Protocol
+    limit is 1,024 Unicode code points; the runtime rejects an assessment that
+    exceeds it.
     """
 
     outcome: RequirementCheckOutcome
@@ -43,7 +44,7 @@ class RequirementCheckResult:
 
     @classmethod
     def unsatisfied(cls, explanation: str = "") -> RequirementCheckResult:
-        """Report an unmet prerequisite that can be satisfied later."""
+        """Report an unmet prerequisite with optional remote-safe context."""
         return cls(RequirementCheckOutcome.UNSATISFIED, explanation)
 
     @classmethod
