@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "e2304e21b444f1b1294c7984f65d3b51538a5908e5528f7e64d248b168fdbf49",
+  "fingerprint": "96862d7c553f446b357009cd10d752dfb208e41366da00d5eebfd67ad7fd327f",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 22,
+      "revision": 24,
       "slug": "stateforge"
     },
     "repositories": [
@@ -36,6 +36,12 @@
         "github_default_branch": null,
         "github_full_name": "stateforge-org/stateforge-provider-python",
         "responsibility": "Provider runtime and author-facing integration surface."
+      },
+      {
+        "alias": "sf-aop",
+        "github_default_branch": "main",
+        "github_full_name": "stateforge-org/stateforge-aop",
+        "responsibility": "StateForge Agent Orchestration Protocol"
       }
     ],
     "schema_version": 1,
@@ -2189,6 +2195,91 @@
             "verification_id": "a12-release-closure"
           }
         ]
+      },
+      {
+        "branch_name": "mvp/provider-views-contract",
+        "context_resources": [],
+        "depends_on": [
+          "P1",
+          "P10",
+          "P3",
+          "P4"
+        ],
+        "release": "MVP",
+        "repository_alias": "protocol",
+        "required_result": "Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources.",
+        "sort_order": 35,
+        "step_id": "P11",
+        "title": "[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers",
+        "verification_requirements": []
+      },
+      {
+        "branch_name": "mvp/provider-view-dsl",
+        "context_resources": [],
+        "depends_on": [
+          "P11",
+          "R1",
+          "R11"
+        ],
+        "release": "MVP",
+        "repository_alias": "provider",
+        "required_result": "Provide typed Python authoring constructs that let Provider developers attach declarative views directly to operation and trigger declarations. The DSL must produce the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, or executable frontend extension point.",
+        "sort_order": 36,
+        "step_id": "R12",
+        "title": "[TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL",
+        "verification_requirements": []
+      },
+      {
+        "branch_name": "mvp/provider-presentation-assets",
+        "context_resources": [],
+        "depends_on": [
+          "P11",
+          "R11",
+          "R12"
+        ],
+        "release": "MVP",
+        "repository_alias": "provider",
+        "required_result": "Allow Provider packages to ship the icons, logos, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by their declarative operation and trigger views. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths.",
+        "sort_order": 37,
+        "step_id": "R13",
+        "title": "[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets",
+        "verification_requirements": []
+      },
+      {
+        "branch_name": "mvp/provider-view-manifest-publication",
+        "context_resources": [],
+        "depends_on": [
+          "P11",
+          "R1",
+          "R11",
+          "R12",
+          "R13"
+        ],
+        "release": "MVP",
+        "repository_alias": "provider",
+        "required_result": "Integrate Provider-authored operation views, trigger views, and validated asset references into the existing manifest construction and GetManifest response. Produce deterministic presentation revisions and canonical output while preserving the independent operational manifest revision and all existing session, schema-negotiation, size, and stale-response fences. Presentation-only changes must be observable without changing operation or trigger execution contracts and must not require another SFP endpoint.",
+        "sort_order": 38,
+        "step_id": "R14",
+        "title": "[TASK][MVP] Publish Versioned Provider Views through Manifest Exchange",
+        "verification_requirements": []
+      },
+      {
+        "branch_name": "mvp/provider-view-verification",
+        "context_resources": [],
+        "depends_on": [
+          "P11",
+          "R11",
+          "R12",
+          "R13",
+          "R14"
+        ],
+        "release": "MVP",
+        "repository_alias": "provider",
+        "required_result": "Add conformance and installed-package coverage for operation and trigger view authoring, safe fallback declarations, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting existing operation-admission and trigger-publication behavior, and preserve evidence through the reusable Provider CI/CD framework.",
+        "sort_order": 39,
+        "step_id": "R15",
+        "title": "[TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics",
+        "verification_requirements": []
       }
     ]
   }
@@ -2202,7 +2293,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 22
+**Revision:** 24
 
 ## Repositories
 
@@ -2212,6 +2303,7 @@ STATEFORGE_DPT_MANIFEST -->
 | `protocol` | [stateforge-org/stateforge-protocol](https://github.com/stateforge-org/stateforge-protocol) | Versioned StateForge Protocol wire contracts. |
 | `provider` | [stateforge-org/stateforge-provider-python](https://github.com/stateforge-org/stateforge-provider-python) | Provider runtime and author-facing integration surface. |
 | `control-plane` | [stateforge-org/stateforge-control-plane](https://github.com/stateforge-org/stateforge-control-plane) | StateForge Control Plane |
+| `sf-aop` | [stateforge-org/stateforge-aop](https://github.com/stateforge-org/stateforge-aop) | StateForge Agent Orchestration Protocol |
 
 ## Implementation roadmap
 
@@ -2251,6 +2343,11 @@ STATEFORGE_DPT_MANIFEST -->
 | `A10` | `agent` | **[TASK][MVP] Integrate Agent Backup and Restore Orchestration**<br>## Outcome and ownership  Compose Agent-owned BackupEngine work with optional ordinary Provider operations. The Agent performs physical backup/restore; Providers only execute explicitly configured generic operations through SFP.  ## Required behavior  - Implement a local orchestration boundary that can create an engine backup from an authorized source and restore it to an authorized destination without requiring any Provider-native backup or restore feature. - Allow workflow configuration to invoke an ordinary declared Provider operation before backup, after backup, before restore, or after restore when the managed system needs quiesce, export, resume, import, reload, reconstruction, or verification behavior. - Send those calls through normal P4/P5 operation admission/lifecycle using each operation's own identifier and typed payload/result schema. The Agent and SFP must not recognize a predefined backup/DR role, operation name, payload, or result. - When configured, allocate an A7 workspace and place its authorized path and operation-specific data in the ordinary operation payload. The Agent already owns the path; it does not discover a standardized backup source from the Provider response. - Keep BackupEngine handles, repository credentials, physical storage results, and integrity checks inside the Agent. Validate restored data before any configured Provider post-restore operation and retain staging until all consumers release it. - Preserve immutable invocation identity, cancellation, deadlines, partial effects, and indeterminate outcomes. Do not automatically repeat a Provider operation or engine action after an ambiguous result.  - Extend the reusable A13 installed-Agent scenario catalogue with backup-orchestration scenarios using the exact Agent RPM and packaged engine; flows involving Provider operations must use the exact Provider and Protocol wheels in a separate real process over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover engine-only, prepare-then-create, restore-then-consume, failure, cancellation, ambiguous outcomes, workspace lifetime, credential isolation, and no duplicated side effects.  Test an engine-only create/restore flow for an entity with no native backup API; a prepare-operation-to-engine-create flow; and an engine-restore-to-ordinary-Provider-operation flow. Cover corrupt data, operation rejection/failure, engine failure, cancellation, lost results, workspace lifetime, cleanup, credential isolation, and no duplicated side effects.  ## Non-goals  No Protocol backup/DR contract, Provider compliance layer, hard-coded operation catalogue, vendor-specific Agent code, Control Plane policy selection/Snapshot coordinator, or automatic retry after uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed generic SFP contracts and repository boundaries. Choose orchestration interfaces from current Agent patterns so later SF-AOP/Control Plane plans can authorize the same local actions without redefining SFP. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A13`, `A6`, `A9`, `R6` | `BLOCKED` | — |
 | `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  - Extend the reusable A13 installed-Agent scenario catalogue with deterministic disconnection and recovery coverage using exact artifacts and separate real Agent and Provider processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover channel loss, lost replies and acknowledgements, generation replacement, Agent and Provider restart, retained and lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A4`, `A6`, `P8`, `R9` | `BLOCKED` | — |
 | `A12` | `agent` | **[TASK][MVP] Verify the Complete Local Agent and Provider Runtime**<br>## Outcome and ownership  Verify the complete local Agent/Provider foundation using separate real processes plus an installed BackupEngine/Restic plugin. Prove generic SFP and Agent-owned backup tooling compose without adding backup semantics to the Protocol or Provider runtime.  ## Required behavior  - Exercise discovery/identity/handshake, manifest validation/revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint. - Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Provider knowledge of BackupEngine. - Exercise an engine-only physical backup/restore for an entity with no native backup API. Also exercise an optional ordinary Provider preparation operation before engine create and an optional ordinary Provider consume/reload operation after engine restore. - Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, corrupt storage, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects. - Verify local backup identity/provenance, engine integrity evidence, operation evidence, and workspace ownership remain distinct and available through clean internal coordination boundaries. Do not claim local physical backups are already coordinated Control Plane Snapshots. - Build and clean-install involved distributions, verify packaged contracts/typing/plugin resources/public docs, and pass all applicable gates on the supported runtime/platform matrix.  - Maintain a machine-checked coverage inventory mapping every planned SFP and Agent-owned backup capability to focused scenarios and the full installed-artifact matrix; missing coverage is a release-blocking failure.  ## Acceptance evidence  CI/CD evidence must prove the exact Protocol wheel, Provider wheel, Agent RPM, test BackupEngine package, and Restic integration pass the complete supported Linux runtime matrix.  A repeatable automated real-process matrix proves generic SFP interoperability, engine-only backup/restore, optional Provider-operation choreography, credential isolation, and honest recovery from uncertainty. Record the local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.  ## Non-goals  No SF-AOP/Control Plane implementation, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, production policy engine, or broad architecture migration.  ## Compatibility, discretion, and delivery  Preserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A10`, `A11`, `A13`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `A8`, `A9`, `P9`, `R10` | `BLOCKED` | — |
+| `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers**<br>Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources. | `P1`, `P10`, `P3`, `P4` | `READY` | — |
+| `R12` | `provider` | **[TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL**<br>Provide typed Python authoring constructs that let Provider developers attach declarative views directly to operation and trigger declarations. The DSL must produce the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, or executable frontend extension point. | `P11`, `R1`, `R11` | `BLOCKED` | — |
+| `R13` | `provider` | **[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets**<br>Allow Provider packages to ship the icons, logos, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by their declarative operation and trigger views. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths. | `P11`, `R11`, `R12` | `BLOCKED` | — |
+| `R14` | `provider` | **[TASK][MVP] Publish Versioned Provider Views through Manifest Exchange**<br>Integrate Provider-authored operation views, trigger views, and validated asset references into the existing manifest construction and GetManifest response. Produce deterministic presentation revisions and canonical output while preserving the independent operational manifest revision and all existing session, schema-negotiation, size, and stale-response fences. Presentation-only changes must be observable without changing operation or trigger execution contracts and must not require another SFP endpoint. | `P11`, `R1`, `R11`, `R12`, `R13` | `BLOCKED` | — |
+| `R15` | `provider` | **[TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics**<br>Add conformance and installed-package coverage for operation and trigger view authoring, safe fallback declarations, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting existing operation-admission and trigger-publication behavior, and preserve evidence through the reusable Provider CI/CD framework. | `P11`, `R11`, `R12`, `R13`, `R14` | `BLOCKED` | — |
 
 ## Milestone context contracts
 
@@ -2695,6 +2792,46 @@ _No verification evidence has been declared yet._
 - **integration** · `agent` · `Run the complete installed-artifact matrix with the exact Protocol wheel, Provider wheel, Agent RPM, BackupEngine fixture, and Restic integration in separate processes.` — The shipped system exercises every planned SFP procedure, backup capability, failure boundary, and supported Linux runtime.
 - **integration** · `project` · `Run Protocol contract tests and Agent/Provider ownership-delegation suites against the exact artifacts used by the system matrix.` — Equivalent behavior comes from one canonical contract rather than duplicated implementations.
 - **human** · `project` · `Approve the final responsibility and coverage inventories for every SFP procedure and shared endpoint resource.` — No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed.
+
+### `P11` — [TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R12` — [TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R13` — [TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R14` — [TASK][MVP] Publish Versioned Provider Views through Manifest Exchange
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
+
+### `R15` — [TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics
+
+_No implementation context has been declared yet._
+
+#### Verification contract
+
+_No verification evidence has been declared yet._
 
 
 ## Delivery rules
