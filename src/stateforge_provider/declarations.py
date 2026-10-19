@@ -66,6 +66,14 @@ class _RequirementCheck:
 _Handler = TypeVar("_Handler", bound=Callable[..., Any])
 
 
+def _mro_namespace(owner: type) -> dict[str, Any]:
+    """Collect the class namespace used where a method was declared."""
+    namespace: dict[str, Any] = {}
+    for base in reversed(owner.__mro__):
+        namespace.update(vars(base))
+    return namespace
+
+
 def operation(
     identifier: str,
     *,

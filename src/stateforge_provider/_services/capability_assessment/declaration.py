@@ -18,6 +18,7 @@ from stateforge_protocol.sfp.manifest.v1.validation import (
 from stateforge_provider._services.manifest.errors import ManifestError
 from stateforge_provider.declarations import (
     RuntimeRequirement,
+    _mro_namespace,
     _Operation,
     _RequirementCheck,
 )
@@ -207,11 +208,3 @@ def _effective_methods(owner: type) -> dict[str, tuple[Any, type]]:
                 )
             methods[name] = (method, base)
     return methods
-
-
-def _mro_namespace(owner: type) -> dict[str, Any]:
-    """Collect the class namespace used where a method was declared."""
-    namespace: dict[str, Any] = {}
-    for base in reversed(owner.__mro__):
-        namespace.update(vars(base))
-    return namespace

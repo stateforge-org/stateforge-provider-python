@@ -35,6 +35,7 @@ from stateforge_provider.declarations import (
     ProviderModel,
     RuntimeRequirement,
     Trigger,
+    _mro_namespace,
     _Operation,
 )
 
@@ -68,14 +69,6 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
     if not isinstance(value, tuple) or len(value) > limit:
         raise ManifestError(f"{name}: must be a bounded tuple")
     return value
-
-
-def _mro_namespace(owner: type) -> dict[str, Any]:
-    """Collect the class namespace used where a method was declared."""
-    namespace: dict[str, Any] = {}
-    for base in reversed(owner.__mro__):
-        namespace.update(vars(base))
-    return namespace
 
 
 # Keep discovery and its rejection rules adjacent.

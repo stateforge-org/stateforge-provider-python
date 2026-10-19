@@ -19,9 +19,16 @@ from stateforge_provider import (
     operation,
     requirement_check,
 )
+from stateforge_provider import declarations as public_declarations
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
+from stateforge_provider._services.capability_assessment import (
+    declaration as capability_declaration,
+)
 from stateforge_provider._services.capability_assessment.declaration import (
     RequirementRegistry,
+)
+from stateforge_provider._services.manifest import (
+    declaration as manifest_declaration,
 )
 from stateforge_provider._services.manifest.declaration import (
     ManifestDeclaration,
@@ -236,3 +243,15 @@ def test_author_result_factories_are_typed_and_immutable() -> None:
         RequirementCheckResult("satisfied")  # type: ignore[arg-type]
     with pytest.raises(FrozenInstanceError):
         RequirementCheckResult.satisfied().explanation = "changed"  # type: ignore[misc]
+
+
+def test_declaration_namespace_helper_has_one_owner() -> None:
+    """Keep class annotation resolution shared across declaration services."""
+    assert (
+        capability_declaration._mro_namespace
+        is public_declarations._mro_namespace
+    )
+    assert (
+        manifest_declaration._mro_namespace
+        is public_declarations._mro_namespace
+    )
