@@ -144,6 +144,13 @@ The four results have deliberately narrow meanings:
 | `incompatible(explanation)` | Current evidence proves the operation cannot be supported. | `UNSUPPORTED`. |
 | `unknown(explanation)` | Available evidence cannot decide. | `INDETERMINATE`, unless another result is incompatible. |
 
+The `explanation` supplied to `incompatible()` or `unknown()` is copied
+unchanged into the remote P2 response. It is therefore an author-sanitized,
+remote-visible diagnostic: never pass exception text, credentials, paths,
+configured values, or vendor responses. The canonical P2 limit is 1,024
+Unicode code points. Exceeding that limit fails the assessment with a
+sanitized `INTERNAL` response instead of truncating or leaking the value.
+
 Checks inspect Provider-runtime facts such as filesystem access, service
 control, or executable availability. They are read-only: do not create a file
 as a writability probe, dispatch an operation, mutate a target, or treat an

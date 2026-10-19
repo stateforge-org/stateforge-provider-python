@@ -20,8 +20,10 @@ class RequirementCheckResult:
     """Return a requirement outcome without exposing SFP wire models.
 
     ``explanation`` is optional for satisfied and unsatisfied results. It is
-    used as the sanitized reason for incompatible and unknown results. The
-    runtime validates any emitted diagnostic against the Protocol contract.
+    copied unchanged into the remote P2 response for incompatible and unknown
+    results. Authors must supply sanitized, non-secret text rather than raw
+    exception details. The canonical Protocol limit is 1,024 Unicode code
+    points; the runtime rejects an assessment that exceeds it.
     """
 
     outcome: RequirementCheckOutcome
@@ -46,10 +48,10 @@ class RequirementCheckResult:
 
     @classmethod
     def incompatible(cls, explanation: str = "") -> RequirementCheckResult:
-        """Report evidence that proves the operation cannot be supported."""
+        """Report incompatibility with an optional remote-safe explanation."""
         return cls(RequirementCheckOutcome.INCOMPATIBLE, explanation)
 
     @classmethod
     def unknown(cls, explanation: str = "") -> RequirementCheckResult:
-        """Report that available evidence cannot establish satisfaction."""
+        """Report uncertainty with an optional remote-safe explanation."""
         return cls(RequirementCheckOutcome.UNKNOWN, explanation)

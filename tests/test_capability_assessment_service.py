@@ -77,6 +77,7 @@ class _CapabilityProvider(Provider):
         self.operation_calls = 0
         self.invalid_result = False
         self.raise_check = False
+        self.unknown_explanation = "Evidence is unavailable"
         self.slow_started = asyncio.Event()
         self.slow_release = asyncio.Event()
         self.slow_cancelled = asyncio.Event()
@@ -102,7 +103,7 @@ class _CapabilityProvider(Provider):
     @requirement_check("runtime.unknown", "Unobservable prerequisite")
     async def unknown(self) -> RequirementCheckResult:
         self.checks["unknown"] += 1
-        return RequirementCheckResult.unknown("Evidence is unavailable")
+        return RequirementCheckResult.unknown(self.unknown_explanation)
 
     @requirement_check(
         "runtime.incompatible_without_explanation",
@@ -446,6 +447,35 @@ async def test_uses_bounded_defaults_for_missing_reason_explanations(
         "A runtime requirement is incompatible",
         "Runtime requirement evidence is unavailable",
     ]
+
+
+@pytest.mark.asyncio
+async def test_explicit_reason_explanation_is_remote_visible_and_bounded(
+    endpoint_directory: Path,
+) -> None:
+    provider = _CapabilityProvider(endpoint_directory)
+    provider.unknown_explanation = "x" * 1_024
+    async with _running(provider) as (
+        capability,
+        bootstrap,
+        manifest,
+        descriptor,
+    ):
+        handshake, snapshot = await _session(bootstrap, manifest, descriptor)
+        request = _request(
+            handshake,
+            snapshot,
+            ["example.capability/indeterminate@1"],
+        )
+        response = await capability.AssessCapabilities(request, timeout=2)
+        assert response.findings[0].reasons[0].explanation == "x" * 1_024
+
+        provider.unknown_explanation = "sensitive:" + ("x" * 1_025)
+        with pytest.raises(grpc.aio.AioRpcError) as error:
+            await capability.AssessCapabilities(request, timeout=2)
+
+    assert error.value.code() is grpc.StatusCode.INTERNAL
+    assert "sensitive" not in error.value.details()
 
 
 @pytest.mark.parametrize(
