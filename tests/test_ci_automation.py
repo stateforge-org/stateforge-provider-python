@@ -312,6 +312,9 @@ def test_sfp_wire_contracts_are_protocol_owned() -> None:
     assert "contract.MAX_REQUEST_BYTES" in capability_service
     assert "contract.MAX_RESPONSE_BYTES" in capability_service
     assert "contract.SERVICE_NAME" in capability_service
+    assert "contract.REASON_CODE_REQUIREMENT_UNMET" in capability_service
+    assert "contract.REASON_CODE_INSUFFICIENT_EVIDENCE" in capability_service
+    assert "stateforge.capability_assessment.v1." not in capability_service
     assert "validation.validate_assess_capabilities_request" in (
         capability_service
     )

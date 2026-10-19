@@ -407,8 +407,9 @@ async def test_assesses_over_real_socket_with_deduplication_and_precedence(
     }
     assert provider.operation_calls == 0
     unsupported = response.findings[3]
-    assert unsupported.reasons[0].reason_code.endswith(
-        "unsupported_vendor_state"
+    assert (
+        unsupported.reasons[0].reason_code
+        == capability_contract.REASON_CODE_REQUIREMENT_UNMET
     )
     assert [
         item.requirement_id for item in unsupported.requirement_findings

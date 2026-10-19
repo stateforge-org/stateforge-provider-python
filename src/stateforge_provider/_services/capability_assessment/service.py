@@ -33,10 +33,6 @@ from stateforge_provider.version import ProtocolVersion
 
 _LOGGER = logging.getLogger(__name__)
 
-_UNSUPPORTED_REASON = (
-    "stateforge.capability_assessment.v1.unsupported_vendor_state"
-)
-_UNKNOWN_REASON = "stateforge.capability_assessment.v1.insufficient_evidence"
 _SUPPORTED_WITH_REQUIREMENTS = (
     capability_assessment_pb2.SUPPORT_STATE_SUPPORTED_WITH_REQUIREMENTS
 )
@@ -318,7 +314,7 @@ class CapabilityAssessmentService(
             support = capability_assessment_pb2.SUPPORT_STATE_UNSUPPORTED
             reasons = (
                 _reason(
-                    _UNSUPPORTED_REASON,
+                    contract.REASON_CODE_REQUIREMENT_UNMET,
                     _explanation(
                         evaluated, RequirementCheckOutcome.INCOMPATIBLE
                     ),
@@ -328,7 +324,7 @@ class CapabilityAssessmentService(
             support = capability_assessment_pb2.SUPPORT_STATE_INDETERMINATE
             reasons = (
                 _reason(
-                    _UNKNOWN_REASON,
+                    contract.REASON_CODE_INSUFFICIENT_EVIDENCE,
                     _explanation(evaluated, RequirementCheckOutcome.UNKNOWN),
                 ),
             )
