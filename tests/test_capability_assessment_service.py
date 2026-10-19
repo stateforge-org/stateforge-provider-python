@@ -761,6 +761,46 @@ async def test_enforces_response_boundaries(
 
 
 @pytest.mark.asyncio
+async def test_sanitizes_unexpected_response_construction_failures(
+    endpoint_directory: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    def fail_response(*_args, **_kwargs):
+        raise RuntimeError("sensitive response failure")
+
+    monkeypatch.setattr(
+        CapabilityAssessmentService,
+        "_response",
+        fail_response,
+    )
+    provider = _CapabilityProvider(endpoint_directory)
+    async with _running(provider) as (
+        capability,
+        bootstrap,
+        manifest,
+        descriptor,
+    ):
+        handshake, snapshot = await _session(bootstrap, manifest, descriptor)
+        with (
+            caplog.at_level(logging.ERROR),
+            pytest.raises(grpc.aio.AioRpcError) as error,
+        ):
+            await capability.AssessCapabilities(
+                _request(
+                    handshake,
+                    snapshot,
+                    ["example.capability/supported@1"],
+                ),
+                timeout=2,
+            )
+
+    assert error.value.code() is grpc.StatusCode.INTERNAL
+    assert "sensitive response failure" not in error.value.details()
+    assert "sensitive response failure" in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_delegates_request_and_response_validation_to_protocol(
     endpoint_directory: Path,
     monkeypatch: pytest.MonkeyPatch,

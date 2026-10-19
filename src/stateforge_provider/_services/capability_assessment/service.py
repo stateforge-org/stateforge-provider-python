@@ -77,7 +77,8 @@ class CapabilityAssessmentService(
         self._health = health
         self._requirements = requirements
 
-    async def AssessCapabilities(  # noqa: N802
+    # Keep validation and error translation in one auditable RPC boundary.
+    async def AssessCapabilities(  # noqa: N802, PLR0912
         self,
         request: capability_assessment_pb2.AssessCapabilitiesRequest,
         context: grpc.aio.ServicerContext[
@@ -106,13 +107,23 @@ class CapabilityAssessmentService(
                 "Provider is not ready for Capability Assessment",
             )
 
-        requirement_ids = self._required_checks(request)
         try:
+            requirement_ids = self._required_checks(request)
             results = await self._execute_checks(requirement_ids)
         except _CheckError:
             await context.abort(
                 grpc.StatusCode.INTERNAL,
                 "Provider requirement check failed",
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception(
+                "Provider failed to evaluate Capability Assessment"
+            )
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "Capability Assessment response is unavailable",
             )
 
         if context.cancelled():
@@ -128,8 +139,20 @@ class CapabilityAssessmentService(
                 "Provider readiness changed during Capability Assessment",
             )
 
-        response = self._response(request, results)
-        if response.ByteSize() > contract.MAX_RESPONSE_BYTES:
+        try:
+            response = self._response(request, results)
+            response_size = response.ByteSize()
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception(
+                "Provider failed to construct Capability Assessment response"
+            )
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "Capability Assessment response is unavailable",
+            )
+        if response_size > contract.MAX_RESPONSE_BYTES:
             await context.abort(
                 grpc.StatusCode.RESOURCE_EXHAUSTED,
                 "Capability Assessment response limit exceeded",
@@ -139,6 +162,16 @@ class CapabilityAssessmentService(
         except validation.CapabilityAssessmentValidationError:
             _LOGGER.exception(
                 "Provider produced an invalid Capability Assessment response"
+            )
+            await context.abort(
+                grpc.StatusCode.INTERNAL,
+                "Capability Assessment response is unavailable",
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _LOGGER.exception(
+                "Provider failed to validate Capability Assessment response"
             )
             await context.abort(
                 grpc.StatusCode.INTERNAL,
