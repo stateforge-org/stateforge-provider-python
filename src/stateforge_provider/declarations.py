@@ -53,13 +53,57 @@ class Trigger:
 class _Operation:
     identifier: str
     implements: tuple[str, ...]
+    requires: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class _RequirementCheck:
+    identifier: str
+    description: str
+    version_constraint: str
 
 
 _Handler = TypeVar("_Handler", bound=Callable[..., Any])
 
 
+def _mro_namespace(owner: type) -> dict[str, Any]:
+    """Collect the class namespace used where a method was declared."""
+    namespace: dict[str, Any] = {}
+    for base in reversed(owner.__mro__):
+        namespace.update(vars(base))
+    return namespace
+
+
+def _effective_methods(
+    owner: type,
+    *,
+    metadata_attribute: str,
+    metadata_type: type[Any],
+) -> tuple[dict[str, tuple[Any, type]], bool]:
+    """Resolve inherited methods and report erased declaration metadata."""
+    methods: dict[str, tuple[Any, type]] = {}
+    metadata_erased = False
+    for base in reversed(owner.__mro__):
+        for name, method in vars(base).items():
+            prior = methods.get(name)
+            if getattr(
+                prior[0] if prior is not None else None,
+                metadata_attribute,
+                None,
+            ) is not None and not isinstance(
+                getattr(method, metadata_attribute, None),
+                metadata_type,
+            ):
+                metadata_erased = True
+            methods[name] = (method, base)
+    return methods, metadata_erased
+
+
 def operation(
-    identifier: str, *, implements: tuple[str, ...] = ()
+    identifier: str,
+    *,
+    implements: tuple[str, ...] = (),
+    requires: tuple[str, ...] = (),
 ) -> Callable[[_Handler], _Handler]:
     """Declare an async method's versioned input/result contract.
 
@@ -69,6 +113,8 @@ def operation(
     claim says the operation conforms to that profile's required schemas and
     behavior. Claims are not permissions or Control Plane contract identifiers
     and are never inferred from a method or model name.
+    ``requires`` contains stable IDs declared by :func:`requirement_check`.
+    The runtime evaluates each distinct check at most once per assessment.
     Inherited methods follow Python's MRO; overriding requires redeclaration.
     """
 
@@ -79,7 +125,33 @@ def operation(
         setattr(  # noqa: B010
             handler,
             "__stateforge_operation__",
-            _Operation(identifier, implements),
+            _Operation(identifier, implements, requires),
+        )
+        return handler
+
+    return decorate
+
+
+def requirement_check(
+    identifier: str,
+    description: str,
+    version_constraint: str = "",
+) -> Callable[[_Handler], _Handler]:
+    """Declare an asynchronous, read-only runtime prerequisite check.
+
+    Decorate a Provider instance method with a ``(self)`` signature returning
+    :class:`~stateforge_provider.RequirementCheckResult`. The runtime publishes
+    the static description in the manifest and privately adapts results to
+    Capability Assessment findings.
+    """
+
+    def decorate(handler: _Handler) -> _Handler:
+        if hasattr(handler, "__stateforge_requirement_check__"):
+            raise ValueError("A requirement check cannot be declared twice")
+        setattr(  # noqa: B010
+            handler,
+            "__stateforge_requirement_check__",
+            _RequirementCheck(identifier, description, version_constraint),
         )
         return handler
 

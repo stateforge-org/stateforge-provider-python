@@ -35,6 +35,8 @@ from stateforge_provider.declarations import (
     ProviderModel,
     RuntimeRequirement,
     Trigger,
+    _effective_methods,
+    _mro_namespace,
     _Operation,
 )
 
@@ -70,33 +72,15 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
     return value
 
 
-def _mro_namespace(owner: type) -> dict[str, Any]:
-    """Collect the class namespace used where a method was declared."""
-    namespace: dict[str, Any] = {}
-    for base in reversed(owner.__mro__):
-        namespace.update(vars(base))
-    return namespace
-
-
 # Keep discovery and its rejection rules adjacent.
-def _operations(  # noqa: PLR0912
-    owner: type, limits: ProviderRuntimeLimits
-) -> dict[str, Any]:
-    methods: dict[str, tuple[Any, type]] = {}
-    for base in reversed(owner.__mro__):
-        for name, method in vars(base).items():
-            prior = methods.get(name)
-            if getattr(
-                prior[0] if prior is not None else None,
-                "__stateforge_operation__",
-                None,
-            ) is not None and not isinstance(
-                getattr(method, "__stateforge_operation__", None), _Operation
-            ):
-                raise ManifestError(
-                    "operations: overrides must redeclare metadata"
-                )
-            methods[name] = (method, base)
+def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
+    methods, metadata_erased = _effective_methods(
+        owner,
+        metadata_attribute="__stateforge_operation__",
+        metadata_type=_Operation,
+    )
+    if metadata_erased:
+        raise ManifestError("operations: overrides must redeclare metadata")
     declared_methods: list[tuple[Any, type, _Operation]] = []
     for method, declaring_class in methods.values():
         metadata = getattr(method, "__stateforge_operation__", None)
@@ -192,10 +176,17 @@ class ManifestDeclaration:
         owner: type,
         *,
         limits: ProviderRuntimeLimits = DEFAULT_RUNTIME_LIMITS,
+        additional_runtime_requirements: tuple[RuntimeRequirement, ...] = (),
     ) -> ManifestDeclaration:
         """Inspect class metadata without invoking business methods."""
         try:
-            return cls._discover(owner, limits=limits)
+            return cls._discover(
+                owner,
+                limits=limits,
+                additional_runtime_requirements=(
+                    additional_runtime_requirements
+                ),
+            )
         except ManifestValidationError as error:
             raise ManifestError(str(error)) from error
 
@@ -205,6 +196,7 @@ class ManifestDeclaration:
         owner: type,
         *,
         limits: ProviderRuntimeLimits,
+        additional_runtime_requirements: tuple[RuntimeRequirement, ...],
     ) -> ManifestDeclaration:
         """Build a declaration while the public boundary translates errors."""
         platforms = _sequence(
@@ -221,14 +213,25 @@ class ManifestDeclaration:
         ]
         for item in platform_documents:
             validate_structure(item, "platform", "platforms")
-        requirements = {}
-        for index, requirement in enumerate(
-            _sequence(
-                owner,
-                "runtime_requirements",
-                manifest_contract.MAX_RUNTIME_REQUIREMENTS,
+        declared_requirements = _sequence(
+            owner,
+            "runtime_requirements",
+            manifest_contract.MAX_RUNTIME_REQUIREMENTS,
+        )
+        if not isinstance(additional_runtime_requirements, tuple):
+            raise ManifestError(
+                "runtime_requirements: additional declarations must be a tuple"
             )
+        combined_requirements = (
+            declared_requirements + additional_runtime_requirements
+        )
+        if (
+            len(combined_requirements)
+            > manifest_contract.MAX_RUNTIME_REQUIREMENTS
         ):
+            raise ManifestError("runtime_requirements: entry limit exceeded")
+        requirements = {}
+        for index, requirement in enumerate(combined_requirements):
             path = f"runtime_requirements[{index}]"
             if not isinstance(requirement, RuntimeRequirement):
                 raise ManifestError(f"{path}: expected RuntimeRequirement")
@@ -334,6 +337,19 @@ class ManifestSnapshot:
     """Retain an immutable serialized response template."""
 
     document: bytes
+
+    @property
+    def manifest_revision(self) -> str:
+        """Return the immutable revision served by this snapshot."""
+        return manifest_pb2.GetManifestResponse.FromString(
+            self.document
+        ).manifest_revision
+
+    @property
+    def operation_identifiers(self) -> frozenset[str]:
+        """Return the operations declared by this immutable snapshot."""
+        response = manifest_pb2.GetManifestResponse.FromString(self.document)
+        return frozenset(response.manifest.operations)
 
     def response(self, session_id: str) -> manifest_pb2.GetManifestResponse:
         """Return a fresh complete envelope bound to this validated call."""

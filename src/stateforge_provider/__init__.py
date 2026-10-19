@@ -8,9 +8,14 @@ from stateforge_provider.declarations import (
     RuntimeRequirement,
     Trigger,
     operation,
+    requirement_check,
 )
 from stateforge_provider.health import HealthStatus
 from stateforge_provider.provider import Provider
+from stateforge_provider.requirements import (
+    RequirementCheckOutcome,
+    RequirementCheckResult,
+)
 from stateforge_provider.version import ProtocolVersion
 
 __all__ = [
@@ -21,7 +26,10 @@ __all__ = [
     "Provider",
     "ProviderModel",
     "ProviderServerError",
+    "RequirementCheckOutcome",
+    "RequirementCheckResult",
     "RuntimeRequirement",
     "Trigger",
     "operation",
+    "requirement_check",
 ]

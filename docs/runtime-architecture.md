@@ -9,6 +9,7 @@ stateforge_provider/
   _runtime/             # shared endpoint and process infrastructure
   _services/
     bootstrap/           # Handshake and canonical contract enforcement
+    capability_assessment/ # Private P2 declaration and service adaptation
     health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
 ```
@@ -45,6 +46,14 @@ contracts; it does not copy or regenerate them.
 Health is the intentional exception to that generated-module path: it uses the
 official `grpc.health.v1` bindings from `grpcio-health-checking`, registers the
 actual hosted SFP service names, and adds no StateForge health protobuf.
+
+Capability Assessment combines two private responsibilities. Its declaration
+registry discovers author-facing requirement checks and operation
+associations, while its service validates P2 through the canonical Protocol
+API, enforces active endpoint/session/manifest/readiness fences, executes
+deduplicated checks, and adapts typed results to wire findings. The registry
+publishes only static requirement metadata through the existing manifest
+schema. Provider authors never import this package or any P2 message.
 
 To add a future procedure:
 

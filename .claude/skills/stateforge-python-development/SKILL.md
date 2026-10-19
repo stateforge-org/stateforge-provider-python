@@ -24,6 +24,12 @@ change that leaves the project in a verified state.
 
 - Give each module one cohesive responsibility and keep its dependencies
   explicit. Do not structure a file as though it must be self-contained.
+- Before introducing a helper, search the repository for an existing helper
+  with the same semantics and reuse its established owner when one exists.
+- When no equivalent helper exists, keep domain-specific behavior with its
+  domain. Put behavior that is not domain-specific in the narrowest cohesive
+  application-wide module that can serve every caller; do not duplicate it
+  inside an individual feature or service.
 - Introduce a helper, class, or module only when it improves reuse, clarity, or
   separation of concerns. Do not add wrappers that merely rename one call.
 - Keep related mutable state in one typed object. Do not maintain parallel
@@ -33,7 +39,9 @@ change that leaves the project in a verified state.
 - Keep security and protocol validation linear when a single review surface is
   clearer. Make any complexity suppression narrow and document the reason.
 - Avoid hidden coupling, catch-all utility modules, circular imports, mutable
-  global state, and abstractions created only to satisfy a metric.
+  global state, and abstractions created only to satisfy a metric. A shared
+  module must have a clear responsibility and dependency direction rather than
+  becoming a generic `utils` collection.
 - Use a private third-party interface only when the dependency documents that
   interface and the reason is visible at the integration boundary.
 - Apply these rules automatically whenever production code is created or

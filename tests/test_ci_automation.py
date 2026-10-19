@@ -189,6 +189,7 @@ def test_fixture_uses_only_the_public_provider_api() -> None:
     assert "stateforge_provider._" not in fixture
     assert "Provider(" in fixture
     assert "@operation(" in fixture
+    assert "@requirement_check(" in fixture
     assert "on_startup" in fixture
     assert "on_shutdown" in fixture
 
@@ -288,13 +289,16 @@ def test_sfp_wire_contracts_are_protocol_owned() -> None:
     bootstrap = SERVICES / "bootstrap"
     health = SERVICES / "health"
     manifest = SERVICES / "manifest"
+    capability = SERVICES / "capability_assessment"
     bootstrap_service = read(bootstrap / "service.py")
     health_service = read(health / "service.py")
     manifest_service = read(manifest / "service.py")
+    capability_service = read(capability / "service.py")
 
     assert not (bootstrap / "limits.py").exists()
     assert not (health / "limits.py").exists()
     assert not (manifest / "limits.py").exists()
+    assert not (capability / "limits.py").exists()
     assert "contract.MAX_REQUEST_BYTES" in bootstrap_service
     assert "contract.MAX_RESPONSE_BYTES" in bootstrap_service
     assert "contract.SERVICE_NAME" in bootstrap_service
@@ -305,8 +309,18 @@ def test_sfp_wire_contracts_are_protocol_owned() -> None:
     assert "contract.MAX_REQUEST_BYTES" in manifest_service
     assert "contract.MAX_RESPONSE_BYTES" in manifest_service
     assert "contract.SERVICE_NAME" in manifest_service
+    assert "contract.MAX_REQUEST_BYTES" in capability_service
+    assert "contract.MAX_RESPONSE_BYTES" in capability_service
+    assert "contract.SERVICE_NAME" in capability_service
+    assert "contract.REASON_CODE_REQUIREMENT_UNMET" in capability_service
+    assert "contract.REASON_CODE_INSUFFICIENT_EVIDENCE" in capability_service
+    assert "stateforge.capability_assessment.v1." not in capability_service
+    assert "validation.validate_assess_capabilities_request" in (
+        capability_service
+    )
+    assert "validation.validate_assessment_exchange" in capability_service
 
-    for directory in (bootstrap, health, manifest):
+    for directory in (bootstrap, health, manifest, capability):
         combined = "\n".join(read(path) for path in directory.glob("*.py"))
         assert "MAX_REQUEST_BYTES =" not in combined
         assert "MAX_RESPONSE_BYTES =" not in combined
