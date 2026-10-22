@@ -137,7 +137,14 @@ class Provider:
 
     @final
     def run(self) -> None:
-        """Run to completion with an owned event loop and signal handlers."""
+        """Run to completion with an owned event loop and signal handlers.
+
+        A graceful shutdown returns normally. Fatal lifecycle failures
+        propagate to the entry point rather than being translated into a
+        framework-owned process status. Under the standard Python entry-point
+        pattern, those outcomes produce process status ``0`` and ``1``
+        respectively.
+        """
 
         async def run_with_signals() -> None:
             self._install_signal_handlers()
@@ -150,7 +157,8 @@ class Provider:
         """Validate declarations and serve on the caller's event loop.
 
         The caller retains signal-handler ownership and may initiate shutdown
-        by calling :meth:`request_shutdown`.
+        by calling :meth:`request_shutdown`. This method returns or raises to
+        its caller and never chooses a process exit status.
 
         Raises:
             ManifestError: Declarations violate the P1 manifest contract.

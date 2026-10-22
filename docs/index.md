@@ -57,3 +57,7 @@ An application that already owns an event loop calls
 `.claude/PROVIDER_AUTHORING_VISION.md` for the complete intended author
 experience, including operations, capability assessment, and backup/disaster
 recovery compliance, which land incrementally as their SFP procedures do.
+
+See [Process lifecycle and exit behavior](process-lifecycle.md) for the
+standard `run()` process contract, graceful signal handling, embedded
+`serve()` ownership, and application-specific status guidance.

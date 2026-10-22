@@ -72,3 +72,6 @@ Provider-wide `SERVING` does not prove that the Agent accepted the manifest,
 that a target supports a particular operation, or that an operation is
 authorized. The Agent derives operational eligibility from health together
 with current transport, handshake, generation, session, and manifest state.
+Health states are not process exit statuses; see
+[Process lifecycle and exit behavior](process-lifecycle.md) for the separate
+executable contract.

@@ -15,7 +15,8 @@ from stateforge_protocol.sfp import health_contract
 from stateforge_provider._runtime.grpc import ProcedureRegistration
 from stateforge_provider.health import HealthStatus
 
-_Status: TypeAlias = health_pb2.HealthCheckResponse.ServingStatus
+# Protobuf enum fields are represented as integers in the Python runtime.
+_Status: TypeAlias = int
 
 
 @dataclass(eq=False, slots=True)
