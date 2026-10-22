@@ -61,6 +61,14 @@ docs = [
 ]
 
 
+[tool.uv]
+environments = ["python_version == '3.13'"]
+
+
+[tool.uv.sources]
+stateforge-protocol = { git = "https://github.com/stateforge-org/stateforge-protocol.git", rev = "a4c077a5b86757b1120b229c048aa0a4cbb9f147" }
+
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/stateforge_provider"]
 
