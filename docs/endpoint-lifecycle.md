@@ -53,3 +53,6 @@ Health is event-driven rather than polled; see
 semantics.
 See [Runtime package ownership](runtime-architecture.md) for the boundary
 between the shared endpoint and procedure-specific services.
+See [Process lifecycle and exit behavior](process-lifecycle.md) for how normal
+completion and lifecycle failures become observable at executable or embedded
+application boundaries.
