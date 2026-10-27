@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "5cd4d8c0f80c92e5e243d0631ce9922b2b53812dc29cc5fcc81d1a4fa696d81b",
+  "fingerprint": "70fffbbe505641e3a85e92179a14c32dded891896daef172c055181b8a4b2970",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 33,
+      "revision": 34,
       "slug": "stateforge"
     },
     "repositories": [
@@ -2752,7 +2752,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-protobuf",
-            "explanation": "Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service.",
+            "explanation": "Define the first Manifest Exchange presentation snapshot as bounded Provider, operation, and trigger component trees with versioned component identifiers, validated properties and bindings, bounded children, portable fallbacks, content-addressed assets, and declarative renderer-extension requirements—without adding another RPC or transporting executable renderer code.",
             "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
             "repository_alias": "protocol",
             "required": true,
@@ -2764,7 +2764,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-contract",
-            "explanation": "Own presentation-tree, asset, digest, media, and serialized-message limits in the canonical Manifest contract.",
+            "explanation": "Own canonical component-identifier grammar and namespaces, core/custom component and renderer-API compatibility metadata, property/binding/child/fallback limits, tree complexity bounds, extension requirement bounds, assets, digests, revisions, and serialized message ceilings.",
             "path": "src/stateforge_protocol/sfp/manifest/v1/contract.py",
             "repository_alias": "protocol",
             "required": true,
@@ -2776,7 +2776,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-schema",
-            "explanation": "Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata.",
+            "explanation": "Define the strict ProtoJSON shape for Provider-level and operation/trigger presentation roots, recursive component nodes, properties, schema/runtime bindings, children, fallbacks, renderer-extension requirements, assets, and independent presentation revision metadata.",
             "path": "src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json",
             "repository_alias": "protocol",
             "required": true,
@@ -2788,7 +2788,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-validation",
-            "explanation": "Validate declarative presentation structure, resource bounds, content digests, reference integrity, safe media, fallback eligibility, and independent operational/presentation revisions.",
+            "explanation": "Validate component identifiers and namespaces, property shapes, JSON Pointer binding scope, child/fallback rules, tree complexity, renderer-extension requirement metadata, digest/reference integrity, asset safety, operational separation, and independent presentation revisions.",
             "path": "src/stateforge_protocol/sfp/manifest/v1/validation.py",
             "repository_alias": "protocol",
             "required": true,
@@ -2800,7 +2800,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-fixtures",
-            "explanation": "Add canonical valid, invalid, boundary, digest, reference, fallback, and revision-isolation fixtures.",
+            "explanation": "Add canonical Provider, operation-request/result/run, trigger-payload, core-component, custom-component, renderer-requirement, fallback, absent-presentation, boundary, invalid-tree, digest, reference, and revision-isolation fixtures.",
             "path": "tests/fixtures/manifest",
             "repository_alias": "protocol",
             "required": true,
@@ -2812,7 +2812,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-contract-tests",
-            "explanation": "Verify generated declaration shape, service stability, identifier preservation, and revision behavior.",
+            "explanation": "Verify generated Provider presentation trees, component and extension identities, service stability, complete schema-derived fallback, identifier preservation, and independent revision behavior.",
             "path": "tests/test_manifest_contract.py",
             "repository_alias": "protocol",
             "required": true,
@@ -2824,7 +2824,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-validation-tests",
-            "explanation": "Verify complete presentation, asset, safety, limit, and fallback validation semantics.",
+            "explanation": "Verify Provider/operation/trigger component trees, properties, schema/runtime bindings, child/fallback semantics, renderer-extension requirements, asset safety, resource limits, and operationally safe fallback.",
             "path": "tests/test_manifest_validation.py",
             "repository_alias": "protocol",
             "required": true,
@@ -2836,7 +2836,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-session-tests",
-            "explanation": "Preserve session fencing and accepted-snapshot behavior while presentation revisions change independently.",
+            "explanation": "Preserve session fencing and accepted operational snapshots while presentation trees, assets, renderer requirements, or presentation revisions change independently.",
             "path": "tests/test_manifest_session_contract.py",
             "repository_alias": "protocol",
             "required": true,
@@ -2848,7 +2848,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-manifest-documentation",
-            "explanation": "Document the declarative view model, revision split, asset rules, validation order, fallback behavior, and author/runtime ownership.",
+            "explanation": "Document schema-authoritative fallback, Provider/operation/trigger component trees, custom component identifiers, separately installed renderer extensions, logical Provider release bundles, revision isolation, asset rules, validation order, and later runtime ownership.",
             "path": "docs/v0.1.0/procedures/provider-manifest.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2884,7 +2884,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-operation-admission-documentation",
-            "explanation": "Explain how operation presentation is looked up by the existing operation identifier without changing admission.",
+            "explanation": "Explain that operation presentation roots bind to the existing operation identifier and authoritative input/result/runtime surfaces without changing admission, authorization, fingerprints, or execution semantics.",
             "path": "docs/v0.1.0/procedures/operation-admission.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2920,7 +2920,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-trigger-publication-documentation",
-            "explanation": "Explain how trigger presentation is looked up by the existing trigger identifier without changing publication or acknowledgement behavior.",
+            "explanation": "Explain that trigger presentation roots bind to the existing trigger identifier and authoritative payload/runtime surfaces without changing publication, acknowledgement, or content-fingerprint behavior.",
             "path": "docs/v0.1.0/procedures/triggers.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2932,7 +2932,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-python-contract-documentation",
-            "explanation": "Document the generated and public validation APIs for presentation declarations, assets, and revisions.",
+            "explanation": "Document generated and public validation APIs for component trees, component/extension identifiers, properties, bindings, children, fallbacks, assets, extension requirements, fallback status, and independent revisions.",
             "path": "docs/v0.1.0/reference/python-contracts.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2944,7 +2944,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-conformance-documentation",
-            "explanation": "Map every Provider Views rule and compatibility invariant to packaged fixtures and executable tests.",
+            "explanation": "Map every component-tree, binding, fallback, renderer-requirement, asset, revision, and existing-procedure compatibility rule to packaged fixtures and executable tests.",
             "path": "docs/v0.1.0/reference/conformance-coverage.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2956,7 +2956,7 @@
           {
             "authority": "canonical",
             "context_id": "p11-ci-documentation",
-            "explanation": "Document local and CI verification of Provider Views, exact artifacts, and retained conformance evidence.",
+            "explanation": "Document local and CI verification of component trees, renderer-extension metadata boundaries, assets, exact artifacts, consumer compatibility, and retained conformance evidence.",
             "path": "docs/v0.1.0/reference/ci-automation.md",
             "repository_alias": "protocol",
             "required": true,
@@ -2968,7 +2968,7 @@
           {
             "authority": "compatibility",
             "context_id": "p11-agent-manifest-consumer",
-            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache and that optional presentation does not alter operational eligibility.",
+            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache, optional presentation trees and renderer requirements do not alter operational eligibility, and the Agent may safely preserve or ignore presentation until its later synchronization milestone.",
             "path": "src/stateforge_agent/_sfp/_services/manifest",
             "repository_alias": "agent",
             "required": true,
@@ -2980,7 +2980,7 @@
           {
             "authority": "compatibility",
             "context_id": "p11-provider-manifest-consumer",
-            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before the later Provider Views authoring milestone.",
+            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before later Provider Python milestones compile the author DSL into Protocol-owned component trees and bundle metadata.",
             "path": "src/stateforge_provider/_services/manifest",
             "repository_alias": "provider",
             "required": true,
@@ -2988,6 +2988,18 @@
             "selector_kind": "directory",
             "selector_value": null,
             "sort_order": 25
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-provider-presentation-documentation",
+            "explanation": "Explain each Provider, operation, and trigger presentation surface; the declarative component-tree model; core versus custom components; logical release-bundle composition; explicit renderer-extension installation; sandbox boundaries; and fallback behavior.",
+            "path": "docs/v0.1.0/procedures/provider-presentation.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 26
           }
         ],
         "depends_on": [
@@ -2999,13 +3011,13 @@
         ],
         "release": "MVP",
         "repository_alias": "protocol",
-        "required_result": "Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources.",
+        "required_result": "Define the first Provider presentation contract carried by Manifest Exchange as an optional, independently revised declarative component tree for the Provider itself and for its manifest-declared operations and triggers. Operational JSON Schemas remain authoritative and always support complete generated fallback UI. Presentation composes bounded Provider, request, run/progress, result/evidence, trigger policy/event, and audit surfaces without adding capabilities, hidden inputs, required fields, identifiers, authorization, or execution meaning.\n\nEach presentation node names a versioned component, carries validated properties and safe schema/runtime bindings, contains bounded children where its component contract permits them, and provides a portable fallback where needed. Define a versioned core component namespace for layout, schema-bound input, content, data display, visualization, media, progress, status, evidence, and StateForge-semantic actions. Permit versioned third-party component identifiers while reserving StateForge-owned namespaces. Define strict identifier, property, binding, condition/repetition, child, fallback, tree-depth/count/byte, digest, reference, asset, and media rules.\n\nA Provider developer may coordinate the Provider runtime, declarative presentation/assets, and an optional custom renderer extension in one signed logical release bundle, but the artifacts retain separate destinations and trust boundaries. SFP may carry only declarative renderer requirements and digest-bound compatibility metadata such as component namespace, extension/API version, and declared permission needs. It must never carry executable renderer code, HTML, CSS, JavaScript, WebAssembly, binaries, remote modules, secrets, or an instruction that installs or activates an extension. Renderer extensions are separately installed and approved by the Control Plane, run behind a narrow sandboxed renderer API, and cannot replace Control Plane navigation, authentication, authorization, policy logic, approvals, canonical state, evidence, or audit. Missing, incompatible, rejected, crashed, or uninstalled renderers must resolve to portable core-component or schema-derived fallback.\n\nKeep presentation revisioning separate from operational manifest revisioning so visual-only changes do not invalidate capability assessment or operation admission, alter lifecycle or trigger fingerprints, or disrupt streams. Operation Admission and Trigger Publication keep their existing services, RPCs, identifiers, payloads, and semantics; presentation resolves through the accepted declaration snapshot without another SFP endpoint.\n\nProtocol owns only the canonical Provider-to-Agent wire model, validation, limits, revisions, fixtures, and documentation. Later Provider Python milestones compile the Python DSL into this IR and package release metadata/assets. Later Agent and SF-AOP milestones synchronize accepted declarations. Later Control Plane milestones own the component registry, Skin integration, explicit extension installation, signature/provenance policy, sandbox runtime, permission enforcement, and rendering.",
         "sort_order": 35,
         "step_id": "P11",
-        "title": "[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers",
+        "title": "[TASK][MVP] Add Versioned Provider Presentation to Manifest Exchange",
         "verification_requirements": [
           {
-            "explanation": "The complete Protocol contract and conformance suite passes with Provider Views enabled.",
+            "explanation": "The complete Protocol contract and conformance suite passes with Provider presentation component trees enabled.",
             "kind": "test",
             "repository_alias": "protocol",
             "required": true,
@@ -3023,56 +3035,74 @@
             "verification_id": "p11-buf-generated"
           },
           {
-            "explanation": "Proves the declarative IR is complete, bounded, identifier-addressed, and optional; absent or invalid presentation never disables an otherwise valid operation or trigger.",
+            "explanation": "Proves the wire contract can describe complete Provider, operation, and trigger surfaces through versioned components, validated properties, bindings, children, and fallbacks while operational schemas remain authoritative.",
             "kind": "test",
             "repository_alias": "protocol",
             "required": true,
             "sort_order": 2,
-            "target": "Focused Manifest Provider Views matrix covering operation views, trigger views, nested declarative components, schema bindings, optional presentation, and safe fallback.",
+            "target": "Focused Manifest matrix covering Provider-level, operation request/run/result/evidence, and trigger policy/event/audit presentation roots built from nested core and custom component nodes.",
             "verification_id": "p11-presentation-contract"
           },
           {
-            "explanation": "A visual-only change preserves the operational manifest revision plus operation-admission and trigger-content fingerprints, changes the presentation revision, and remains distinguishable as a new accepted presentation snapshot; an operational contract change still changes the operational revision.",
+            "explanation": "Core and third-party components are unambiguous and bounded; bindings cannot escape their declared surface or change schema semantics; unavailable components retain complete portable or schema-derived fallback.",
             "kind": "test",
             "repository_alias": "protocol",
             "required": true,
             "sort_order": 3,
-            "target": "Revision-isolation vectors for operational declarations, presentation metadata, and Provider-owned asset bytes.",
-            "verification_id": "p11-revision-isolation"
+            "target": "Component-tree matrix for identifier grammar and namespaces, property schemas, JSON Pointer scope isolation, child rules, depth/count/byte limits, safe conditions/repetition, unknown components, fallback chains, and required-field preservation.",
+            "verification_id": "p11-component-tree-semantics"
           },
           {
-            "explanation": "Every Provider-owned visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.",
+            "explanation": "SFP carries only declarative requirements and digest-bound compatibility metadata. It never carries or activates JavaScript, HTML, CSS, WebAssembly, binaries, remote modules, secrets, or installation instructions; renderer installation remains a separate Control Plane action.",
             "kind": "test",
             "repository_alias": "protocol",
             "required": true,
             "sort_order": 4,
-            "target": "Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, and executable content.",
-            "verification_id": "p11-asset-safety"
+            "target": "Renderer-extension requirement and logical bundle matrix covering component namespace ownership, extension/API compatibility, artifact digests, declared permissions, missing/incompatible extensions, and rejection of embedded executable payloads.",
+            "verification_id": "p11-renderer-extension-boundary"
           },
           {
-            "explanation": "No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation fields never enter admission, lifecycle, publication, acknowledgement, or business-payload semantics; manifests without presentation remain valid.",
-            "kind": "schema",
+            "explanation": "Presentation-only changes preserve the operational manifest revision plus operation-admission and trigger-content fingerprints, change only the presentation revision, and remain distinguishable as a new presentation snapshot; operational schema or identifier changes still change the operational revision and rebind presentation.",
+            "kind": "test",
             "repository_alias": "protocol",
             "required": true,
             "sort_order": 5,
+            "target": "Revision-isolation vectors for operational declarations, component trees, renderer requirements, fallbacks, and Provider-owned asset bytes.",
+            "verification_id": "p11-revision-isolation"
+          },
+          {
+            "explanation": "Every Provider-owned static visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 6,
+            "target": "Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, executable content, and unsafe vector constructs.",
+            "verification_id": "p11-asset-safety"
+          },
+          {
+            "explanation": "No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation and renderer metadata never enter admission, lifecycle, publication, acknowledgement, authorization, or business-payload semantics; manifests without presentation remain valid and schema-renderable.",
+            "kind": "schema",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 7,
             "target": "Descriptor and fingerprint compatibility checks for Manifest Exchange, Operation Admission, and Trigger Publication.",
             "verification_id": "p11-existing-procedure-compatibility"
           },
           {
-            "explanation": "Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider Views ship in reproducible artifacts.",
+            "explanation": "Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider presentation ship in reproducible artifacts.",
             "kind": "integration",
             "repository_alias": "protocol",
             "required": true,
-            "sort_order": 6,
-            "target": "Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute Provider Views validation and fixture tests.",
+            "sort_order": 8,
+            "target": "Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute component-tree, extension-boundary, asset, and fixture validation tests.",
             "verification_id": "p11-installed-artifacts"
           },
           {
-            "explanation": "The additive Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation or assigns execution meaning to views.",
+            "explanation": "The Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation, executes renderer code, or assigns operational meaning to presentation.",
             "kind": "integration",
             "repository_alias": null,
             "required": true,
-            "sort_order": 7,
+            "sort_order": 9,
             "target": "Run current Agent and Provider manifest consumer suites against the exact built Protocol wheel.",
             "verification_id": "p11-consumer-compatibility"
           },
@@ -3081,16 +3111,16 @@
             "kind": "command",
             "repository_alias": "protocol",
             "required": true,
-            "sort_order": 8,
+            "sort_order": 10,
             "target": "ruff format \u002d\u002dcheck . && ruff check . && mypy src && mkdocs build \u002d\u002dstrict",
             "verification_id": "p11-repository-gates"
           },
           {
-            "explanation": "A human confirms the contract is declarative data only, carries no arbitrary HTML/CSS/JavaScript or unrestricted remote resources, adds no SFP endpoint, keeps presentation revisioning separate from operational semantics, and provides a safe schema-derived fallback.",
+            "explanation": "A human confirms the contract is a declarative component tree only; operational schemas remain authoritative; custom renderer code is separately installed and cannot travel through SFP; Provider processes cannot activate extensions; core fallbacks are complete; no SFP endpoint is added; revisioning stays isolated; and Provider Views cannot replace Control Plane shell, authorization, policy, evidence, or audit.",
             "kind": "human",
             "repository_alias": "protocol",
             "required": true,
-            "sort_order": 9,
+            "sort_order": 11,
             "target": "GitHub pull request architecture and security review",
             "verification_id": "p11-human-boundary-review"
           }
@@ -3108,10 +3138,10 @@
         ],
         "release": "MVP",
         "repository_alias": "provider",
-        "required_result": "Provide typed Python authoring constructs that let Provider developers attach declarative views directly to operation and trigger declarations. The DSL must produce the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, or executable frontend extension point.",
+        "required_result": "Provide typed Python authoring constructs for optional Provider-level presentation plus operation request/result and trigger payload presentation overlays. Operational JSON Schemas remain authoritative and generate a complete default UI; the DSL adds only Provider descriptions/branding, optional visual groups, schema-addressed field ordering/grouping, compatible widget/display preferences, and asset references. Groups are optional, ungrouped capabilities remain visible, and presentation cannot hide or redefine capabilities, schemas, required fields, identifiers, or execution semantics. Compile declarations directly into the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, filesystem path, or remote-resource mechanism.",
         "sort_order": 36,
         "step_id": "R12",
-        "title": "[TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL",
+        "title": "[TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL",
         "verification_requirements": []
       },
       {
@@ -3124,7 +3154,7 @@
         ],
         "release": "MVP",
         "repository_alias": "provider",
-        "required_result": "Allow Provider packages to ship the icons, logos, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by their declarative operation and trigger views. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths.",
+        "required_result": "Allow Provider packages to ship the icons, logos, banners, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by Provider-level, operation, and trigger presentation overlays. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, unsafe-vector, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths.",
         "sort_order": 37,
         "step_id": "R13",
         "title": "[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets",
@@ -3142,10 +3172,10 @@
         ],
         "release": "MVP",
         "repository_alias": "provider",
-        "required_result": "Integrate Provider-authored operation views, trigger views, and validated asset references into the existing manifest construction and GetManifest response. Produce deterministic presentation revisions and canonical output while preserving the independent operational manifest revision and all existing session, schema-negotiation, size, and stale-response fences. Presentation-only changes must be observable without changing operation or trigger execution contracts and must not require another SFP endpoint.",
+        "required_result": "Integrate Provider-authored Provider-level presentation, operation input/result overlays, trigger payload overlays, optional visual groups, and validated asset references into existing manifest construction and GetManifest response handling. Compile the Python DSL directly into the Protocol-owned representation, resolve schema pointers against the authoritative operation and trigger schemas, produce deterministic canonical presentation revisions, and preserve the independent operational manifest revision plus every existing session, schema-negotiation, size, and stale-response fence. Presentation-only changes must be observable without changing execution contracts and must not require another SFP endpoint; absent or invalid presentation must leave the complete schema-derived experience available.",
         "sort_order": 38,
         "step_id": "R14",
-        "title": "[TASK][MVP] Publish Versioned Provider Views through Manifest Exchange",
+        "title": "[TASK][MVP] Publish Versioned Provider Presentation through Manifest Exchange",
         "verification_requirements": []
       },
       {
@@ -3160,10 +3190,10 @@
         ],
         "release": "MVP",
         "repository_alias": "provider",
-        "required_result": "Add conformance and installed-package coverage for operation and trigger view authoring, safe fallback declarations, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting existing operation-admission and trigger-publication behavior, and preserve evidence through the reusable Provider CI/CD framework.",
+        "required_result": "Add conformance and installed-package coverage for Provider-level presentation, operation request/result overlays, trigger payload overlays, optional groups, schema-pointer and widget compatibility, complete schema-derived fallback, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that ungrouped and unmentioned capabilities remain visible, invalid presentation cannot disable valid operations or triggers, and a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting operation-admission and trigger-publication behavior. Preserve evidence through the reusable Provider CI/CD framework.",
         "sort_order": 39,
         "step_id": "R15",
-        "title": "[TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics",
+        "title": "[TASK][MVP] Verify Provider Presentation, Assets, and Revision Semantics",
         "verification_requirements": []
       },
       {
@@ -3307,7 +3337,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 33
+**Revision:** 34
 
 ## Repositories
 
@@ -3358,11 +3388,11 @@ STATEFORGE_DPT_MANIFEST -->
 | `A10` | `agent` | **[TASK][MVP] Integrate Agent Backup and Restore Orchestration**<br>## Outcome and ownership  Compose Agent-owned BackupEngine work with optional ordinary Provider operations. The Agent performs physical backup/restore; Providers only execute explicitly configured generic operations through SFP.  ## Required behavior  - Implement a local orchestration boundary that can create an engine backup from an authorized source and restore it to an authorized destination without requiring any Provider-native backup or restore feature. - Allow workflow configuration to invoke an ordinary declared Provider operation before backup, after backup, before restore, or after restore when the managed system needs quiesce, export, resume, import, reload, reconstruction, or verification behavior. - Send those calls through normal P4/P5 operation admission/lifecycle using each operation's own identifier and typed payload/result schema. The Agent and SFP must not recognize a predefined backup/DR role, operation name, payload, or result. - When configured, allocate an A7 workspace and place its authorized path and operation-specific data in the ordinary operation payload. The Agent already owns the path; it does not discover a standardized backup source from the Provider response. - Keep BackupEngine handles, repository credentials, physical storage results, and integrity checks inside the Agent. Validate restored data before any configured Provider post-restore operation and retain staging until all consumers release it. - Preserve immutable invocation identity, cancellation, deadlines, partial effects, and indeterminate outcomes. Do not automatically repeat a Provider operation or engine action after an ambiguous result.  - Extend the reusable A13 installed-Agent scenario catalogue with backup-orchestration scenarios using the exact Agent RPM and packaged engine; flows involving Provider operations must use the exact Provider and Protocol wheels in a separate real process over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover engine-only, prepare-then-create, restore-then-consume, failure, cancellation, ambiguous outcomes, workspace lifetime, credential isolation, and no duplicated side effects.  Test an engine-only create/restore flow for an entity with no native backup API; a prepare-operation-to-engine-create flow; and an engine-restore-to-ordinary-Provider-operation flow. Cover corrupt data, operation rejection/failure, engine failure, cancellation, lost results, workspace lifetime, cleanup, credential isolation, and no duplicated side effects.  ## Non-goals  No Protocol backup/DR contract, Provider compliance layer, hard-coded operation catalogue, vendor-specific Agent code, Control Plane policy selection/Snapshot coordinator, or automatic retry after uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed generic SFP contracts and repository boundaries. Choose orchestration interfaces from current Agent patterns so later SF-AOP/Control Plane plans can authorize the same local actions without redefining SFP. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A13`, `A6`, `A9`, `R6` | `BLOCKED` | — |
 | `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  - Extend the reusable A13 installed-Agent scenario catalogue with deterministic disconnection and recovery coverage using exact artifacts and separate real Agent and Provider processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover channel loss, lost replies and acknowledgements, generation replacement, Agent and Provider restart, retained and lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A4`, `A6`, `P8`, `P9`, `R9` | `BLOCKED` | — |
 | `A12` | `agent` | **[TASK][MVP] Verify the Complete Local Agent and Provider Runtime**<br>## Outcome and ownership  Verify the complete local Agent/Provider foundation using separate real processes plus an installed BackupEngine/Restic plugin. Prove generic SFP and Agent-owned backup tooling compose without adding backup semantics to the Protocol or Provider runtime.  ## Required behavior  - Exercise discovery/identity/handshake, manifest validation/revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint. - Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Provider knowledge of BackupEngine. - Exercise an engine-only physical backup/restore for an entity with no native backup API. Also exercise an optional ordinary Provider preparation operation before engine create and an optional ordinary Provider consume/reload operation after engine restore. - Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, corrupt storage, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects. - Verify local backup identity/provenance, engine integrity evidence, operation evidence, and workspace ownership remain distinct and available through clean internal coordination boundaries. Do not claim local physical backups are already coordinated Control Plane Snapshots. - Build and clean-install involved distributions, verify packaged contracts/typing/plugin resources/public docs, and pass all applicable gates on the supported runtime/platform matrix.  - Maintain a machine-checked coverage inventory mapping every planned SFP and Agent-owned backup capability to focused scenarios and the full installed-artifact matrix; missing coverage is a release-blocking failure.  ## Acceptance evidence  CI/CD evidence must prove the exact Protocol wheel, Provider wheel, Agent RPM, test BackupEngine package, and Restic integration pass the complete supported Linux runtime matrix.  A repeatable automated real-process matrix proves generic SFP interoperability, engine-only backup/restore, optional Provider-operation choreography, credential isolation, and honest recovery from uncertainty. Record the local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.  ## Non-goals  No SF-AOP/Control Plane implementation, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, production policy engine, or broad architecture migration.  ## Compatibility, discretion, and delivery  Preserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A10`, `A11`, `A13`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `A8`, `A9`, `P9`, `R10` | `BLOCKED` | — |
-| `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers**<br>Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources. | `P1`, `P10`, `P3`, `P4`, `P9` | `PENDING` | [Issue #47](https://github.com/stateforge-org/stateforge-protocol/issues/47) |
-| `R12` | `provider` | **[TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL**<br>Provide typed Python authoring constructs that let Provider developers attach declarative views directly to operation and trigger declarations. The DSL must produce the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, or executable frontend extension point. | `P11`, `R1`, `R11`, `R4`, `R5` | `BLOCKED` | — |
-| `R13` | `provider` | **[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets**<br>Allow Provider packages to ship the icons, logos, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by their declarative operation and trigger views. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths. | `P11`, `R11`, `R12` | `BLOCKED` | — |
-| `R14` | `provider` | **[TASK][MVP] Publish Versioned Provider Views through Manifest Exchange**<br>Integrate Provider-authored operation views, trigger views, and validated asset references into the existing manifest construction and GetManifest response. Produce deterministic presentation revisions and canonical output while preserving the independent operational manifest revision and all existing session, schema-negotiation, size, and stale-response fences. Presentation-only changes must be observable without changing operation or trigger execution contracts and must not require another SFP endpoint. | `P11`, `R1`, `R11`, `R12`, `R13` | `BLOCKED` | — |
-| `R15` | `provider` | **[TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics**<br>Add conformance and installed-package coverage for operation and trigger view authoring, safe fallback declarations, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting existing operation-admission and trigger-publication behavior, and preserve evidence through the reusable Provider CI/CD framework. | `P11`, `R11`, `R12`, `R13`, `R14` | `BLOCKED` | — |
+| `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Presentation to Manifest Exchange**<br>Define the first Provider presentation contract carried by Manifest Exchange as an optional, independently revised declarative component tree for the Provider itself and for its manifest-declared operations and triggers. Operational JSON Schemas remain authoritative and always support complete generated fallback UI. Presentation composes bounded Provider, request, run/progress, result/evidence, trigger policy/event, and audit surfaces without adding capabilities, hidden inputs, required fields, identifiers, authorization, or execution meaning.  Each presentation node names a versioned component, carries validated properties and safe schema/runtime bindings, contains bounded children where its component contract permits them, and provides a portable fallback where needed. Define a versioned core component namespace for layout, schema-bound input, content, data display, visualization, media, progress, status, evidence, and StateForge-semantic actions. Permit versioned third-party component identifiers while reserving StateForge-owned namespaces. Define strict identifier, property, binding, condition/repetition, child, fallback, tree-depth/count/byte, digest, reference, asset, and media rules.  A Provider developer may coordinate the Provider runtime, declarative presentation/assets, and an optional custom renderer extension in one signed logical release bundle, but the artifacts retain separate destinations and trust boundaries. SFP may carry only declarative renderer requirements and digest-bound compatibility metadata such as component namespace, extension/API version, and declared permission needs. It must never carry executable renderer code, HTML, CSS, JavaScript, WebAssembly, binaries, remote modules, secrets, or an instruction that installs or activates an extension. Renderer extensions are separately installed and approved by the Control Plane, run behind a narrow sandboxed renderer API, and cannot replace Control Plane navigation, authentication, authorization, policy logic, approvals, canonical state, evidence, or audit. Missing, incompatible, rejected, crashed, or uninstalled renderers must resolve to portable core-component or schema-derived fallback.  Keep presentation revisioning separate from operational manifest revisioning so visual-only changes do not invalidate capability assessment or operation admission, alter lifecycle or trigger fingerprints, or disrupt streams. Operation Admission and Trigger Publication keep their existing services, RPCs, identifiers, payloads, and semantics; presentation resolves through the accepted declaration snapshot without another SFP endpoint.  Protocol owns only the canonical Provider-to-Agent wire model, validation, limits, revisions, fixtures, and documentation. Later Provider Python milestones compile the Python DSL into this IR and package release metadata/assets. Later Agent and SF-AOP milestones synchronize accepted declarations. Later Control Plane milestones own the component registry, Skin integration, explicit extension installation, signature/provenance policy, sandbox runtime, permission enforcement, and rendering. | `P1`, `P10`, `P3`, `P4`, `P9` | `PENDING` | [Issue #47](https://github.com/stateforge-org/stateforge-protocol/issues/47) |
+| `R12` | `provider` | **[TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL**<br>Provide typed Python authoring constructs for optional Provider-level presentation plus operation request/result and trigger payload presentation overlays. Operational JSON Schemas remain authoritative and generate a complete default UI; the DSL adds only Provider descriptions/branding, optional visual groups, schema-addressed field ordering/grouping, compatible widget/display preferences, and asset references. Groups are optional, ungrouped capabilities remain visible, and presentation cannot hide or redefine capabilities, schemas, required fields, identifiers, or execution semantics. Compile declarations directly into the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, filesystem path, or remote-resource mechanism. | `P11`, `R1`, `R11`, `R4`, `R5` | `BLOCKED` | — |
+| `R13` | `provider` | **[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets**<br>Allow Provider packages to ship the icons, logos, banners, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by Provider-level, operation, and trigger presentation overlays. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, unsafe-vector, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths. | `P11`, `R11`, `R12` | `BLOCKED` | — |
+| `R14` | `provider` | **[TASK][MVP] Publish Versioned Provider Presentation through Manifest Exchange**<br>Integrate Provider-authored Provider-level presentation, operation input/result overlays, trigger payload overlays, optional visual groups, and validated asset references into existing manifest construction and GetManifest response handling. Compile the Python DSL directly into the Protocol-owned representation, resolve schema pointers against the authoritative operation and trigger schemas, produce deterministic canonical presentation revisions, and preserve the independent operational manifest revision plus every existing session, schema-negotiation, size, and stale-response fence. Presentation-only changes must be observable without changing execution contracts and must not require another SFP endpoint; absent or invalid presentation must leave the complete schema-derived experience available. | `P11`, `R1`, `R11`, `R12`, `R13` | `BLOCKED` | — |
+| `R15` | `provider` | **[TASK][MVP] Verify Provider Presentation, Assets, and Revision Semantics**<br>Add conformance and installed-package coverage for Provider-level presentation, operation request/result overlays, trigger payload overlays, optional groups, schema-pointer and widget compatibility, complete schema-derived fallback, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that ungrouped and unmentioned capabilities remain visible, invalid presentation cannot disable valid operations or triggers, and a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting operation-admission and trigger-publication behavior. Preserve evidence through the reusable Provider CI/CD framework. | `P11`, `R11`, `R12`, `R13`, `R14` | `BLOCKED` | — |
 | `D0` | `docs` | **[TASK][MVP] Build the Shared StateForge Documentation Theme**<br>## Outcome and ownership  Create the shared StateForge documentation presentation package owned by stateforge-docs. Publish one installable Python distribution, `stateforge-docs-theme`, exposing the MkDocs theme name `stateforge` and extending Material for MkDocs without forking it.  ## Required behavior  - Bundle the official StateForge mark, favicon, brand tokens, typography, spacing, responsive layout, light/dark presentation, navigation treatment, repository link treatment, code styling, and accessible focus/contrast behavior. - Support a common StateForge identity plus explicit component accents for Agent, Provider Python, Protocol, Control Plane, SF-AOP, and future repositories without copying CSS or assets into consumers. - Keep content, navigation, repository metadata, and repository-specific plugins owned by each consuming repository. - Provide stable theme configuration for the version selector and historical-version warning used by later publishing work. - Package templates and static assets reproducibly in wheel and sdist. Do not load branding from a moving branch or remote runtime resource. - Keep Material-specific overrides minimal and documented so a later centrally managed Zensical migration does not require rewriting repository content.  ## Acceptance evidence  A clean environment installs the exact wheel and sdist, selects `theme.name: stateforge`, and builds representative documentation with bundled assets only. Automated tests cover package contents, theme discovery, responsive light/dark rendering, keyboard focus, contrast, logo/favicon resolution, component accents, and absence of consumer-local branding copies.  ## Non-goals  No repository-specific documentation content, no documentation hosting, no release/version deployment, no StateForge runtime code, and no Zensical migration in this milestone. | — | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-docs/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-docs/pull/2) |
 | `D1` | `docs` | **[TASK][MVP] Implement Versioned Documentation Publishing**<br>## Outcome and ownership  Provide one reusable, auditable publishing workflow for versioned StateForge documentation using the shared theme.  ## Required behavior  - Publish immutable documentation snapshots for exact semantic release versions, a mutable `dev` version from the configured development branch, and a `latest` alias pointing to the newest stable release. - Render the version selector on every published site, keep equivalent-page navigation across versions where available, redirect the site root to `latest`, and warn clearly on historical versions. - Build release documentation from the exact release tag or commit and record source revision, theme artifact identity, builder versions, and output evidence. - Provide reusable GitHub workflows and documented local commands. Use least-privilege permissions, concurrency protection, immutable third-party action pins, strict builds, and safe deployment that cannot overwrite unrelated component documentation. - Keep the public URL layout compatible with component-scoped documentation such as `/protocol/0.1.0/`, `/protocol/dev/`, and `/protocol/latest/`. - Pin MkDocs 1.x, Material, Mike, and the shared theme through reproducible dependency resolution. Suppressing the upstream migration warning must not suppress build failures or other diagnostics.  ## Acceptance evidence  Automated deployment tests publish two synthetic releases plus `dev`, update `latest`, preserve the older release unchanged, validate root and alias redirects, exercise the version selector and outdated banner, and prove reruns are idempotent. The workflow emits inspectable provenance and never requires repository-specific copies of publishing logic.  ## Non-goals  No documentation-content rewrite, no product release automation beyond documentation, no floating dependency revisions, and no Zensical migration before its versioning path is deliberately adopted. | `D0` | `READY` | — |
 | `D2` | `docs` | **[TASK][MVP] Define the Shared Documentation Consumer Integration Contract**<br>## Outcome and ownership  Define the stable consumer contract owned by stateforge-docs for integrating the shared StateForge theme and versioned publishing system. This milestone produces reusable artifacts and instructions; each consuming repository owns its own adoption milestone and evidence.  ## Required behavior  - Document the minimal MkDocs consumer configuration, component identity and accent inputs, repository metadata, version-selector settings, and historical-version warning behavior. - Define exact dependency and lockfile requirements so consumers pin a reviewed stateforge-docs-theme artifact instead of following a moving branch. - Expose reusable, typed publishing workflow inputs and outputs for component path, source revision, release version, dev branch, aliases, deployment destination, and retained evidence. - Provide a representative fixture site and validation command that prove theme discovery, packaged assets, strict builds, versioned paths, aliases, redirects, and safe coexistence with other component sites. - Document upgrade, rollback, compatibility, and deprecation procedures, including the centrally managed future migration from Material/MkDocs to Zensical. - Keep repository-specific content, navigation, plugins, generated references, and publication approval in the consuming repository.  ## Acceptance evidence  A clean fixture repository pins and installs the exact shared-theme artifact, builds strictly from the documented minimal configuration, and exercises the reusable publishing workflow for a release and dev version. Contract tests reject missing or invalid component metadata, unpinned theme consumption, unsafe publication paths, and incompatible configuration.  ## Non-goals  No changes to Agent, Protocol, Provider Python, Control Plane, or SF-AOP repositories; no centralization of their content; and no production deployment of consumer documentation. | `D0`, `D1` | `BLOCKED` | — |
@@ -3860,7 +3890,7 @@ _No verification evidence has been declared yet._
 - **integration** · `project` · `Run Protocol contract tests and Agent/Provider ownership-delegation suites against the exact artifacts used by the system matrix.` — Equivalent behavior comes from one canonical contract rather than duplicated implementations.
 - **human** · `project` · `Approve the final responsibility and coverage inventories for every SFP procedure and shared endpoint resource.` — No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed.
 
-### `P11` — [TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers
+### `P11` — [TASK][MVP] Add Versioned Provider Presentation to Manifest Exchange
 
 #### Required context and protected behavior
 
@@ -3872,41 +3902,44 @@ _No verification evidence has been declared yet._
 | `protocol/.claude/skills/stateforge-python-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply typed Python, package-content, testing, and installed-artifact standards. |
 | `protocol/.claude/skills/stateforge-documentation/SKILL.md` | `must_understand` | `canonical` | Yes | Document the contract with the shared StateForge documentation structure, examples, and visual conventions. |
 | `protocol/pyproject.toml` | `must_preserve` | `canonical` | Yes | Preserve supported Python versions, package contents, dependency boundaries, and configured quality gates. |
-| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `expected_to_change` | `canonical` | Yes | Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service. |
-| `protocol/src/stateforge_protocol/sfp/manifest/v1/contract.py` | `expected_to_change` | `canonical` | Yes | Own presentation-tree, asset, digest, media, and serialized-message limits in the canonical Manifest contract. |
-| `protocol/src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json` | `expected_to_change` | `canonical` | Yes | Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata. |
-| `protocol/src/stateforge_protocol/sfp/manifest/v1/validation.py` | `expected_to_change` | `canonical` | Yes | Validate declarative presentation structure, resource bounds, content digests, reference integrity, safe media, fallback eligibility, and independent operational/presentation revisions. |
-| `protocol/tests/fixtures/manifest` | `expected_to_change` | `canonical` | Yes | Add canonical valid, invalid, boundary, digest, reference, fallback, and revision-isolation fixtures. |
-| `protocol/tests/test_manifest_contract.py` | `expected_to_change` | `canonical` | Yes | Verify generated declaration shape, service stability, identifier preservation, and revision behavior. |
-| `protocol/tests/test_manifest_validation.py` | `expected_to_change` | `canonical` | Yes | Verify complete presentation, asset, safety, limit, and fallback validation semantics. |
-| `protocol/tests/test_manifest_session_contract.py` | `must_verify` | `canonical` | Yes | Preserve session fencing and accepted-snapshot behavior while presentation revisions change independently. |
-| `protocol/docs/v0.1.0/procedures/provider-manifest.md` | `expected_to_change` | `canonical` | Yes | Document the declarative view model, revision split, asset rules, validation order, fallback behavior, and author/runtime ownership. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `expected_to_change` | `canonical` | Yes | Define the first Manifest Exchange presentation snapshot as bounded Provider, operation, and trigger component trees with versioned component identifiers, validated properties and bindings, bounded children, portable fallbacks, content-addressed assets, and declarative renderer-extension requirements—without adding another RPC or transporting executable renderer code. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/contract.py` | `expected_to_change` | `canonical` | Yes | Own canonical component-identifier grammar and namespaces, core/custom component and renderer-API compatibility metadata, property/binding/child/fallback limits, tree complexity bounds, extension requirement bounds, assets, digests, revisions, and serialized message ceilings. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json` | `expected_to_change` | `canonical` | Yes | Define the strict ProtoJSON shape for Provider-level and operation/trigger presentation roots, recursive component nodes, properties, schema/runtime bindings, children, fallbacks, renderer-extension requirements, assets, and independent presentation revision metadata. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/validation.py` | `expected_to_change` | `canonical` | Yes | Validate component identifiers and namespaces, property shapes, JSON Pointer binding scope, child/fallback rules, tree complexity, renderer-extension requirement metadata, digest/reference integrity, asset safety, operational separation, and independent presentation revisions. |
+| `protocol/tests/fixtures/manifest` | `expected_to_change` | `canonical` | Yes | Add canonical Provider, operation-request/result/run, trigger-payload, core-component, custom-component, renderer-requirement, fallback, absent-presentation, boundary, invalid-tree, digest, reference, and revision-isolation fixtures. |
+| `protocol/tests/test_manifest_contract.py` | `expected_to_change` | `canonical` | Yes | Verify generated Provider presentation trees, component and extension identities, service stability, complete schema-derived fallback, identifier preservation, and independent revision behavior. |
+| `protocol/tests/test_manifest_validation.py` | `expected_to_change` | `canonical` | Yes | Verify Provider/operation/trigger component trees, properties, schema/runtime bindings, child/fallback semantics, renderer-extension requirements, asset safety, resource limits, and operationally safe fallback. |
+| `protocol/tests/test_manifest_session_contract.py` | `must_verify` | `canonical` | Yes | Preserve session fencing and accepted operational snapshots while presentation trees, assets, renderer requirements, or presentation revisions change independently. |
+| `protocol/docs/v0.1.0/procedures/provider-manifest.md` | `expected_to_change` | `canonical` | Yes | Document schema-authoritative fallback, Provider/operation/trigger component trees, custom component identifiers, separately installed renderer extensions, logical Provider release bundles, revision isolation, asset rules, validation order, and later runtime ownership. |
 | `protocol/proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Operation Admission service, RPCs, identifiers, request fingerprints, and execution semantics unchanged. |
 | `protocol/src/stateforge_protocol/sfp/operation_admission/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters admission fingerprints or execution validation and is resolved only from the accepted declaration snapshot. |
-| `protocol/docs/v0.1.0/procedures/operation-admission.md` | `expected_to_change` | `canonical` | Yes | Explain how operation presentation is looked up by the existing operation identifier without changing admission. |
+| `protocol/docs/v0.1.0/procedures/operation-admission.md` | `expected_to_change` | `canonical` | Yes | Explain that operation presentation roots bind to the existing operation identifier and authoritative input/result/runtime surfaces without changing admission, authorization, fingerprints, or execution semantics. |
 | `protocol/proto/stateforge_protocol/sfp/trigger_publication/v1/trigger_publication.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Trigger Publication service, stream, identifiers, acknowledgements, and content fingerprints unchanged. |
 | `protocol/src/stateforge_protocol/sfp/trigger_publication/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters trigger publication or acknowledgement semantics and is resolved only from the accepted declaration snapshot. |
-| `protocol/docs/v0.1.0/procedures/triggers.md` | `expected_to_change` | `canonical` | Yes | Explain how trigger presentation is looked up by the existing trigger identifier without changing publication or acknowledgement behavior. |
-| `protocol/docs/v0.1.0/reference/python-contracts.md` | `expected_to_change` | `canonical` | Yes | Document the generated and public validation APIs for presentation declarations, assets, and revisions. |
-| `protocol/docs/v0.1.0/reference/conformance-coverage.md` | `expected_to_change` | `canonical` | Yes | Map every Provider Views rule and compatibility invariant to packaged fixtures and executable tests. |
-| `protocol/docs/v0.1.0/reference/ci-automation.md` | `expected_to_change` | `canonical` | Yes | Document local and CI verification of Provider Views, exact artifacts, and retained conformance evidence. |
-| `agent/src/stateforge_agent/_sfp/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache and that optional presentation does not alter operational eligibility. |
-| `provider/src/stateforge_provider/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before the later Provider Views authoring milestone. |
+| `protocol/docs/v0.1.0/procedures/triggers.md` | `expected_to_change` | `canonical` | Yes | Explain that trigger presentation roots bind to the existing trigger identifier and authoritative payload/runtime surfaces without changing publication, acknowledgement, or content-fingerprint behavior. |
+| `protocol/docs/v0.1.0/reference/python-contracts.md` | `expected_to_change` | `canonical` | Yes | Document generated and public validation APIs for component trees, component/extension identifiers, properties, bindings, children, fallbacks, assets, extension requirements, fallback status, and independent revisions. |
+| `protocol/docs/v0.1.0/reference/conformance-coverage.md` | `expected_to_change` | `canonical` | Yes | Map every component-tree, binding, fallback, renderer-requirement, asset, revision, and existing-procedure compatibility rule to packaged fixtures and executable tests. |
+| `protocol/docs/v0.1.0/reference/ci-automation.md` | `expected_to_change` | `canonical` | Yes | Document local and CI verification of component trees, renderer-extension metadata boundaries, assets, exact artifacts, consumer compatibility, and retained conformance evidence. |
+| `agent/src/stateforge_agent/_sfp/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache, optional presentation trees and renderer requirements do not alter operational eligibility, and the Agent may safely preserve or ignore presentation until its later synchronization milestone. |
+| `provider/src/stateforge_provider/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before later Provider Python milestones compile the author DSL into Protocol-owned component trees and bundle metadata. |
+| `protocol/docs/v0.1.0/procedures/provider-presentation.md` | `expected_to_change` | `canonical` | Yes | Explain each Provider, operation, and trigger presentation surface; the declarative component-tree model; core versus custom components; logical release-bundle composition; explicit renderer-extension installation; sandbox boundaries; and fallback behavior. |
 
 #### Verification contract
 
-- **test** · `protocol` · `python -m pytest -q` — The complete Protocol contract and conformance suite passes with Provider Views enabled.
+- **test** · `protocol` · `python -m pytest -q` — The complete Protocol contract and conformance suite passes with Provider presentation component trees enabled.
 - **generated** · `protocol` · `buf lint && buf generate && python scripts/check_generated.py` — The extended Manifest protobuf lints, regenerates deterministically, and matches committed Python bindings and stubs.
-- **test** · `protocol` · `Focused Manifest Provider Views matrix covering operation views, trigger views, nested declarative components, schema bindings, optional presentation, and safe fallback.` — Proves the declarative IR is complete, bounded, identifier-addressed, and optional; absent or invalid presentation never disables an otherwise valid operation or trigger.
-- **test** · `protocol` · `Revision-isolation vectors for operational declarations, presentation metadata, and Provider-owned asset bytes.` — A visual-only change preserves the operational manifest revision plus operation-admission and trigger-content fingerprints, changes the presentation revision, and remains distinguishable as a new accepted presentation snapshot; an operational contract change still changes the operational revision.
-- **test** · `protocol` · `Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, and executable content.` — Every Provider-owned visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.
-- **schema** · `protocol` · `Descriptor and fingerprint compatibility checks for Manifest Exchange, Operation Admission, and Trigger Publication.` — No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation fields never enter admission, lifecycle, publication, acknowledgement, or business-payload semantics; manifests without presentation remain valid.
-- **integration** · `protocol` · `Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute Provider Views validation and fixture tests.` — Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider Views ship in reproducible artifacts.
-- **integration** · `project` · `Run current Agent and Provider manifest consumer suites against the exact built Protocol wheel.` — The additive Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation or assigns execution meaning to views.
+- **test** · `protocol` · `Focused Manifest matrix covering Provider-level, operation request/run/result/evidence, and trigger policy/event/audit presentation roots built from nested core and custom component nodes.` — Proves the wire contract can describe complete Provider, operation, and trigger surfaces through versioned components, validated properties, bindings, children, and fallbacks while operational schemas remain authoritative.
+- **test** · `protocol` · `Component-tree matrix for identifier grammar and namespaces, property schemas, JSON Pointer scope isolation, child rules, depth/count/byte limits, safe conditions/repetition, unknown components, fallback chains, and required-field preservation.` — Core and third-party components are unambiguous and bounded; bindings cannot escape their declared surface or change schema semantics; unavailable components retain complete portable or schema-derived fallback.
+- **test** · `protocol` · `Renderer-extension requirement and logical bundle matrix covering component namespace ownership, extension/API compatibility, artifact digests, declared permissions, missing/incompatible extensions, and rejection of embedded executable payloads.` — SFP carries only declarative requirements and digest-bound compatibility metadata. It never carries or activates JavaScript, HTML, CSS, WebAssembly, binaries, remote modules, secrets, or installation instructions; renderer installation remains a separate Control Plane action.
+- **test** · `protocol` · `Revision-isolation vectors for operational declarations, component trees, renderer requirements, fallbacks, and Provider-owned asset bytes.` — Presentation-only changes preserve the operational manifest revision plus operation-admission and trigger-content fingerprints, change only the presentation revision, and remain distinguishable as a new presentation snapshot; operational schema or identifier changes still change the operational revision and rebind presentation.
+- **test** · `protocol` · `Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, executable content, and unsafe vector constructs.` — Every Provider-owned static visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.
+- **schema** · `protocol` · `Descriptor and fingerprint compatibility checks for Manifest Exchange, Operation Admission, and Trigger Publication.` — No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation and renderer metadata never enter admission, lifecycle, publication, acknowledgement, authorization, or business-payload semantics; manifests without presentation remain valid and schema-renderable.
+- **integration** · `protocol` · `Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute component-tree, extension-boundary, asset, and fixture validation tests.` — Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider presentation ship in reproducible artifacts.
+- **integration** · `project` · `Run current Agent and Provider manifest consumer suites against the exact built Protocol wheel.` — The Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation, executes renderer code, or assigns operational meaning to presentation.
 - **command** · `protocol` · `ruff format --check . && ruff check . && mypy src && mkdocs build --strict` — Formatting, lint, typing, and strict versioned documentation all pass.
-- **human** · `protocol` · `GitHub pull request architecture and security review` — A human confirms the contract is declarative data only, carries no arbitrary HTML/CSS/JavaScript or unrestricted remote resources, adds no SFP endpoint, keeps presentation revisioning separate from operational semantics, and provides a safe schema-derived fallback.
+- **human** · `protocol` · `GitHub pull request architecture and security review` — A human confirms the contract is a declarative component tree only; operational schemas remain authoritative; custom renderer code is separately installed and cannot travel through SFP; Provider processes cannot activate extensions; core fallbacks are complete; no SFP endpoint is added; revisioning stays isolated; and Provider Views cannot replace Control Plane shell, authorization, policy, evidence, or audit.
 
-### `R12` — [TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL
+### `R12` — [TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL
 
 _No implementation context has been declared yet._
 
@@ -3922,7 +3955,7 @@ _No implementation context has been declared yet._
 
 _No verification evidence has been declared yet._
 
-### `R14` — [TASK][MVP] Publish Versioned Provider Views through Manifest Exchange
+### `R14` — [TASK][MVP] Publish Versioned Provider Presentation through Manifest Exchange
 
 _No implementation context has been declared yet._
 
@@ -3930,7 +3963,7 @@ _No implementation context has been declared yet._
 
 _No verification evidence has been declared yet._
 
-### `R15` — [TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics
+### `R15` — [TASK][MVP] Verify Provider Presentation, Assets, and Revision Semantics
 
 _No implementation context has been declared yet._
 
@@ -4031,11 +4064,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "ebd3c1b93b02a5ff116807adadc7d9a2f616732511bb24b51fc42e93560757bf",
+  "fingerprint": "17a9fe156d6ae524b74425b6287a0f633dd245b2a4fda4725714864138973ede",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-10-27T11:41:06+00:00",
-  "plan_fingerprint": "5cd4d8c0f80c92e5e243d0631ce9922b2b53812dc29cc5fcc81d1a4fa696d81b",
+  "generated_at": "2026-10-27T14:01:14+00:00",
+  "plan_fingerprint": "70fffbbe505641e3a85e92179a14c32dded891896daef172c055181b8a4b2970",
   "repositories": [
     {
       "alias": "agent",
@@ -4052,7 +4085,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "577969d28f442af3036e1b9a3968f89be7206e3d",
+      "observed_commit_sha": "8c19ee6251df7d5216a916e8433e1a4766551831",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -15292,7 +15325,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "9dcc806b22ce74183d78b9fd3ce0027e5085a2cd",
+      "observed_commit_sha": "e8f4337ac18c872fb4601d4f70e7eb95af62eb64",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
@@ -26833,7 +26866,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "69dc902c00ba235e8dda5ec0a6fc23f8c987fb13",
+      "observed_commit_sha": "7cc3f9c000a77076b6eb4c2c5476739e15fb45c0",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
