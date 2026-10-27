@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "b628b31bcedab0c555dc691080dfaf95bd55bb1f27a4ce884de11fd751940d12",
+  "fingerprint": "4ae4915c007ba5f2227cdc16ef4dc4b31874f066c7626534f2cdd3c5d52d44d8",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 30,
+      "revision": 31,
       "slug": "stateforge"
     },
     "repositories": [
@@ -2676,7 +2676,320 @@
       },
       {
         "branch_name": "mvp/provider-views-contract",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "p11-repository-instructions",
+            "explanation": "Preserve repository authority, generated-plan discipline, Protocol ownership boundaries, and human-owned delivery.",
+            "path": "AGENTS.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-dpt-milestone-skill",
+            "explanation": "Follow the repository's milestone context, blast-radius, verification, and completion-claim workflow.",
+            "path": ".agents/skills/stateforge-dpt-milestone/SKILL.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-protocol-development-skill",
+            "explanation": "Apply canonical SFP ownership, validation, versioning, generated-code, and cross-repository compatibility rules.",
+            "path": ".claude/skills/stateforge-protocol-development/SKILL.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-python-development-skill",
+            "explanation": "Apply typed Python, package-content, testing, and installed-artifact standards.",
+            "path": ".claude/skills/stateforge-python-development/SKILL.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-documentation-skill",
+            "explanation": "Document the contract with the shared StateForge documentation structure, examples, and visual conventions.",
+            "path": ".claude/skills/stateforge-documentation/SKILL.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-package-contract",
+            "explanation": "Preserve supported Python versions, package contents, dependency boundaries, and configured quality gates.",
+            "path": "pyproject.toml",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 5
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-protobuf",
+            "explanation": "Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service.",
+            "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "protobuf",
+            "selector_value": null,
+            "sort_order": 6
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-contract",
+            "explanation": "Own presentation-tree, asset, digest, media, and serialized-message limits in the canonical Manifest contract.",
+            "path": "src/stateforge_protocol/sfp/manifest/v1/contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 7
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-schema",
+            "explanation": "Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata.",
+            "path": "src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "json_schema",
+            "selector_value": null,
+            "sort_order": 8
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-validation",
+            "explanation": "Validate declarative presentation structure, resource bounds, content digests, reference integrity, safe media, fallback eligibility, and independent operational/presentation revisions.",
+            "path": "src/stateforge_protocol/sfp/manifest/v1/validation.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 9
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-fixtures",
+            "explanation": "Add canonical valid, invalid, boundary, digest, reference, fallback, and revision-isolation fixtures.",
+            "path": "tests/fixtures/manifest",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 10
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-contract-tests",
+            "explanation": "Verify generated declaration shape, service stability, identifier preservation, and revision behavior.",
+            "path": "tests/test_manifest_contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 11
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-validation-tests",
+            "explanation": "Verify complete presentation, asset, safety, limit, and fallback validation semantics.",
+            "path": "tests/test_manifest_validation.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 12
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-session-tests",
+            "explanation": "Preserve session fencing and accepted-snapshot behavior while presentation revisions change independently.",
+            "path": "tests/test_manifest_session_contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 13
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-manifest-documentation",
+            "explanation": "Document the declarative view model, revision split, asset rules, validation order, fallback behavior, and author/runtime ownership.",
+            "path": "docs/v0.1.0/procedures/provider-manifest.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 14
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-operation-admission-wire",
+            "explanation": "Keep the existing Operation Admission service, RPCs, identifiers, request fingerprints, and execution semantics unchanged.",
+            "path": "proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "protobuf",
+            "selector_value": null,
+            "sort_order": 15
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "p11-operation-admission-contract",
+            "explanation": "Prove presentation metadata never enters admission fingerprints or execution validation and is resolved only from the accepted declaration snapshot.",
+            "path": "src/stateforge_protocol/sfp/operation_admission/v1",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 16
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-operation-admission-documentation",
+            "explanation": "Explain how operation presentation is looked up by the existing operation identifier without changing admission.",
+            "path": "docs/v0.1.0/procedures/operation-admission.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 17
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-trigger-publication-wire",
+            "explanation": "Keep the existing Trigger Publication service, stream, identifiers, acknowledgements, and content fingerprints unchanged.",
+            "path": "proto/stateforge_protocol/sfp/trigger_publication/v1/trigger_publication.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "protobuf",
+            "selector_value": null,
+            "sort_order": 18
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "p11-trigger-publication-contract",
+            "explanation": "Prove presentation metadata never enters trigger publication or acknowledgement semantics and is resolved only from the accepted declaration snapshot.",
+            "path": "src/stateforge_protocol/sfp/trigger_publication/v1",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 19
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-trigger-publication-documentation",
+            "explanation": "Explain how trigger presentation is looked up by the existing trigger identifier without changing publication or acknowledgement behavior.",
+            "path": "docs/v0.1.0/procedures/triggers.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 20
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-python-contract-documentation",
+            "explanation": "Document the generated and public validation APIs for presentation declarations, assets, and revisions.",
+            "path": "docs/v0.1.0/reference/python-contracts.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 21
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-conformance-documentation",
+            "explanation": "Map every Provider Views rule and compatibility invariant to packaged fixtures and executable tests.",
+            "path": "docs/v0.1.0/reference/conformance-coverage.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 22
+          },
+          {
+            "authority": "canonical",
+            "context_id": "p11-ci-documentation",
+            "explanation": "Document local and CI verification of Provider Views, exact artifacts, and retained conformance evidence.",
+            "path": "docs/v0.1.0/reference/ci-automation.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 23
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "p11-agent-manifest-consumer",
+            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache and that optional presentation does not alter operational eligibility.",
+            "path": "src/stateforge_agent/_sfp/_services/manifest",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 24
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "p11-provider-manifest-consumer",
+            "explanation": "Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before the later Provider Views authoring milestone.",
+            "path": "src/stateforge_provider/_services/manifest",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 25
+          }
+        ],
         "depends_on": [
           "P1",
           "P10",
@@ -2690,7 +3003,98 @@
         "sort_order": 35,
         "step_id": "P11",
         "title": "[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "The complete Protocol contract and conformance suite passes with Provider Views enabled.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 0,
+            "target": "python -m pytest -q",
+            "verification_id": "p11-protocol-tests"
+          },
+          {
+            "explanation": "The extended Manifest protobuf lints, regenerates deterministically, and matches committed Python bindings and stubs.",
+            "kind": "generated",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 1,
+            "target": "buf lint && buf generate && python scripts/check_generated.py",
+            "verification_id": "p11-buf-generated"
+          },
+          {
+            "explanation": "Proves the declarative IR is complete, bounded, identifier-addressed, and optional; absent or invalid presentation never disables an otherwise valid operation or trigger.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 2,
+            "target": "Focused Manifest Provider Views matrix covering operation views, trigger views, nested declarative components, schema bindings, optional presentation, and safe fallback.",
+            "verification_id": "p11-presentation-contract"
+          },
+          {
+            "explanation": "A visual-only change preserves the operational manifest revision plus operation-admission and trigger-content fingerprints, changes the presentation revision, and remains distinguishable as a new accepted presentation snapshot; an operational contract change still changes the operational revision.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 3,
+            "target": "Revision-isolation vectors for operational declarations, presentation metadata, and Provider-owned asset bytes.",
+            "verification_id": "p11-revision-isolation"
+          },
+          {
+            "explanation": "Every Provider-owned visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 4,
+            "target": "Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, and executable content.",
+            "verification_id": "p11-asset-safety"
+          },
+          {
+            "explanation": "No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation fields never enter admission, lifecycle, publication, acknowledgement, or business-payload semantics; manifests without presentation remain valid.",
+            "kind": "schema",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 5,
+            "target": "Descriptor and fingerprint compatibility checks for Manifest Exchange, Operation Admission, and Trigger Publication.",
+            "verification_id": "p11-existing-procedure-compatibility"
+          },
+          {
+            "explanation": "Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider Views ship in reproducible artifacts.",
+            "kind": "integration",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 6,
+            "target": "Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute Provider Views validation and fixture tests.",
+            "verification_id": "p11-installed-artifacts"
+          },
+          {
+            "explanation": "The additive Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation or assigns execution meaning to views.",
+            "kind": "integration",
+            "repository_alias": null,
+            "required": true,
+            "sort_order": 7,
+            "target": "Run current Agent and Provider manifest consumer suites against the exact built Protocol wheel.",
+            "verification_id": "p11-consumer-compatibility"
+          },
+          {
+            "explanation": "Formatting, lint, typing, and strict versioned documentation all pass.",
+            "kind": "command",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 8,
+            "target": "ruff format \u002d\u002dcheck . && ruff check . && mypy src && mkdocs build \u002d\u002dstrict",
+            "verification_id": "p11-repository-gates"
+          },
+          {
+            "explanation": "A human confirms the contract is declarative data only, carries no arbitrary HTML/CSS/JavaScript or unrestricted remote resources, adds no SFP endpoint, keeps presentation revisioning separate from operational semantics, and provides a safe schema-derived fallback.",
+            "kind": "human",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 9,
+            "target": "GitHub pull request architecture and security review",
+            "verification_id": "p11-human-boundary-review"
+          }
+        ]
       },
       {
         "branch_name": "mvp/provider-view-dsl",
@@ -2903,7 +3307,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 30
+**Revision:** 31
 
 ## Repositories
 
@@ -2929,13 +3333,13 @@ STATEFORGE_DPT_MANIFEST -->
 | `P6` | `protocol` | **[TASK][MVP] Define Provider Health and Operational Eligibility Contract**<br>## Outcome and ownership  Define the Protocol contract for Provider service health and Agent operational eligibility by standardizing StateForge's use of `grpc.health.v1` on the existing multiplexed SFP channel. This milestone owns normative cross-runtime semantics and documentation; it must not introduce a custom StateForge health protobuf.  ## Required behavior  - Specify the exact versioned SFP service name or names registered with the standard gRPC Health service and how the empty service name and unknown services are handled. - Define Provider lifecycle transitions for startup, validated readiness, `SERVING`, `NOT_SERVING`, degraded or maintenance state, and bounded shutdown. Stop advertising eligibility for new work before teardown. - Define Check as diagnostic and Watch as the authoritative ongoing health observation, including initial replay, ordered changes, bounded observers, backpressure, stream termination, retry, and recovery. - Separate Provider-supplied service health from Agent-derived operational eligibility. Eligibility requires current transport, a valid handshake/session/generation, a compatible accepted manifest, and `SERVING` health. - Fence stale health updates after session or endpoint-generation replacement, manifest rejection, reconnect, or shutdown. - Specify that health loss blocks new operation admission but does not rewrite, cancel, or replace already admitted operations or terminal results. - State explicitly that `SERVING` is not capability assessment, target-specific availability, authorization, or proof that every declared operation can currently succeed. - Define bounded diagnostics and sanitized failures without exposing Provider configuration, credentials, customer data, or vendor-specific probe details.  - Extend the reusable P10 Protocol CI/CD framework with health-owned conformance fixtures and validation scenarios, and register them in the standard pull-request, integration, and release-candidate workflows rather than creating a duplicate top-level pipeline.  ## Acceptance evidence  CI/CD evidence must show that the exact built Protocol artifacts contain and pass the health procedure's valid, invalid, lifecycle, compatibility, and boundary cases.  Publish a complete client-facing procedure and updated sequence diagram. Cover startup and shutdown, named and unknown services, Check and Watch, initial state, state changes, Watch loss and recovery, stale-session fencing, valid health with an invalid manifest, and admitted work surviving health loss. Document independent Agent and Provider obligations and verify that no custom health protobuf, second channel, Control Plane reporting, or vendor polling contract is introduced.  ## Non-goals  No Provider implementation, Agent availability coordinator, capability assessment, operation admission implementation, business-operation cancellation, Control Plane status, SF-AOP contract, or vendor-specific health probes.  ## Compatibility, discretion, and delivery  Preserve landed SFP 1.0 contracts, public APIs, repository boundaries, and standard gRPC Health semantics. Current code wins existing disagreements with prose. New incompatible behavior requires explicit versioning. Implement only the assigned Issue, add applicable contract checks and documentation, and preserve the human-owned Issue, PR, review, and merge workflow. | `P0`, `P1`, `P10` | `COMPLETED` | [Issue #27](https://github.com/stateforge-org/stateforge-protocol/issues/27) · [Pull Request #33](https://github.com/stateforge-org/stateforge-protocol/pull/33) |
 | `P10` | `protocol` | **[TASK][MVP] Build Reusable Protocol Package and Contract CI/CD Pipelines**<br>## Outcome and ownership  Create a reusable GitHub Actions ecosystem for StateForge Protocol contract validation and Python package delivery. Generation, validation, package construction, installed-artifact verification, and evidence collection are written once and composed by pull-request, integration, release-candidate, and future publication workflows. Do not create a second protocol model or monolithic test harness.  ## Required behavior  - Keep contract generation and package construction available through documented local commands using the canonical Buf configuration, protobuf sources, generation check, and Python metadata. - Organize repository-local composite actions by responsibility under `.github/actions/`: contract generation/validation, Python artifact construction, installed-package verification, and evidence collection. Scenario checks compose these actions instead of copying setup. - Provide reusable `workflow_call` workflows under `.github/workflows/` that build wheel and sdist once, record checksums/provenance, and upload immutable artifacts. Verification and future publication consume those exact bytes. - Verify Buf linting, deterministic generation, committed-binding drift, protobuf imports, ProtoJSON/schema fixtures, and the complete contract suite. - Install the exact wheel in clean environments outside the checkout and without repository `PYTHONPATH`; prove metadata, typed marker, generated protobuf/gRPC modules, schemas, and fixtures work on every supported Python version and applicable operating system. - Pin external actions to immutable SHAs; keep permissions read-only, credentials out of build/test jobs, jobs bounded, caches dependency-keyed, and artifact/evidence retention explicit. - Preserve bounded failure evidence and document local parity commands, action inputs/outputs, artifact identity, and how consumers reuse the tested artifact. - Prefer declarative actions and existing commands. Add shell or Python only where portable logic requires it; do not duplicate package, Buf, or test behavior in workflow YAML.  ## Acceptance evidence  Validate action/workflow metadata; run Buf lint and deterministic generation/drift checks; build wheel and sdist once; verify hashes/provenance; install the exact wheel outside the checkout across supported Python versions; import representative protobuf/gRPC modules; load packaged resources; run the contract suite; and retain failure evidence. Pass Ruff, formatting, strict mypy, pytest, generated-source validation, package build, installed-package smoke tests, and strict docs.  ## Non-goals  No SFP semantic or protobuf changes, generated-code fork, compatibility-policy change, publication/signing, Agent or Provider runtime implementation, cross-process system-test framework, or organization-wide workflow repository.  ## Compatibility, discretion, and delivery  Preserve landed SFP contracts, package/import paths, generation policy, supported Python versions, repository checks, and human Issue/PR/review/merge authority. Reusable workflows own job topology, composite actions own repeated runner steps, and project commands remain the local source of truth. | `P5` | `COMPLETED` | [Issue #28](https://github.com/stateforge-org/stateforge-protocol/issues/28) · [Pull Request #30](https://github.com/stateforge-org/stateforge-protocol/pull/30) |
 | `P8` | `protocol` | **[TASK][MVP] Define SFP Disconnection Recovery Contracts**<br>## Outcome and ownership  Complete Protocol semantics for safe reconnect and reconciliation across discovery/bootstrap, manifest, health, triggers, and admitted operations. See `docs/procedures/disconnection-recovery.md` and the SFP recovery specification.  ## Required behavior  - Distinguish transport loss, endpoint-generation replacement, same-installation process restart, and replacement installation. Re-handshake and validate manifest/health before new admission; an old session is not reusable authority. - Reuse P3/P5 publication IDs, operation IDs, and cursors where sufficient. Add only genuinely required missing wire messages; do not invent a second reconciliation service merely for symmetry. - A live Provider process may continue work during channel loss and replay retained state/results after reconnect. Lost Watch/acknowledgement does not start another execution or logically duplicate a trigger. - Define retained, lost/expired, incompatible, and replacement outcomes. A replacement instance cannot claim another instance's executions. Missing previously admitted state is indeterminate, not FAILED and not authorization to retry with a new ID. - Stable persisted Provider installation identity does not imply persisted operation/trigger state. Baseline runtime state is in memory; stronger Provider-owned persistence is optional. Document restart limitations and retention boundaries. - Specify stale-stream fencing, identity correlation, cursor gaps, backoff/retryability, and safe acknowledgement replay. Unknown outcome remains visible to a later decision-maker; SFP does not choose the business remediation.  - Extend the reusable P10 Protocol CI/CD framework with recovery-owned conformance fixtures and validation scenarios, and register them in the standard pull-request, integration, and release-candidate workflows rather than creating a duplicate top-level pipeline.  ## Acceptance evidence  CI/CD evidence must show that the exact built Protocol artifacts contain and pass the recovery procedure's reconnect, replay, stale-session, state-loss, compatibility, and boundary cases.  Contract scenarios cover lost admission reply, lost trigger acknowledgement, interrupted Watch, same-process reconnect, changed generation, process restart with lost state, persisted-state recovery where supported, new-instance replacement, stale replies, and invalid/expired cursors. Verify recovery composes with P3/P4/P5 without changing their identity semantics.  ## Non-goals  No runtime reconnect loop, compulsory persistent Provider storage, automatic re-execution after uncertainty, SF-AOP protocol, or Control Plane/operator remediation implementation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P10`, `P3`, `P5`, `P6` | `COMPLETED` | [Issue #26](https://github.com/stateforge-org/stateforge-protocol/issues/26) · [Pull Request #44](https://github.com/stateforge-org/stateforge-protocol/pull/44) |
-| `P9` | `protocol` | **[TASK][MVP] Verify the Complete SFP Contract Surface**<br>## Outcome and ownership  Verify that the complete local SFP transport and generic-operation contract package can be consumed independently by Agent and Provider developers. This is Protocol integration/conformance work, not business-operation or runtime implementation.  ## Required behavior  - Verify bootstrap, manifest, capability assessment, triggers, generic operation admission, lifecycle/progress/results/cancellation, and reconnect/recovery compose coherently. Identifier ownership, session/generation validation, versioning, error taxonomy, retention, and replay semantics must agree. - Prove SFP transports arbitrary declared operations through their own typed payload/result schemas without interpreting application meaning. Backup preparation, restore, disaster recovery, and BackupEngine behavior are not SFP procedures or Protocol-owned schemas. - Preserve landed bootstrap and manifest contracts. Keep operations as versioned namespaced strings, retain generic `implements` declarations without assigning Protocol-owned backup/DR meaning, and document only the current active contract. - Supply reusable conformance fixtures for ordinary operations, invalid schemas/results, duplicate/conflicting admission, progress/cancellation, trigger replay, channel loss, and state-loss recovery. - Check Buf lint, reproducible generation, generated-source freshness and compatibility. Generated modules must never be hand-edited. Ensure required protobuf/schema fixtures, typing markers, and documentation are included in wheel and sdist. - Verify clean installation/imports and dependency compatibility for supported Python versions/platforms. Separate build tooling from runtime dependencies and build strict documentation.  - Maintain a machine-checked coverage inventory mapping every SFP procedure to its packaged conformance assets and standard CI entry points; missing procedure coverage is a release-blocking failure.  ## Acceptance evidence  CI/CD evidence must prove every planned SFP procedure is represented in the exact wheel and sdist and is executed by the full contract matrix.  All configured Protocol gates pass, installed-package consumers load every generic SFP service/schema/fixture, and independent Agent/Provider test peers make the same transport, validation, identity, idempotency, and recovery decisions. No fixture requires knowledge of BackupEngine or a predefined backup/DR operation.  ## Non-goals  No Agent/Provider runtime, business-operation catalogue, backup/DR schema, BackupEngine implementation, SF-AOP design, or Control Plane contract.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.  ## Canonical validation completion gate  - Complete one public, procedure-owned validation API for every custom SFP v1 procedure with context-independent message or exchange semantics. Preserve Bootstrap, Manifest, and Capability APIs; backfill Trigger Publication, Operation Admission, Operation Lifecycle, and recovery additions. - Keep normative values in `contract.py`, domain validation in public `validation.py`, and only generic mechanics in private `sfp._validation`. Standard gRPC Health remains the documented exception and must not gain a duplicate service or validator for symmetry. - Verify architecture rules and installed artifacts, then audit Agent and Provider to prove they use public validators and never private helpers or equivalent local validation. | `P1`, `P10`, `P2`, `P3`, `P4`, `P5`, `P6`, `P8` | `PENDING` | [Issue #45](https://github.com/stateforge-org/stateforge-protocol/issues/45) |
+| `P9` | `protocol` | **[TASK][MVP] Verify the Complete SFP Contract Surface**<br>## Outcome and ownership  Verify that the complete local SFP transport and generic-operation contract package can be consumed independently by Agent and Provider developers. This is Protocol integration/conformance work, not business-operation or runtime implementation.  ## Required behavior  - Verify bootstrap, manifest, capability assessment, triggers, generic operation admission, lifecycle/progress/results/cancellation, and reconnect/recovery compose coherently. Identifier ownership, session/generation validation, versioning, error taxonomy, retention, and replay semantics must agree. - Prove SFP transports arbitrary declared operations through their own typed payload/result schemas without interpreting application meaning. Backup preparation, restore, disaster recovery, and BackupEngine behavior are not SFP procedures or Protocol-owned schemas. - Preserve landed bootstrap and manifest contracts. Keep operations as versioned namespaced strings, retain generic `implements` declarations without assigning Protocol-owned backup/DR meaning, and document only the current active contract. - Supply reusable conformance fixtures for ordinary operations, invalid schemas/results, duplicate/conflicting admission, progress/cancellation, trigger replay, channel loss, and state-loss recovery. - Check Buf lint, reproducible generation, generated-source freshness and compatibility. Generated modules must never be hand-edited. Ensure required protobuf/schema fixtures, typing markers, and documentation are included in wheel and sdist. - Verify clean installation/imports and dependency compatibility for supported Python versions/platforms. Separate build tooling from runtime dependencies and build strict documentation.  - Maintain a machine-checked coverage inventory mapping every SFP procedure to its packaged conformance assets and standard CI entry points; missing procedure coverage is a release-blocking failure.  ## Acceptance evidence  CI/CD evidence must prove every planned SFP procedure is represented in the exact wheel and sdist and is executed by the full contract matrix.  All configured Protocol gates pass, installed-package consumers load every generic SFP service/schema/fixture, and independent Agent/Provider test peers make the same transport, validation, identity, idempotency, and recovery decisions. No fixture requires knowledge of BackupEngine or a predefined backup/DR operation.  ## Non-goals  No Agent/Provider runtime, business-operation catalogue, backup/DR schema, BackupEngine implementation, SF-AOP design, or Control Plane contract.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step.  ## Canonical validation completion gate  - Complete one public, procedure-owned validation API for every custom SFP v1 procedure with context-independent message or exchange semantics. Preserve Bootstrap, Manifest, and Capability APIs; backfill Trigger Publication, Operation Admission, Operation Lifecycle, and recovery additions. - Keep normative values in `contract.py`, domain validation in public `validation.py`, and only generic mechanics in private `sfp._validation`. Standard gRPC Health remains the documented exception and must not gain a duplicate service or validator for symmetry. - Verify architecture rules and installed artifacts, then audit Agent and Provider to prove they use public validators and never private helpers or equivalent local validation. | `P1`, `P10`, `P2`, `P3`, `P4`, `P5`, `P6`, `P8` | `COMPLETED` | [Issue #45](https://github.com/stateforge-org/stateforge-protocol/issues/45) · [Pull Request #46](https://github.com/stateforge-org/stateforge-protocol/pull/46) |
 | `R0` | `provider` | **[TASK][MVP] Implement Provider Discovery and Handshake Foundation**<br>Publish a ready local endpoint and negotiate one SFP session on the Agent-established channel. | `P0` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-python/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-provider-python/pull/2) |
 | `R1` | `provider` | **[TASK][MVP] Implement Provider Manifest Exchange**<br>Let Provider authors declare a validated effective manifest containing generic operation identifiers, triggers, runtime requirements, configuration schema, and explicit compliance profiles. | `P1` | `COMPLETED` | [Issue #3](https://github.com/stateforge-org/stateforge-provider-python/issues/3) · [Pull Request #10](https://github.com/stateforge-org/stateforge-provider-python/pull/10) |
 | `R2` | `provider` | **[TASK][MVP] Implement Provider Health and Availability Reporting**<br>## Outcome and ownership  Expose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.  ## Required behavior  - Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior. - Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors. - Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch. - Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability. - Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.  - Extend the reusable R11 Provider scenario catalogue with health-specific installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include the focused health scenario in pull requests and the unchanged full Provider scenario matrix.  Exercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.  ## Non-goals  No Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P6`, `R1`, `R11` | `COMPLETED` | [Issue #16](https://github.com/stateforge-org/stateforge-provider-python/issues/16) · [Pull Request #22](https://github.com/stateforge-org/stateforge-provider-python/pull/22) |
 | `R3` | `provider` | **[TASK][MVP] Implement Provider Capability Assessment**<br>## Outcome and ownership  Implement locked P2 Capability Assessment as a private Provider runtime service. Authors declare dynamic prerequisites with `@requirement_check(...)` and reference stable IDs from `@operation(..., requires=(...))`; they never implement the SFP procedure or construct protocol findings. Preserve P1 manifest schema, R2 readiness, and the P2 wire format.  ## Provider author API  - Add public `@requirement_check(identifier, description, version_constraint="")` for bounded async, read-only checks. - Add `requires=(...)` to `@operation`. Keep the registry reusable by future R4 trigger declarations, but do not implement triggers here. - Expose typed author results: satisfied, unsatisfied, incompatible, and unknown. Do not expose P2 messages, findings, sessions, correlation identity, or envelopes. - Discover checks through the existing declaration model. Publish static metadata through existing manifest `runtime_requirements`; keep operation associations Provider-owned for MVP and do not revise manifest schema 1. - Fail startup for non-canonical/duplicate IDs, duplicate/unresolved references, invalid async signatures, or metadata outside Protocol bounds.  ## Private service  - Implement `_services/capability_assessment` on the multiplexed Provider endpoint. - Delegate context-independent request/response validation to canonical Protocol validation. Provider owns only active session/generation, served manifest revision, declared operations, readiness, check execution, and adaptation. - Treat `execution_context` as bounded opaque metadata. P2 has no generic target, operation input, or permission semantics; invent none and perform no target mutation. - Collect requirements for requested operations, deduplicate by ID, and execute each distinct check at most once under RPC deadline/cancellation. Checks never dispatch operations or mutate targets. Reuse results across operations, preserve request-correlated ordering, and revalidate session/readiness before return. - Aggregate: all satisfied → SUPPORTED; unsatisfied → SUPPORTED_WITH_REQUIREMENTS; incompatible → UNSUPPORTED; unknown → INDETERMINATE unless incompatibility already proves UNSUPPORTED. Negative/unknown results are domain outcomes. Invalid returns or unhandled check exceptions produce sanitized INTERNAL, never silent UNKNOWN. - Preserve declaration vs readiness vs dynamic prerequisite vs point-in-time assessment vs later authorization/admission.  ## Documentation  - Replace obsolete `assess_capability` guidance in `.claude/PROVIDER_AUTHORING_VISION.md`. - Document `@requirement_check`, operation `requires`, result meanings, startup validation, deduplication, read-only/error semantics, internal service ownership, and static manifest metadata. - Include a complete filesystem-writability or service-control example. Do not edit or regenerate the PDF.  ## Verification  - Test declaration validation, dedup/result reuse, aggregation, ordering, deadlines/cancellation, invalid returns, sanitized exceptions, and no dispatch/mutation. - Test Protocol validation, limits, stale session/generation, manifest mismatch, undeclared operations, readiness loss, response validation, and error mapping. - Run a focused real Provider service scenario over a real Unix socket with exact Provider/Protocol artifacts. Preserve installed-Agent regressions, but A3 owns real Agent P2 consumption. - Pass formatting, lint, strict typing, docs, unit/integration, packaging, and applicable CI.  ## Non-goals  No wire redesign, manifest revision, public `assess_capability` hook, author-built findings, target model, authorization/admission, triggers, operation execution, SF-AOP, Agent P2 client, or PDF update. Preserve repository ownership and human delivery authority. | `P2`, `R1`, `R11`, `R2` | `COMPLETED` | [Issue #23](https://github.com/stateforge-org/stateforge-provider-python/issues/23) · [Pull Request #28](https://github.com/stateforge-org/stateforge-provider-python/pull/28) |
-| `R4` | `provider` | **[TASK][MVP] Implement Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Implement P3 Provider publication with a simple typed author-facing trigger API on the existing Provider framework. The runtime owns envelopes, stream adaptation, acknowledgement, and retries.  ## Required behavior  - Publish only manifest-declared versioned trigger IDs and schema-valid payloads. Derive authenticated installation/session identity internally. Do not accept a generic target, source, or resource identity; any trigger-specific resource/source information is ordinary schema-validated payload data. - Allocate/preserve stable publication identity and canonical semantic content. Keep bounded pending state until accepted/rejected, correlate acknowledgements, handle new/duplicate/rejected dispositions, and surface rejection safely to authors. - Lost acknowledgements and transient streams replay the original ID/content with bounded backoff/backpressure. Conflicting content under one ID is never silently accepted. Stop retrying non-retryable rejection as defined by P3. - Respect startup/shutdown, generation/session fencing, deadlines and pending-queue limits without blocking unrelated channel services. Document queue-full and disconnected publication behavior. - Baseline pending state may be in memory. Provider-controlled persistence is optional; document what a process crash can lose rather than promising durable delivery from stable installation identity alone. - Keep generated messages, gRPC streams, canonical envelope construction and secret redaction private. A trigger does not by itself prove a policy ran or a backup completed.  - Extend the reusable R11 Provider scenario catalogue with trigger-publication installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include focused acknowledgement, replay, duplicate, conflict, backpressure, reconnect, and shutdown scenarios plus the unchanged full Provider matrix.  Test public publication and real stream transport, payload/ID rejection, accepted new/duplicate, lost-ack replay, content conflict, rejection retryability, bounded queue, disconnect/reconnect, optional-state limitations, shutdown, and the absence of generic source/target parameters. No human-facing author example requires protobuf or session/generation management.  ## Non-goals  No generic target/source/resource abstraction, Control Plane connection, policy executor, StateForge binding assignment, mandatory persistent Provider event log, or backup-only trigger taxonomy.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P9`, `R1`, `R11`, `R2` | `BLOCKED` | [Issue #24](https://github.com/stateforge-org/stateforge-provider-python/issues/24) |
-| `R5` | `provider` | **[TASK][MVP] Implement Operation Admission and Idempotency**<br>## Outcome and ownership  Implement P4 admission and generic typed operation dispatch behind the public Provider framework. Providers can expose arbitrary declared operations; no backup/DR claim is required for ordinary operations.  ## Required behavior  - Provide compatible typed request/result models and async `@operation()` registration on Provider subclasses, reusing R1 facilities. Use landed `namespace/name@major` IDs, not legacy unversioned dotted examples; reject duplicate/invalid declarations and align derived schemas with the manifest. - Keep installation/session/generation, protobuf adaptation, fingerprints and registry management private. Provide a typed OperationContext carrying operation identity, deadline and approved execution context; extend it for P5 lifecycle in R6. - Validate active session, R2 readiness, declared operation/target and input schema before author behavior. Use P4's canonical fingerprint and atomic admission record before dispatch. Matching concurrent retries resolve one execution; changed content conflicts. - Return P4's successful dispositions and rejection statuses/reasons. Busy/invalid/deadline-before-admission requests create no accepted record. Terminal IDs are not repurposed; document bounded retention/expiry and lost-state limitations. - Default accepted-operation state is in memory; optional stronger persistence remains Provider-controlled. Delivery deduplication does not guarantee the vendor action is idempotent or justify retry after a process lost admitted state. - Validate author outputs and sanitize exceptions using the established lifecycle/error boundary; do not opportunistically implement full progress/Watch/cancellation or backup profiles in this step.  - Extend the reusable R11 Provider scenario catalogue with operation-admission installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include focused admission, idempotency, concurrency, conflict, deadline, schema, and limit scenarios plus the unchanged full Provider matrix.  Cover a typed non-backup operation, schema derivation, duplicate registrations, invalid requests, readiness rejection, concurrency, identical lost-response retry, changed content, terminal replay/ID immutability, deadlines, safe exceptions, and expiry. Prove author examples require no gRPC/protobuf plumbing and dispatch occurs once per accepted identity.  ## Non-goals  No arbitrary shell-command API, vendor integration, mandatory persistent operation database, backup/DR requirement for generic operations, SF-AOP, or policy-run scheduling.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4`, `P9`, `R11`, `R2`, `R3` | `BLOCKED` | — |
+| `R4` | `provider` | **[TASK][MVP] Implement Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Implement P3 Provider publication with a simple typed author-facing trigger API on the existing Provider framework. The runtime owns envelopes, stream adaptation, acknowledgement, and retries.  ## Required behavior  - Publish only manifest-declared versioned trigger IDs and schema-valid payloads. Derive authenticated installation/session identity internally. Do not accept a generic target, source, or resource identity; any trigger-specific resource/source information is ordinary schema-validated payload data. - Allocate/preserve stable publication identity and canonical semantic content. Keep bounded pending state until accepted/rejected, correlate acknowledgements, handle new/duplicate/rejected dispositions, and surface rejection safely to authors. - Lost acknowledgements and transient streams replay the original ID/content with bounded backoff/backpressure. Conflicting content under one ID is never silently accepted. Stop retrying non-retryable rejection as defined by P3. - Respect startup/shutdown, generation/session fencing, deadlines and pending-queue limits without blocking unrelated channel services. Document queue-full and disconnected publication behavior. - Baseline pending state may be in memory. Provider-controlled persistence is optional; document what a process crash can lose rather than promising durable delivery from stable installation identity alone. - Keep generated messages, gRPC streams, canonical envelope construction and secret redaction private. A trigger does not by itself prove a policy ran or a backup completed.  - Extend the reusable R11 Provider scenario catalogue with trigger-publication installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include focused acknowledgement, replay, duplicate, conflict, backpressure, reconnect, and shutdown scenarios plus the unchanged full Provider matrix.  Test public publication and real stream transport, payload/ID rejection, accepted new/duplicate, lost-ack replay, content conflict, rejection retryability, bounded queue, disconnect/reconnect, optional-state limitations, shutdown, and the absence of generic source/target parameters. No human-facing author example requires protobuf or session/generation management.  ## Non-goals  No generic target/source/resource abstraction, Control Plane connection, policy executor, StateForge binding assignment, mandatory persistent Provider event log, or backup-only trigger taxonomy.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P3`, `P9`, `R1`, `R11`, `R2` | `PENDING` | [Issue #24](https://github.com/stateforge-org/stateforge-provider-python/issues/24) |
+| `R5` | `provider` | **[TASK][MVP] Implement Operation Admission and Idempotency**<br>## Outcome and ownership  Implement P4 admission and generic typed operation dispatch behind the public Provider framework. Providers can expose arbitrary declared operations; no backup/DR claim is required for ordinary operations.  ## Required behavior  - Provide compatible typed request/result models and async `@operation()` registration on Provider subclasses, reusing R1 facilities. Use landed `namespace/name@major` IDs, not legacy unversioned dotted examples; reject duplicate/invalid declarations and align derived schemas with the manifest. - Keep installation/session/generation, protobuf adaptation, fingerprints and registry management private. Provide a typed OperationContext carrying operation identity, deadline and approved execution context; extend it for P5 lifecycle in R6. - Validate active session, R2 readiness, declared operation/target and input schema before author behavior. Use P4's canonical fingerprint and atomic admission record before dispatch. Matching concurrent retries resolve one execution; changed content conflicts. - Return P4's successful dispositions and rejection statuses/reasons. Busy/invalid/deadline-before-admission requests create no accepted record. Terminal IDs are not repurposed; document bounded retention/expiry and lost-state limitations. - Default accepted-operation state is in memory; optional stronger persistence remains Provider-controlled. Delivery deduplication does not guarantee the vendor action is idempotent or justify retry after a process lost admitted state. - Validate author outputs and sanitize exceptions using the established lifecycle/error boundary; do not opportunistically implement full progress/Watch/cancellation or backup profiles in this step.  - Extend the reusable R11 Provider scenario catalogue with operation-admission installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include focused admission, idempotency, concurrency, conflict, deadline, schema, and limit scenarios plus the unchanged full Provider matrix.  Cover a typed non-backup operation, schema derivation, duplicate registrations, invalid requests, readiness rejection, concurrency, identical lost-response retry, changed content, terminal replay/ID immutability, deadlines, safe exceptions, and expiry. Prove author examples require no gRPC/protobuf plumbing and dispatch occurs once per accepted identity.  ## Non-goals  No arbitrary shell-command API, vendor integration, mandatory persistent operation database, backup/DR requirement for generic operations, SF-AOP, or policy-run scheduling.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P4`, `P9`, `R11`, `R2`, `R3` | `READY` | — |
 | `R6` | `provider` | **[TASK][MVP] Implement Operation Progress Results and Cancellation**<br>## Outcome and ownership  Implement P5 generic operation progress, results, and cancellation behind Provider/OperationContext, extending R5's accepted registry rather than adding a second execution ledger.  ## Required behavior  - Enforce the contract's state transitions and one immutable terminal result. Validate typed result schemas; translate expected/unexpected author exceptions into sanitized structured errors with relevant side-effect/cleanup evidence. - Offer author progress reporting and cooperative cancellation state/checkpoints without exposing gRPC. Keep per-operation sequence monotonic and replay current/latest retained state on Watch attachment; Watch never dispatches an operation. - Bound progress retention and slow-watcher queues, coalesce only permitted progress, and preserve terminal replay while records are retained. Isolate concurrent operations/observers on the shared server. - Cancellation request and execution stopped are distinct. Handle unsupported and already-terminal outcomes; first terminal outcome wins races. Set CANCELLED only when actual author execution stopped according to the contract. - Watch cancellation, client deadline, transport loss and health changes do not implicitly stop business execution. Never kill the whole Provider process or unrelated tasks to cancel one operation. - Shutdown stops new admission, performs bounded graceful handling, and reports unresolved work honestly. Preserve R5 in-memory baseline and optional Provider persistence; no crash-proof result promise without evidence.  - Extend the reusable R11 Provider scenario catalogue with operation-lifecycle installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include focused progress, replay, cancellation, terminal-race, invalid-result, interruption, and limit scenarios plus the unchanged full Provider matrix.  Exercise progress/terminal replay, late/slow/disconnected watchers, sequence/cursor behavior, invalid author results, sanitized failure, parallel operations, cancellation completion/races, unsupported/already-terminal cancellation, Watch-only cancellation, shutdown, and no redispatch. Update typed author examples and configured checks.  ## Non-goals  No unbounded history service, process-level force kill, invented operation states, backup-specific lifecycle implementation, or automatic remediation after unknown side effects.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P5`, `P9`, `R11`, `R5` | `BLOCKED` | — |
 | `R11` | `provider` | **[TASK][MVP] Build Reusable Provider Package and Runtime CI/CD Pipelines**<br>## Outcome and ownership  Create a reusable GitHub Actions ecosystem for building and validating the Provider Implementation package and its installed runtime. Package construction, dependency selection, public Provider fixtures, runtime lifecycle, SFP assertions, scenarios, and evidence collection are written once and composed by PR, integration, release-candidate, and future publication workflows. Test the public authoring surface and installed package; do not create a second runtime or execute from a source checkout.  ## Required behavior  - Build wheel and sdist once through a documented local command using canonical package metadata; record checksums and artifact/dependency provenance. - Organize focused composite actions under `.github/actions/` for package build, installed-package checks, Provider fixture creation, runtime start/stop, Bootstrap assertion, Manifest assertion, and evidence collection. Scenarios compose actions rather than growing one large action. - Provide reusable `workflow_call` workflows for artifact build, installed-package checks, runtime scenarios, and an aggregate gate. Thin PR/integration and manual release-candidate callers copy no environment or test logic. - Accept `protocol-ref`, defaulting to `mvp/implementation` while allowing an explicit ref or SHA. Record the resolved Protocol commit and artifact hash. - Install exact Provider and Protocol artifacts in clean environments outside both checkouts and without repository `PYTHONPATH`; prove package identity, import location, typed public API, descriptor/socket behavior, Bootstrap, Manifest, and clean shutdown. - Supply small declarative dummy Providers through the public API. Cover normal exchange/shutdown, concurrent distinct instances, same-instance replacement/generation, invalid peers, abrupt failure, restart, and uninstall/reinstall. Faults and evidence must be deterministic and bounded. - Separate platform-independent package/import checks from supported runtime checks. Do not imply Windows runtime support where Unix-domain sockets are required. - Pin external actions to immutable SHAs; keep permissions read-only, credentials absent, jobs bounded, caches dependency-keyed, and retention explicit. - Prefer action composition and existing commands. Add shell or Python only for reusable logic that cannot be expressed safely elsewhere; never duplicate runtime behavior in the harness.  ## Acceptance evidence  Validate action/workflow metadata; build wheel and sdist once; verify hashes/provenance; install exact artifacts outside the checkout; prove installed import origins and public authoring API; exercise valid Bootstrap/Manifest, multiple Providers, replacement, invalid peers, crash, restart, cleanup, uninstall, and reinstall; retain failure evidence. Pass Ruff, formatting, strict mypy, pytest/coverage, package build, installed-package checks, runtime scenario tiers, and strict docs.  ## Non-goals  No production Provider, new SFP semantics, Agent features, Control Plane integration, operation/trigger behavior, publication/signing, OS service package, cloud infrastructure, or organization-wide workflow repository.  ## Compatibility, discretion, and delivery  Preserve the public Provider framework, typed models, decorators, lifecycle hooks, internal SFP abstraction, landed Bootstrap/Manifest behavior, supported Python versions, and human Issue/PR/review/merge authority. Reusable workflows own job topology, composite actions own repeated runner steps, and the installed package plus public API remain the system under test. | `R1` | `COMPLETED` | [Issue #19](https://github.com/stateforge-org/stateforge-provider-python/issues/19) · [Pull Request #21](https://github.com/stateforge-org/stateforge-provider-python/pull/21) |
 | `R9` | `provider` | **[TASK][MVP] Complete Provider Disconnection and Recovery**<br>## Outcome and ownership  Implement P8 Provider reconnect/state-reconciliation behavior by composing existing runtime identity, manifest, health, trigger and operation facilities.  ## Required behavior  - Separate channel loss from process death: accepted work may continue while the server process survives. Rebind new channels to validated handshake/session/generation before serving operational state. - Retain current operations/terminal results and pending trigger IDs/content for their documented in-process retention; replay existing state/results/acknowledgement work without redispatching author operations. - Keep installation identity/generation storage independent from execution persistence. Baseline process restart may lose operation/trigger state; optional Provider persistence may recover only verifiable records. - Return the contract's explicit indeterminate/lost/expired outcome for unresolved admitted identities. Never manufacture FAILED/SUCCEEDED, silently create a new record for reconciliation, or claim executions belonging to a replaced instance. - Fence stale sessions/watchers/acknowledgements, respect cursor gaps and backpressure, and coordinate bounded shutdown/restart. Remove only descriptor/socket/resources owned by the current generation. - Document exactly what survives transport interruption versus process restart and how callers detect limitations. Business/operator remediation belongs above SFP, not in the generic runtime.  - Extend the reusable R11 Provider scenario catalogue with deterministic disconnection and recovery scenarios using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket.  ## Acceptance evidence  CI/CD evidence must cover connection loss, generation replacement, Provider restart with retained or lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Cross-process scenarios cover lost admission reply, ongoing execution during transport loss, terminal replay, pending-trigger replay, generation replacement, stable-installation restart with state loss, new-instance replacement, stale stream responses, retention expiry, and supported optional persistence. Prove no author redispatch on reconciliation.  ## Non-goals  No mandatory persistent Provider registry, Agent reconnect manager, Control Plane remediation, automatic re-execution, or broader process-supervision redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P8`, `P9`, `R11`, `R4`, `R6` | `BLOCKED` | — |
@@ -2954,13 +3358,13 @@ STATEFORGE_DPT_MANIFEST -->
 | `A10` | `agent` | **[TASK][MVP] Integrate Agent Backup and Restore Orchestration**<br>## Outcome and ownership  Compose Agent-owned BackupEngine work with optional ordinary Provider operations. The Agent performs physical backup/restore; Providers only execute explicitly configured generic operations through SFP.  ## Required behavior  - Implement a local orchestration boundary that can create an engine backup from an authorized source and restore it to an authorized destination without requiring any Provider-native backup or restore feature. - Allow workflow configuration to invoke an ordinary declared Provider operation before backup, after backup, before restore, or after restore when the managed system needs quiesce, export, resume, import, reload, reconstruction, or verification behavior. - Send those calls through normal P4/P5 operation admission/lifecycle using each operation's own identifier and typed payload/result schema. The Agent and SFP must not recognize a predefined backup/DR role, operation name, payload, or result. - When configured, allocate an A7 workspace and place its authorized path and operation-specific data in the ordinary operation payload. The Agent already owns the path; it does not discover a standardized backup source from the Provider response. - Keep BackupEngine handles, repository credentials, physical storage results, and integrity checks inside the Agent. Validate restored data before any configured Provider post-restore operation and retain staging until all consumers release it. - Preserve immutable invocation identity, cancellation, deadlines, partial effects, and indeterminate outcomes. Do not automatically repeat a Provider operation or engine action after an ambiguous result.  - Extend the reusable A13 installed-Agent scenario catalogue with backup-orchestration scenarios using the exact Agent RPM and packaged engine; flows involving Provider operations must use the exact Provider and Protocol wheels in a separate real process over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover engine-only, prepare-then-create, restore-then-consume, failure, cancellation, ambiguous outcomes, workspace lifetime, credential isolation, and no duplicated side effects.  Test an engine-only create/restore flow for an entity with no native backup API; a prepare-operation-to-engine-create flow; and an engine-restore-to-ordinary-Provider-operation flow. Cover corrupt data, operation rejection/failure, engine failure, cancellation, lost results, workspace lifetime, cleanup, credential isolation, and no duplicated side effects.  ## Non-goals  No Protocol backup/DR contract, Provider compliance layer, hard-coded operation catalogue, vendor-specific Agent code, Control Plane policy selection/Snapshot coordinator, or automatic retry after uncertainty.  ## Compatibility, discretion, and delivery  Preserve landed generic SFP contracts and repository boundaries. Choose orchestration interfaces from current Agent patterns so later SF-AOP/Control Plane plans can authorize the same local actions without redefining SFP. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A13`, `A6`, `A9`, `R6` | `BLOCKED` | — |
 | `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  - Extend the reusable A13 installed-Agent scenario catalogue with deterministic disconnection and recovery coverage using exact artifacts and separate real Agent and Provider processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover channel loss, lost replies and acknowledgements, generation replacement, Agent and Provider restart, retained and lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A4`, `A6`, `P8`, `P9`, `R9` | `BLOCKED` | — |
 | `A12` | `agent` | **[TASK][MVP] Verify the Complete Local Agent and Provider Runtime**<br>## Outcome and ownership  Verify the complete local Agent/Provider foundation using separate real processes plus an installed BackupEngine/Restic plugin. Prove generic SFP and Agent-owned backup tooling compose without adding backup semantics to the Protocol or Provider runtime.  ## Required behavior  - Exercise discovery/identity/handshake, manifest validation/revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint. - Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Provider knowledge of BackupEngine. - Exercise an engine-only physical backup/restore for an entity with no native backup API. Also exercise an optional ordinary Provider preparation operation before engine create and an optional ordinary Provider consume/reload operation after engine restore. - Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, corrupt storage, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects. - Verify local backup identity/provenance, engine integrity evidence, operation evidence, and workspace ownership remain distinct and available through clean internal coordination boundaries. Do not claim local physical backups are already coordinated Control Plane Snapshots. - Build and clean-install involved distributions, verify packaged contracts/typing/plugin resources/public docs, and pass all applicable gates on the supported runtime/platform matrix.  - Maintain a machine-checked coverage inventory mapping every planned SFP and Agent-owned backup capability to focused scenarios and the full installed-artifact matrix; missing coverage is a release-blocking failure.  ## Acceptance evidence  CI/CD evidence must prove the exact Protocol wheel, Provider wheel, Agent RPM, test BackupEngine package, and Restic integration pass the complete supported Linux runtime matrix.  A repeatable automated real-process matrix proves generic SFP interoperability, engine-only backup/restore, optional Provider-operation choreography, credential isolation, and honest recovery from uncertainty. Record the local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.  ## Non-goals  No SF-AOP/Control Plane implementation, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, production policy engine, or broad architecture migration.  ## Compatibility, discretion, and delivery  Preserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A10`, `A11`, `A13`, `A2`, `A3`, `A4`, `A5`, `A6`, `A7`, `A8`, `A9`, `P9`, `R10` | `BLOCKED` | — |
-| `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers**<br>Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources. | `P1`, `P10`, `P3`, `P4`, `P9` | `BLOCKED` | — |
+| `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers**<br>Extend the existing Provider Manifest Exchange contract so manifest-declared operations and triggers can carry safe declarative presentation metadata and reference bounded, content-addressed Provider-owned assets. Keep presentation revisioning separate from operational contract revisioning so visual-only changes do not alter execution semantics, invalidate operation admission, or disrupt trigger streams. Operation Admission and Trigger Publication continue to use their existing endpoints and identifiers, resolve views through the accepted declaration snapshot, and gain documentation and conformance coverage without new RPC services. Define strict formats, limits, digest validation, reference integrity, and safe fallback behavior; prohibit executable frontend code and unrestricted remote resources. | `P1`, `P10`, `P3`, `P4`, `P9` | `PENDING` | [Issue #47](https://github.com/stateforge-org/stateforge-protocol/issues/47) |
 | `R12` | `provider` | **[TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL**<br>Provide typed Python authoring constructs that let Provider developers attach declarative views directly to operation and trigger declarations. The DSL must produce the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, or executable frontend extension point. | `P11`, `R1`, `R11`, `R4`, `R5` | `BLOCKED` | — |
 | `R13` | `provider` | **[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets**<br>Allow Provider packages to ship the icons, logos, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by their declarative operation and trigger views. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths. | `P11`, `R11`, `R12` | `BLOCKED` | — |
 | `R14` | `provider` | **[TASK][MVP] Publish Versioned Provider Views through Manifest Exchange**<br>Integrate Provider-authored operation views, trigger views, and validated asset references into the existing manifest construction and GetManifest response. Produce deterministic presentation revisions and canonical output while preserving the independent operational manifest revision and all existing session, schema-negotiation, size, and stale-response fences. Presentation-only changes must be observable without changing operation or trigger execution contracts and must not require another SFP endpoint. | `P11`, `R1`, `R11`, `R12`, `R13` | `BLOCKED` | — |
 | `R15` | `provider` | **[TASK][MVP] Verify Provider View Declarations, Assets, and Revision Semantics**<br>Add conformance and installed-package coverage for operation and trigger view authoring, safe fallback declarations, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting existing operation-admission and trigger-publication behavior, and preserve evidence through the reusable Provider CI/CD framework. | `P11`, `R11`, `R12`, `R13`, `R14` | `BLOCKED` | — |
-| `D0` | `docs` | **[TASK][MVP] Build the Shared StateForge Documentation Theme**<br>## Outcome and ownership  Create the shared StateForge documentation presentation package owned by stateforge-docs. Publish one installable Python distribution, `stateforge-docs-theme`, exposing the MkDocs theme name `stateforge` and extending Material for MkDocs without forking it.  ## Required behavior  - Bundle the official StateForge mark, favicon, brand tokens, typography, spacing, responsive layout, light/dark presentation, navigation treatment, repository link treatment, code styling, and accessible focus/contrast behavior. - Support a common StateForge identity plus explicit component accents for Agent, Provider Python, Protocol, Control Plane, SF-AOP, and future repositories without copying CSS or assets into consumers. - Keep content, navigation, repository metadata, and repository-specific plugins owned by each consuming repository. - Provide stable theme configuration for the version selector and historical-version warning used by later publishing work. - Package templates and static assets reproducibly in wheel and sdist. Do not load branding from a moving branch or remote runtime resource. - Keep Material-specific overrides minimal and documented so a later centrally managed Zensical migration does not require rewriting repository content.  ## Acceptance evidence  A clean environment installs the exact wheel and sdist, selects `theme.name: stateforge`, and builds representative documentation with bundled assets only. Automated tests cover package contents, theme discovery, responsive light/dark rendering, keyboard focus, contrast, logo/favicon resolution, component accents, and absence of consumer-local branding copies.  ## Non-goals  No repository-specific documentation content, no documentation hosting, no release/version deployment, no StateForge runtime code, and no Zensical migration in this milestone. | — | `READY` | — |
-| `D1` | `docs` | **[TASK][MVP] Implement Versioned Documentation Publishing**<br>## Outcome and ownership  Provide one reusable, auditable publishing workflow for versioned StateForge documentation using the shared theme.  ## Required behavior  - Publish immutable documentation snapshots for exact semantic release versions, a mutable `dev` version from the configured development branch, and a `latest` alias pointing to the newest stable release. - Render the version selector on every published site, keep equivalent-page navigation across versions where available, redirect the site root to `latest`, and warn clearly on historical versions. - Build release documentation from the exact release tag or commit and record source revision, theme artifact identity, builder versions, and output evidence. - Provide reusable GitHub workflows and documented local commands. Use least-privilege permissions, concurrency protection, immutable third-party action pins, strict builds, and safe deployment that cannot overwrite unrelated component documentation. - Keep the public URL layout compatible with component-scoped documentation such as `/protocol/0.1.0/`, `/protocol/dev/`, and `/protocol/latest/`. - Pin MkDocs 1.x, Material, Mike, and the shared theme through reproducible dependency resolution. Suppressing the upstream migration warning must not suppress build failures or other diagnostics.  ## Acceptance evidence  Automated deployment tests publish two synthetic releases plus `dev`, update `latest`, preserve the older release unchanged, validate root and alias redirects, exercise the version selector and outdated banner, and prove reruns are idempotent. The workflow emits inspectable provenance and never requires repository-specific copies of publishing logic.  ## Non-goals  No documentation-content rewrite, no product release automation beyond documentation, no floating dependency revisions, and no Zensical migration before its versioning path is deliberately adopted. | `D0` | `BLOCKED` | — |
+| `D0` | `docs` | **[TASK][MVP] Build the Shared StateForge Documentation Theme**<br>## Outcome and ownership  Create the shared StateForge documentation presentation package owned by stateforge-docs. Publish one installable Python distribution, `stateforge-docs-theme`, exposing the MkDocs theme name `stateforge` and extending Material for MkDocs without forking it.  ## Required behavior  - Bundle the official StateForge mark, favicon, brand tokens, typography, spacing, responsive layout, light/dark presentation, navigation treatment, repository link treatment, code styling, and accessible focus/contrast behavior. - Support a common StateForge identity plus explicit component accents for Agent, Provider Python, Protocol, Control Plane, SF-AOP, and future repositories without copying CSS or assets into consumers. - Keep content, navigation, repository metadata, and repository-specific plugins owned by each consuming repository. - Provide stable theme configuration for the version selector and historical-version warning used by later publishing work. - Package templates and static assets reproducibly in wheel and sdist. Do not load branding from a moving branch or remote runtime resource. - Keep Material-specific overrides minimal and documented so a later centrally managed Zensical migration does not require rewriting repository content.  ## Acceptance evidence  A clean environment installs the exact wheel and sdist, selects `theme.name: stateforge`, and builds representative documentation with bundled assets only. Automated tests cover package contents, theme discovery, responsive light/dark rendering, keyboard focus, contrast, logo/favicon resolution, component accents, and absence of consumer-local branding copies.  ## Non-goals  No repository-specific documentation content, no documentation hosting, no release/version deployment, no StateForge runtime code, and no Zensical migration in this milestone. | — | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-docs/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-docs/pull/2) |
+| `D1` | `docs` | **[TASK][MVP] Implement Versioned Documentation Publishing**<br>## Outcome and ownership  Provide one reusable, auditable publishing workflow for versioned StateForge documentation using the shared theme.  ## Required behavior  - Publish immutable documentation snapshots for exact semantic release versions, a mutable `dev` version from the configured development branch, and a `latest` alias pointing to the newest stable release. - Render the version selector on every published site, keep equivalent-page navigation across versions where available, redirect the site root to `latest`, and warn clearly on historical versions. - Build release documentation from the exact release tag or commit and record source revision, theme artifact identity, builder versions, and output evidence. - Provide reusable GitHub workflows and documented local commands. Use least-privilege permissions, concurrency protection, immutable third-party action pins, strict builds, and safe deployment that cannot overwrite unrelated component documentation. - Keep the public URL layout compatible with component-scoped documentation such as `/protocol/0.1.0/`, `/protocol/dev/`, and `/protocol/latest/`. - Pin MkDocs 1.x, Material, Mike, and the shared theme through reproducible dependency resolution. Suppressing the upstream migration warning must not suppress build failures or other diagnostics.  ## Acceptance evidence  Automated deployment tests publish two synthetic releases plus `dev`, update `latest`, preserve the older release unchanged, validate root and alias redirects, exercise the version selector and outdated banner, and prove reruns are idempotent. The workflow emits inspectable provenance and never requires repository-specific copies of publishing logic.  ## Non-goals  No documentation-content rewrite, no product release automation beyond documentation, no floating dependency revisions, and no Zensical migration before its versioning path is deliberately adopted. | `D0` | `READY` | — |
 | `D2` | `docs` | **[TASK][MVP] Define the Shared Documentation Consumer Integration Contract**<br>## Outcome and ownership  Define the stable consumer contract owned by stateforge-docs for integrating the shared StateForge theme and versioned publishing system. This milestone produces reusable artifacts and instructions; each consuming repository owns its own adoption milestone and evidence.  ## Required behavior  - Document the minimal MkDocs consumer configuration, component identity and accent inputs, repository metadata, version-selector settings, and historical-version warning behavior. - Define exact dependency and lockfile requirements so consumers pin a reviewed stateforge-docs-theme artifact instead of following a moving branch. - Expose reusable, typed publishing workflow inputs and outputs for component path, source revision, release version, dev branch, aliases, deployment destination, and retained evidence. - Provide a representative fixture site and validation command that prove theme discovery, packaged assets, strict builds, versioned paths, aliases, redirects, and safe coexistence with other component sites. - Document upgrade, rollback, compatibility, and deprecation procedures, including the centrally managed future migration from Material/MkDocs to Zensical. - Keep repository-specific content, navigation, plugins, generated references, and publication approval in the consuming repository.  ## Acceptance evidence  A clean fixture repository pins and installs the exact shared-theme artifact, builds strictly from the documented minimal configuration, and exercises the reusable publishing workflow for a release and dev version. Contract tests reject missing or invalid component metadata, unpinned theme consumption, unsafe publication paths, and incompatible configuration.  ## Non-goals  No changes to Agent, Protocol, Provider Python, Control Plane, or SF-AOP repositories; no centralization of their content; and no production deployment of consumer documentation. | `D0`, `D1` | `BLOCKED` | — |
 | `A14` | `agent` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Agent**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Agent. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the Agent architecture, installation, configuration, RPM, service-operation, and generated Python API documentation; preserve every repository-specific plugin and navigation requirement. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
 | `C0` | `control-plane` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Control Plane**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Control Plane. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the Control Plane specification, architecture, product concepts, development guides, navigation, and any repository-specific generated references or plugins. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
@@ -3458,11 +3862,49 @@ _No verification evidence has been declared yet._
 
 ### `P11` — [TASK][MVP] Add Versioned Provider Views to Manifest-Declared Operations and Triggers
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `protocol/AGENTS.md` | `must_preserve` | `canonical` | Yes | Preserve repository authority, generated-plan discipline, Protocol ownership boundaries, and human-owned delivery. |
+| `protocol/.agents/skills/stateforge-dpt-milestone/SKILL.md` | `must_understand` | `canonical` | Yes | Follow the repository's milestone context, blast-radius, verification, and completion-claim workflow. |
+| `protocol/.claude/skills/stateforge-protocol-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply canonical SFP ownership, validation, versioning, generated-code, and cross-repository compatibility rules. |
+| `protocol/.claude/skills/stateforge-python-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply typed Python, package-content, testing, and installed-artifact standards. |
+| `protocol/.claude/skills/stateforge-documentation/SKILL.md` | `must_understand` | `canonical` | Yes | Document the contract with the shared StateForge documentation structure, examples, and visual conventions. |
+| `protocol/pyproject.toml` | `must_preserve` | `canonical` | Yes | Preserve supported Python versions, package contents, dependency boundaries, and configured quality gates. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `expected_to_change` | `canonical` | Yes | Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/contract.py` | `expected_to_change` | `canonical` | Yes | Own presentation-tree, asset, digest, media, and serialized-message limits in the canonical Manifest contract. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json` | `expected_to_change` | `canonical` | Yes | Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/validation.py` | `expected_to_change` | `canonical` | Yes | Validate declarative presentation structure, resource bounds, content digests, reference integrity, safe media, fallback eligibility, and independent operational/presentation revisions. |
+| `protocol/tests/fixtures/manifest` | `expected_to_change` | `canonical` | Yes | Add canonical valid, invalid, boundary, digest, reference, fallback, and revision-isolation fixtures. |
+| `protocol/tests/test_manifest_contract.py` | `expected_to_change` | `canonical` | Yes | Verify generated declaration shape, service stability, identifier preservation, and revision behavior. |
+| `protocol/tests/test_manifest_validation.py` | `expected_to_change` | `canonical` | Yes | Verify complete presentation, asset, safety, limit, and fallback validation semantics. |
+| `protocol/tests/test_manifest_session_contract.py` | `must_verify` | `canonical` | Yes | Preserve session fencing and accepted-snapshot behavior while presentation revisions change independently. |
+| `protocol/docs/v0.1.0/procedures/provider-manifest.md` | `expected_to_change` | `canonical` | Yes | Document the declarative view model, revision split, asset rules, validation order, fallback behavior, and author/runtime ownership. |
+| `protocol/proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Operation Admission service, RPCs, identifiers, request fingerprints, and execution semantics unchanged. |
+| `protocol/src/stateforge_protocol/sfp/operation_admission/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters admission fingerprints or execution validation and is resolved only from the accepted declaration snapshot. |
+| `protocol/docs/v0.1.0/procedures/operation-admission.md` | `expected_to_change` | `canonical` | Yes | Explain how operation presentation is looked up by the existing operation identifier without changing admission. |
+| `protocol/proto/stateforge_protocol/sfp/trigger_publication/v1/trigger_publication.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Trigger Publication service, stream, identifiers, acknowledgements, and content fingerprints unchanged. |
+| `protocol/src/stateforge_protocol/sfp/trigger_publication/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters trigger publication or acknowledgement semantics and is resolved only from the accepted declaration snapshot. |
+| `protocol/docs/v0.1.0/procedures/triggers.md` | `expected_to_change` | `canonical` | Yes | Explain how trigger presentation is looked up by the existing trigger identifier without changing publication or acknowledgement behavior. |
+| `protocol/docs/v0.1.0/reference/python-contracts.md` | `expected_to_change` | `canonical` | Yes | Document the generated and public validation APIs for presentation declarations, assets, and revisions. |
+| `protocol/docs/v0.1.0/reference/conformance-coverage.md` | `expected_to_change` | `canonical` | Yes | Map every Provider Views rule and compatibility invariant to packaged fixtures and executable tests. |
+| `protocol/docs/v0.1.0/reference/ci-automation.md` | `expected_to_change` | `canonical` | Yes | Document local and CI verification of Provider Views, exact artifacts, and retained conformance evidence. |
+| `agent/src/stateforge_agent/_sfp/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Agent manifest client/cache and that optional presentation does not alter operational eligibility. |
+| `provider/src/stateforge_provider/_services/manifest` | `must_verify` | `compatibility` | Yes | Verify the exact built Protocol wheel remains consumable by the current Provider manifest service before the later Provider Views authoring milestone. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **test** · `protocol` · `python -m pytest -q` — The complete Protocol contract and conformance suite passes with Provider Views enabled.
+- **generated** · `protocol` · `buf lint && buf generate && python scripts/check_generated.py` — The extended Manifest protobuf lints, regenerates deterministically, and matches committed Python bindings and stubs.
+- **test** · `protocol` · `Focused Manifest Provider Views matrix covering operation views, trigger views, nested declarative components, schema bindings, optional presentation, and safe fallback.` — Proves the declarative IR is complete, bounded, identifier-addressed, and optional; absent or invalid presentation never disables an otherwise valid operation or trigger.
+- **test** · `protocol` · `Revision-isolation vectors for operational declarations, presentation metadata, and Provider-owned asset bytes.` — A visual-only change preserves the operational manifest revision plus operation-admission and trigger-content fingerprints, changes the presentation revision, and remains distinguishable as a new accepted presentation snapshot; an operational contract change still changes the operational revision.
+- **test** · `protocol` · `Asset and presentation rejection matrix for byte/count/depth limits, media allowlist, digest mismatch, missing or duplicate references, path traversal, remote resources, and executable content.` — Every Provider-owned visual is bounded and content-addressed, references resolve exactly once, unsafe inputs fail closed without leaking content, and permitted vector assets satisfy the defined sanitization rules.
+- **schema** · `protocol` · `Descriptor and fingerprint compatibility checks for Manifest Exchange, Operation Admission, and Trigger Publication.` — No new service or RPC is introduced; existing service/method identities and operation/trigger identifiers remain stable; presentation fields never enter admission, lifecycle, publication, acknowledgement, or business-payload semantics; manifests without presentation remain valid.
+- **integration** · `protocol` · `Build wheel and sdist, inspect contents, install the exact wheel outside the checkout, and execute Provider Views validation and fixture tests.` — Generated bindings, schemas, public validators, typed markers, documentation inputs, and conformance fixtures required by Provider Views ship in reproducible artifacts.
+- **integration** · `project` · `Run current Agent and Provider manifest consumer suites against the exact built Protocol wheel.` — The additive Manifest contract does not break existing consumers, and neither consumer reimplements presentation validation or assigns execution meaning to views.
+- **command** · `protocol` · `ruff format --check . && ruff check . && mypy src && mkdocs build --strict` — Formatting, lint, typing, and strict versioned documentation all pass.
+- **human** · `protocol` · `GitHub pull request architecture and security review` — A human confirms the contract is declarative data only, carries no arbitrary HTML/CSS/JavaScript or unrestricted remote resources, adds no SFP endpoint, keeps presentation revisioning separate from operational semantics, and provides a safe schema-derived fallback.
 
 ### `R12` — [TASK][MVP] Add Declarative Operation and Trigger Views to the Provider Python DSL
 
@@ -3589,11 +4031,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "bc26b983c4deb6801a8d56e93ec6f378327edfaf269fef5fa10bfa336916b1ae",
+  "fingerprint": "d5974550fb212297eaf0704801e30c0423b8c3bbeb1cab68f5933d9b3720f176",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-10-25T13:43:28+00:00",
-  "plan_fingerprint": "b628b31bcedab0c555dc691080dfaf95bd55bb1f27a4ce884de11fd751940d12",
+  "generated_at": "2026-10-27T11:33:42+00:00",
+  "plan_fingerprint": "4ae4915c007ba5f2227cdc16ef4dc4b31874f066c7626534f2cdd3c5d52d44d8",
   "repositories": [
     {
       "alias": "agent",
@@ -3610,7 +4052,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "471e111367c22e60f1a8db0c687079747f44612a",
+      "observed_commit_sha": "219b095e5f78583dbaf7d756814a2b3b2cf3251f",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -14841,7 +15283,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "e2f0642b150e87c5e2d6b540b1673df5912ce8118c96910efd4e7bcea1bbbccc",
+        "digest": "c538da8c131f3b5b78ecb1ebd3a2cfeabaf0f1b1f12aafd2cb94500410bbf5fe",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -14849,12 +15291,12 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "b689e98c6a6e48cb013f81b6a8234d6e1201301b",
+      "generated_at": "2026-10-27T10:20:39+00:00",
+      "observed_commit_sha": "b7f10b9556eebd33f2b889741e3dbb999e91404c",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
-        "component_count": 64,
+        "component_count": 66,
         "document": {
           "bomFormat": "CycloneDX",
           "components": [
@@ -25469,7 +25911,20 @@ this generated file manually.
               "version": "1.17.0"
             },
             {
-              "bom-ref": "types-grpcio-58@1.84.0.20261021",
+              "bom-ref": "stateforge-docs-theme-58@0.1.0",
+              "name": "stateforge-docs-theme",
+              "properties": [
+                {
+                  "name": "uv:package:marker",
+                  "value": "python_full_version == '3.13.*'"
+                }
+              ],
+              "purl": "pkg:pypi/stateforge-docs-theme@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-docs.git%3Frev%3D0a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5%230a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5",
+              "type": "library",
+              "version": "0.1.0"
+            },
+            {
+              "bom-ref": "types-grpcio-59@1.84.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25504,7 +25959,7 @@ this generated file manually.
               "version": "1.84.0.20261021"
             },
             {
-              "bom-ref": "types-grpcio-health-checking-59@1.0.0.20261021",
+              "bom-ref": "types-grpcio-health-checking-60@1.0.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25539,7 +25994,7 @@ this generated file manually.
               "version": "1.0.0.20261021"
             },
             {
-              "bom-ref": "types-jsonschema-60@4.26.0.20261006",
+              "bom-ref": "types-jsonschema-61@4.26.0.20261006",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25574,7 +26029,7 @@ this generated file manually.
               "version": "4.26.0.20261006"
             },
             {
-              "bom-ref": "types-protobuf-61@7.35.1.20260906",
+              "bom-ref": "types-protobuf-62@7.35.1.20260906",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25609,7 +26064,42 @@ this generated file manually.
               "version": "7.35.1.20260906"
             },
             {
-              "bom-ref": "typing-extensions-62@4.16.0",
+              "bom-ref": "types-pyyaml-63@6.0.12.20260906",
+              "externalReferences": [
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz"
+                },
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl"
+                }
+              ],
+              "name": "types-pyyaml",
+              "properties": [
+                {
+                  "name": "uv:package:marker",
+                  "value": "python_full_version == '3.13.*'"
+                }
+              ],
+              "purl": "pkg:pypi/types-pyyaml@6.0.12.20260906",
+              "type": "library",
+              "version": "6.0.12.20260906"
+            },
+            {
+              "bom-ref": "typing-extensions-64@4.16.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25644,7 +26134,7 @@ this generated file manually.
               "version": "4.16.0"
             },
             {
-              "bom-ref": "tzdata-63@2026.5",
+              "bom-ref": "tzdata-65@2026.5",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25679,7 +26169,7 @@ this generated file manually.
               "version": "2026.5"
             },
             {
-              "bom-ref": "urllib3-64@2.8.0",
+              "bom-ref": "urllib3-66@2.8.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25714,7 +26204,7 @@ this generated file manually.
               "version": "2.8.0"
             },
             {
-              "bom-ref": "watchdog-65@6.0.0",
+              "bom-ref": "watchdog-67@6.0.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -25976,7 +26466,7 @@ this generated file manually.
             },
             {
               "dependsOn": [
-                "typing-extensions-62@4.16.0"
+                "typing-extensions-64@4.16.0"
               ],
               "ref": "grpcio-14@1.84.0"
             },
@@ -26048,7 +26538,7 @@ this generated file manually.
                 "pathspec-38@1.1.1",
                 "pyyaml-49@6.0.3",
                 "pyyaml-env-tag-50@1.1",
-                "watchdog-65@6.0.0"
+                "watchdog-67@6.0.0"
               ],
               "ref": "mkdocs-26@1.6.1"
             },
@@ -26113,7 +26603,7 @@ this generated file manually.
                 "librt-22@0.16.0",
                 "mypy-extensions-34@1.1.0",
                 "pathspec-38@1.1.1",
-                "typing-extensions-62@4.16.0"
+                "typing-extensions-64@4.16.0"
               ],
               "ref": "mypy-33@2.4.0"
             },
@@ -26123,7 +26613,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "protobuf-41@7.36.2",
-                "types-protobuf-61@7.35.1.20260906"
+                "types-protobuf-62@7.35.1.20260906"
               ],
               "ref": "mypy-protobuf-35@5.1.0"
             },
@@ -26185,7 +26675,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "six-57@1.17.0",
-                "tzdata-63@2026.5"
+                "tzdata-65@2026.5"
               ],
               "ref": "python-dateutil-48@3.0.0"
             },
@@ -26210,7 +26700,7 @@ this generated file manually.
                 "certifi-7@2026.10.19",
                 "charset-normalizer-8@3.5.2",
                 "idna-17@3.20",
-                "urllib3-64@2.8.0"
+                "urllib3-66@2.8.0"
               ],
               "ref": "requests-52@2.34.2"
             },
@@ -26231,13 +26721,19 @@ this generated file manually.
             },
             {
               "dependsOn": [
+                "mkdocs-26@1.6.1",
+                "mkdocs-material-29@9.7.7",
+                "pyyaml-49@6.0.3"
+              ],
+              "ref": "stateforge-docs-theme-58@0.1.0"
+            },
+            {
+              "dependsOn": [
                 "build-6@1.6.1",
                 "grpcio-14@1.84.0",
                 "grpcio-health-checking-15@1.84.0",
                 "grpcio-tools-16@1.84.0",
                 "jsonschema-20@4.26.0",
-                "mkdocs-26@1.6.1",
-                "mkdocs-material-29@9.7.7",
                 "mkdocstrings-31@0.30.1",
                 "mypy-33@2.4.0",
                 "mypy-protobuf-35@5.1.0",
@@ -26245,46 +26741,52 @@ this generated file manually.
                 "pytest-45@9.1.1",
                 "pytest-asyncio-46@1.4.0",
                 "pytest-cov-47@7.1.0",
+                "pyyaml-49@6.0.3",
                 "referencing-51@0.37.0",
                 "rfc8785-53@0.1.4",
                 "ruff-55@0.17.1",
-                "types-grpcio-58@1.84.0.20261021",
-                "types-grpcio-health-checking-59@1.0.0.20261021",
-                "types-jsonschema-60@4.26.0.20261006",
-                "types-protobuf-61@7.35.1.20260906"
+                "stateforge-docs-theme-58@0.1.0",
+                "types-grpcio-59@1.84.0.20261021",
+                "types-grpcio-health-checking-60@1.0.0.20261021",
+                "types-jsonschema-61@4.26.0.20261006",
+                "types-protobuf-62@7.35.1.20260906",
+                "types-pyyaml-63@6.0.12.20260906"
               ],
               "ref": "stateforge-protocol-1@0.1.0"
             },
             {
-              "ref": "types-grpcio-58@1.84.0.20261021"
+              "ref": "types-grpcio-59@1.84.0.20261021"
             },
             {
               "dependsOn": [
-                "types-grpcio-58@1.84.0.20261021",
-                "types-protobuf-61@7.35.1.20260906"
+                "types-grpcio-59@1.84.0.20261021",
+                "types-protobuf-62@7.35.1.20260906"
               ],
-              "ref": "types-grpcio-health-checking-59@1.0.0.20261021"
+              "ref": "types-grpcio-health-checking-60@1.0.0.20261021"
             },
             {
               "dependsOn": [
                 "referencing-51@0.37.0"
               ],
-              "ref": "types-jsonschema-60@4.26.0.20261006"
+              "ref": "types-jsonschema-61@4.26.0.20261006"
             },
             {
-              "ref": "types-protobuf-61@7.35.1.20260906"
+              "ref": "types-protobuf-62@7.35.1.20260906"
             },
             {
-              "ref": "typing-extensions-62@4.16.0"
+              "ref": "types-pyyaml-63@6.0.12.20260906"
             },
             {
-              "ref": "tzdata-63@2026.5"
+              "ref": "typing-extensions-64@4.16.0"
             },
             {
-              "ref": "urllib3-64@2.8.0"
+              "ref": "tzdata-65@2026.5"
             },
             {
-              "ref": "watchdog-65@6.0.0"
+              "ref": "urllib3-66@2.8.0"
+            },
+            {
+              "ref": "watchdog-67@6.0.0"
             }
           ],
           "metadata": {
@@ -26312,7 +26814,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "98cdcd24a901fd2d4c9fa09ccc3124c223af661e8e24e8176326c81aa9e7a7d2",
+        "sha256": "65e64717b168633d74f6f3f6805ec1fe9ba5ed00792ffe4bbbb4d9d6ea60c1e8",
         "spec_version": "1.5"
       }
     },
@@ -26331,7 +26833,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "5da0f8a317da72955e9f456b27f735e5f3d6c824",
+      "observed_commit_sha": "1fd7364bea192a6ee2ad7f17726a0fd63bf1d5e5",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
