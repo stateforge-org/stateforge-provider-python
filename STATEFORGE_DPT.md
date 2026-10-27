@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "4ae4915c007ba5f2227cdc16ef4dc4b31874f066c7626534f2cdd3c5d52d44d8",
+  "fingerprint": "a27992275ae5f0eb690c6b12c4cd2edf8cf6a2fe2b0a28ddb665b1606f34ea0f",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 31,
+      "revision": 32,
       "slug": "stateforge"
     },
     "repositories": [
@@ -2758,7 +2758,7 @@
             "required": true,
             "role": "expected_to_change",
             "selector_kind": "protobuf",
-            "selector_value": null,
+            "selector_value": "all",
             "sort_order": 6
           },
           {
@@ -2782,7 +2782,7 @@
             "required": true,
             "role": "expected_to_change",
             "selector_kind": "json_schema",
-            "selector_value": null,
+            "selector_value": "all",
             "sort_order": 8
           },
           {
@@ -2866,7 +2866,7 @@
             "required": true,
             "role": "must_preserve",
             "selector_kind": "protobuf",
-            "selector_value": null,
+            "selector_value": "all",
             "sort_order": 15
           },
           {
@@ -2902,7 +2902,7 @@
             "required": true,
             "role": "must_preserve",
             "selector_kind": "protobuf",
-            "selector_value": null,
+            "selector_value": "all",
             "sort_order": 18
           },
           {
@@ -3307,7 +3307,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 31
+**Revision:** 32
 
 ## Repositories
 
@@ -3872,19 +3872,19 @@ _No verification evidence has been declared yet._
 | `protocol/.claude/skills/stateforge-python-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply typed Python, package-content, testing, and installed-artifact standards. |
 | `protocol/.claude/skills/stateforge-documentation/SKILL.md` | `must_understand` | `canonical` | Yes | Document the contract with the shared StateForge documentation structure, examples, and visual conventions. |
 | `protocol/pyproject.toml` | `must_preserve` | `canonical` | Yes | Preserve supported Python versions, package contents, dependency boundaries, and configured quality gates. |
-| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `expected_to_change` | `canonical` | Yes | Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` → `protobuf:all` | `expected_to_change` | `canonical` | Yes | Extend the existing Manifest Exchange declaration surface with optional declarative presentation metadata, presentation revisioning, and bounded content-addressed asset references without adding an RPC service. |
 | `protocol/src/stateforge_protocol/sfp/manifest/v1/contract.py` | `expected_to_change` | `canonical` | Yes | Own presentation-tree, asset, digest, media, and serialized-message limits in the canonical Manifest contract. |
-| `protocol/src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json` | `expected_to_change` | `canonical` | Yes | Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/manifest.schema.json` → `json_schema:all` | `expected_to_change` | `canonical` | Yes | Define the strict ProtoJSON shape for operation and trigger views, assets, references, and independent presentation revision metadata. |
 | `protocol/src/stateforge_protocol/sfp/manifest/v1/validation.py` | `expected_to_change` | `canonical` | Yes | Validate declarative presentation structure, resource bounds, content digests, reference integrity, safe media, fallback eligibility, and independent operational/presentation revisions. |
 | `protocol/tests/fixtures/manifest` | `expected_to_change` | `canonical` | Yes | Add canonical valid, invalid, boundary, digest, reference, fallback, and revision-isolation fixtures. |
 | `protocol/tests/test_manifest_contract.py` | `expected_to_change` | `canonical` | Yes | Verify generated declaration shape, service stability, identifier preservation, and revision behavior. |
 | `protocol/tests/test_manifest_validation.py` | `expected_to_change` | `canonical` | Yes | Verify complete presentation, asset, safety, limit, and fallback validation semantics. |
 | `protocol/tests/test_manifest_session_contract.py` | `must_verify` | `canonical` | Yes | Preserve session fencing and accepted-snapshot behavior while presentation revisions change independently. |
 | `protocol/docs/v0.1.0/procedures/provider-manifest.md` | `expected_to_change` | `canonical` | Yes | Document the declarative view model, revision split, asset rules, validation order, fallback behavior, and author/runtime ownership. |
-| `protocol/proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Operation Admission service, RPCs, identifiers, request fingerprints, and execution semantics unchanged. |
+| `protocol/proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto` → `protobuf:all` | `must_preserve` | `canonical` | Yes | Keep the existing Operation Admission service, RPCs, identifiers, request fingerprints, and execution semantics unchanged. |
 | `protocol/src/stateforge_protocol/sfp/operation_admission/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters admission fingerprints or execution validation and is resolved only from the accepted declaration snapshot. |
 | `protocol/docs/v0.1.0/procedures/operation-admission.md` | `expected_to_change` | `canonical` | Yes | Explain how operation presentation is looked up by the existing operation identifier without changing admission. |
-| `protocol/proto/stateforge_protocol/sfp/trigger_publication/v1/trigger_publication.proto` | `must_preserve` | `canonical` | Yes | Keep the existing Trigger Publication service, stream, identifiers, acknowledgements, and content fingerprints unchanged. |
+| `protocol/proto/stateforge_protocol/sfp/trigger_publication/v1/trigger_publication.proto` → `protobuf:all` | `must_preserve` | `canonical` | Yes | Keep the existing Trigger Publication service, stream, identifiers, acknowledgements, and content fingerprints unchanged. |
 | `protocol/src/stateforge_protocol/sfp/trigger_publication/v1` | `must_verify` | `compatibility` | Yes | Prove presentation metadata never enters trigger publication or acknowledgement semantics and is resolved only from the accepted declaration snapshot. |
 | `protocol/docs/v0.1.0/procedures/triggers.md` | `expected_to_change` | `canonical` | Yes | Explain how trigger presentation is looked up by the existing trigger identifier without changing publication or acknowledgement behavior. |
 | `protocol/docs/v0.1.0/reference/python-contracts.md` | `expected_to_change` | `canonical` | Yes | Document the generated and public validation APIs for presentation declarations, assets, and revisions. |
@@ -4031,11 +4031,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "d5974550fb212297eaf0704801e30c0423b8c3bbeb1cab68f5933d9b3720f176",
+  "fingerprint": "ff338b3239681b69a00b5c8f3ae452fc8ba93de551a5b41a4808cba630c801e9",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-10-27T11:33:42+00:00",
-  "plan_fingerprint": "4ae4915c007ba5f2227cdc16ef4dc4b31874f066c7626534f2cdd3c5d52d44d8",
+  "generated_at": "2026-10-27T11:37:11+00:00",
+  "plan_fingerprint": "a27992275ae5f0eb690c6b12c4cd2edf8cf6a2fe2b0a28ddb665b1606f34ea0f",
   "repositories": [
     {
       "alias": "agent",
@@ -4052,7 +4052,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "219b095e5f78583dbaf7d756814a2b3b2cf3251f",
+      "observed_commit_sha": "8e158fb72b9d638293f976f5d3e5afabda79b297",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -15292,7 +15292,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "b7f10b9556eebd33f2b889741e3dbb999e91404c",
+      "observed_commit_sha": "278fb2dc960bdb2ad5006b63c183d956d35dedde",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
@@ -26833,7 +26833,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "1fd7364bea192a6ee2ad7f17726a0fd63bf1d5e5",
+      "observed_commit_sha": "136899cfe854ca607d5dbe6993f876d2303030e0",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
