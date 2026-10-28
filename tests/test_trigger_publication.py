@@ -306,6 +306,25 @@ async def test_decorated_source_publishes_without_manual_runtime_code(
             publication.publication_id,
             trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
         )
+
+        sentinel_receipt = await provider.publish_trigger(
+            _DEPLOYMENT_COMPLETED,
+            _DeploymentCompleted(
+                environment="verification",
+                revision="queue-drained",
+            ),
+        )
+        sentinel = (await call.read()).publication
+        assert sentinel.publication_id == str(sentinel_receipt.publication_id)
+        assert sentinel.publication_id != publication.publication_id
+        await _acknowledge(
+            call,
+            sentinel.publication_id,
+            trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+        )
+        assert (
+            await asyncio.wait_for(sentinel_receipt.outcome(), 1)
+        ).disposition is TriggerPublicationDisposition.ACCEPTED_NEW
         await call.done_writing()
 
 

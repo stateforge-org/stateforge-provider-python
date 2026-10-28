@@ -191,6 +191,44 @@ async def _ack(
     )
 
 
+async def _prove_source_acknowledgement(
+    provider: TriggerProvider,
+    call: grpc.aio.StreamStreamCall[
+        trigger_publication_pb2.StreamTriggersRequest,
+        trigger_publication_pb2.StreamTriggersResponse,
+    ],
+    source_publication_id: str,
+) -> tuple[str, TriggerPublicationDisposition]:
+    """Prove the accepted source event no longer occupies pending state."""
+    receipt = await provider.publish_trigger(
+        DEPLOYMENT_COMPLETED,
+        DeploymentCompleted(
+            environment="verification",
+            revision="queue-drained",
+        ),
+    )
+    sentinel = (await call.read()).publication
+    _require(
+        sentinel.publication_id == str(receipt.publication_id),
+        "source acknowledgement removed the retained publication",
+    )
+    _require(
+        sentinel.publication_id != source_publication_id,
+        "acknowledged source publication was not replayed",
+    )
+    await _ack(
+        call,
+        sentinel.publication_id,
+        trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+    )
+    outcome = await receipt.outcome()
+    _require(
+        outcome.disposition is TriggerPublicationDisposition.ACCEPTED_NEW,
+        "sentinel acknowledgement outcome",
+    )
+    return sentinel.publication_id, outcome.disposition
+
+
 async def _verify(runtime_directory: Path) -> dict[str, object]:
     """Exercise retry and reconnect replay over the installed endpoint."""
     await asyncio.to_thread(runtime_directory.mkdir, parents=True)
@@ -296,6 +334,15 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
             replayed.publication_id,
             trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
         )
+
+        (
+            sentinel_publication_id,
+            sentinel_outcome,
+        ) = await _prove_source_acknowledgement(
+            provider,
+            replacement_call,
+            source_publication.publication_id,
+        )
         await replacement_call.done_writing()
         evidence = {
             "installed_artifacts": {
@@ -315,10 +362,13 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
             "callback_outcome": callback_outcome.disposition.value,
             "callback_delivery_attempts": 2,
             "source_publication_id": source_publication.publication_id,
-            "source_outcome": "accepted_new",
             "source_replayed_after_reconnect": replayed == source_publication,
+            "source_acknowledgement_observed": (
+                sentinel_publication_id != source_publication.publication_id
+            ),
+            "sentinel_publication_id": sentinel_publication_id,
+            "sentinel_outcome": sentinel_outcome.value,
             "selected_receive_window": 1,
-            "queue_state": "all_scenario_publications_terminal",
         }
     finally:
         provider.request_shutdown()
