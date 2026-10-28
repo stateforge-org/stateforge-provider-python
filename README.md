@@ -16,6 +16,10 @@ handshake on the existing endpoint. See the
 The standard gRPC Health service is hosted on that same endpoint; authors
 return a typed `HealthStatus` and never handle health protobuf messages. See
 the [health guide](docs/health-reporting.md).
+Typed triggers can be published from a managed `@trigger` async source or an
+existing callback through `publish_trigger()`. The runtime owns P3 streaming,
+bounded flow control, acknowledgement receipts, retry, and reconnect replay.
+See the [trigger publication guide](docs/trigger-publication.md).
 
 Install the Provider framework from PyPI:
 
@@ -32,6 +36,7 @@ from stateforge_provider import (
     Provider,
     ProviderModel,
     operation,
+    trigger,
 )
 ```
 

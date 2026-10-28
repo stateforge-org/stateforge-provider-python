@@ -12,6 +12,7 @@ stateforge_provider/
     capability_assessment/ # Private P2 declaration and service adaptation
     health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
+    trigger_publication/ # Private P3 stream, queue, retry, and replay runtime
 ```
 
 ## Shared runtime
@@ -54,6 +55,14 @@ API, enforces active endpoint/session/manifest/readiness fences, executes
 deduplicated checks, and adapts typed results to wire findings. The registry
 publishes only static requirement metadata through the existing manifest
 schema. Provider authors never import this package or any P2 message.
+
+Trigger Publication follows the same boundary. Provider authors declare typed
+trigger payloads with `Trigger` or `@trigger`, then optionally call
+`Provider.publish_trigger()`. The private P3 service converts those public
+Python values into canonical Protocol messages and owns the bounded queue,
+stream receive window, acknowledgement correlation, retry backoff, and replay
+after a fresh session. Publications remain process-local in this version;
+durability across Provider process restarts is not implied.
 
 To add a future procedure:
 

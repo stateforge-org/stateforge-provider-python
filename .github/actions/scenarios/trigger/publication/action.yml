@@ -1,0 +1,44 @@
+name: Test Trigger Publication with a direct Protocol peer
+description: Verify the installed Provider wheel over its real Unix socket.
+
+inputs:
+  provider-artifact-directory:
+    description: Directory containing the exact Provider build.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol build.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact Provider and Protocol wheels
+      id: environment
+      uses: ./.github/actions/environment/install
+      with:
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        environment-directory: ${{ inputs.runtime-directory }}/venv
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Exercise Trigger Publication over the installed endpoint
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        ISOLATED_PYTHON: ${{ steps.environment.outputs.python }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}/p
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        cd "${RUNNER_TEMP}"
+        unset PYTHONPATH PYTHONHOME
+        "${ISOLATED_PYTHON}" -I "${ACTION_PATH}/verify.py" \
+          --runtime-directory "${RUNTIME_DIRECTORY}" \
+          --output "${EVIDENCE_DIRECTORY}/trigger-publication.json"

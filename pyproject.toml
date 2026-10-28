@@ -29,6 +29,7 @@ classifiers = [
 dependencies = [
     "grpcio>=1.83",
     "grpcio-health-checking>=1.83",
+    "jsonschema>=4.25,<5",
     "pydantic>=2.12,<3",
     "stateforge-protocol>=0.1.0,<0.2.0",
 ]
@@ -51,6 +52,7 @@ dev = [
     "ruff>=0.12",
     "types-grpcio",
     "types-grpcio-health-checking",
+    "types-jsonschema",
     "types-protobuf",
 ]
 docs = [
@@ -66,7 +68,7 @@ environments = ["python_version == '3.13'"]
 
 
 [tool.uv.sources]
-stateforge-protocol = { git = "https://github.com/stateforge-org/stateforge-protocol.git", rev = "a4c077a5b86757b1120b229c048aa0a4cbb9f147" }
+stateforge-protocol = { git = "https://github.com/stateforge-org/stateforge-protocol.git", rev = "cb4e9af352fc89204585d1f0b16d2870a990c560" }
 
 
 [tool.hatch.build.targets.wheel]

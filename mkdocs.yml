@@ -21,10 +21,12 @@ nav:
   - Runtime architecture: runtime-architecture.md
   - Manifest declarations: manifest-authoring.md
   - Health and readiness: health-reporting.md
+  - Trigger publication: trigger-publication.md
   - Package and runtime CI/CD: ci-automation.md
   - Python API:
       - Provider: reference/provider.md
       - Declarations: reference/declarations.md
+      - Trigger publication: reference/triggers.md
       - Protocol version: reference/version.md
 
 plugins:

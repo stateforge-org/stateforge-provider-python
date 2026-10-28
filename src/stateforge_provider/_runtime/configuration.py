@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
+from stateforge_protocol.sfp.trigger_publication.v1 import (
+    contract as trigger_contract,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,6 +21,8 @@ class ProviderRuntimeLimits:
     max_schema_nodes: int = 4_096
     max_health_watchers: int = 128
     health_watch_queue_capacity: int = 16
+    max_pending_trigger_publications: int = 1_024
+    max_trigger_in_flight_publications: int = 128
 
     def __post_init__(self) -> None:
         """Reject unusable operational limits."""
@@ -27,6 +32,8 @@ class ProviderRuntimeLimits:
             "max_schema_nodes",
             "max_health_watchers",
             "health_watch_queue_capacity",
+            "max_pending_trigger_publications",
+            "max_trigger_in_flight_publications",
         ):
             value = getattr(self, name)
             if (
@@ -43,6 +50,14 @@ class ProviderRuntimeLimits:
             raise ValueError(
                 "max_schema_nodes must not exceed the Manifest contract"
             )
+        if (
+            self.max_trigger_in_flight_publications
+            > trigger_contract.MAX_IN_FLIGHT_PUBLICATIONS
+        ):
+            raise ValueError(
+                "max_trigger_in_flight_publications must not exceed the "
+                "Trigger Publication contract"
+            )
 
 
 DEFAULT_RUNTIME_LIMITS = ProviderRuntimeLimits()
@@ -56,6 +71,8 @@ class ProviderRuntimeConfiguration:
     discovery_directory: Path
     shutdown_timeout_seconds: float = 5.0
     health_watch_delivery_timeout_seconds: float = 1.0
+    trigger_retry_base_seconds: float = 0.25
+    trigger_retry_max_seconds: float = 30.0
     limits: ProviderRuntimeLimits = field(
         default_factory=ProviderRuntimeLimits
     )
@@ -91,6 +108,8 @@ class ProviderRuntimeConfiguration:
         for name in (
             "shutdown_timeout_seconds",
             "health_watch_delivery_timeout_seconds",
+            "trigger_retry_base_seconds",
+            "trigger_retry_max_seconds",
         ):
             timeout = getattr(self, name)
             if (
@@ -100,5 +119,10 @@ class ProviderRuntimeConfiguration:
                 or timeout <= 0
             ):
                 raise ValueError(f"{name} must be positive")
+        if self.trigger_retry_base_seconds > self.trigger_retry_max_seconds:
+            raise ValueError(
+                "trigger_retry_base_seconds must not exceed "
+                "trigger_retry_max_seconds"
+            )
         if not isinstance(self.limits, ProviderRuntimeLimits):
             raise ValueError("limits must be ProviderRuntimeLimits")

@@ -1587,7 +1587,7 @@ wheels = [
 [[package]]
 name = "stateforge-protocol"
 version = "0.1.0"
-source = { git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=a4c077a5b86757b1120b229c048aa0a4cbb9f147#a4c077a5b86757b1120b229c048aa0a4cbb9f147" }
+source = { git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=cb4e9af352fc89204585d1f0b16d2870a990c560#cb4e9af352fc89204585d1f0b16d2870a990c560" }
 dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
@@ -1604,6 +1604,7 @@ source = { editable = "." }
 dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
+    { name = "jsonschema" },
     { name = "pydantic" },
     { name = "stateforge-protocol" },
 ]
@@ -1618,6 +1619,7 @@ dev = [
     { name = "ruff" },
     { name = "types-grpcio" },
     { name = "types-grpcio-health-checking" },
+    { name = "types-jsonschema" },
     { name = "types-protobuf" },
 ]
 docs = [
@@ -1631,8 +1633,9 @@ docs = [
 requires-dist = [
     { name = "grpcio", specifier = ">=1.83" },
     { name = "grpcio-health-checking", specifier = ">=1.83" },
+    { name = "jsonschema", specifier = ">=4.25,<5" },
     { name = "pydantic", specifier = ">=2.12,<3" },
-    { name = "stateforge-protocol", git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=a4c077a5b86757b1120b229c048aa0a4cbb9f147" },
+    { name = "stateforge-protocol", git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=cb4e9af352fc89204585d1f0b16d2870a990c560" },
 ]
 
 [package.metadata.requires-dev]
@@ -1645,6 +1648,7 @@ dev = [
     { name = "ruff", specifier = ">=0.12" },
     { name = "types-grpcio" },
     { name = "types-grpcio-health-checking" },
+    { name = "types-jsonschema" },
     { name = "types-protobuf" },
 ]
 docs = [
@@ -1674,6 +1678,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/34/09/45e818a73ba3b674648744dce85bf2e4507a990bb07966dfca14a2712a4c/types_grpcio_health_checking-1.0.0.20261021.tar.gz", hash = "sha256:155d53811ca7810c2caaa63bf8769324753ac8f01b397dd8cf95d08bda4c134a", size = 8627, upload-time = "2026-10-21T06:42:11.465Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/19/de/eca76e380f7e3b93bd7032847e4e9d43904e604b5782c83be9cf733be962/types_grpcio_health_checking-1.0.0.20261021-py3-none-any.whl", hash = "sha256:bac5319aa52e2012f745dba9c125f77326e60db14d60e15cff268dc8759387f5", size = 9828, upload-time = "2026-10-21T06:42:10.574Z" },
+]
+
+[[package]]
+name = "types-jsonschema"
+version = "4.26.0.20261006"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "referencing" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/29/d2/1f742605f5a6d39f993134885b8de41c98af606871d3ebddaf3e776bd1eb/types_jsonschema-4.26.0.20261006.tar.gz", hash = "sha256:3eb7db61b6819d40addfdaac7173e749071a7d4a9a4394f0c844598ec84b2500", size = 16843, upload-time = "2026-10-06T08:16:07.318Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8b/a0/4f2e3c0dc3d5cad958006f2e0307065cc8fe4fbf0393ff0b69d55ee9bbe5/types_jsonschema-4.26.0.20261006-py3-none-any.whl", hash = "sha256:29301f4e65e3928540cdf5e23ad716e38bb0c0b416a48dada213edd3d70206ec", size = 16113, upload-time = "2026-10-06T08:16:06.355Z" },
 ]
 
 [[package]]

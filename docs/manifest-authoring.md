@@ -127,6 +127,13 @@ publishing the same static metadata through the schema-1
 syntax; the check must verify whatever the named requirement means. An empty
 constraint means no declared version restriction.
 
+An explicit `Trigger(identifier, PayloadModel)` declares a callback-driven
+event. A decorated `@trigger(identifier)` async generator declares the same
+manifest shape from its `AsyncIterator[PayloadModel]` return annotation and
+also supplies a managed event source. See [Trigger publication](trigger-publication.md)
+for both complete authoring paths, bounded queue behavior, acknowledgements,
+retry, and replay.
+
 ## Dynamic requirement checks
 
 Use `@requirement_check(identifier, description, version_constraint="")` on
@@ -267,7 +274,6 @@ Install the package and its development dependencies from `pyproject.toml`:
 python -m pip install -e . --group dev --group docs
 ```
 
-This milestone does not implement configuration loading, target-specific assessment,
-dispatch, OperationContext, trigger publication, Agent caching/routing, or
-vendor work. Those remain their own milestones; these declarations are their
-shared input.
+This milestone does not implement configuration loading, operation dispatch,
+OperationContext, Agent routing, or vendor work. Those remain their own
+milestones; these declarations are their shared input.
