@@ -159,7 +159,7 @@ any order.
 | `accepted_duplicate` | Remove the replayed event and resolve the receipt successfully. |
 | Retryable rejection | Preserve the same ID and content, wait for bounded guidance or exponential backoff, and retry. |
 | Non-retryable rejection | Remove the event and resolve the receipt with sanitized rejection details. |
-| Stream loss | Preserve every unacknowledged event and replay it on an eligible stream. |
+| Stream loss | Preserve every unacknowledged event and replay it on an eligible stream after bounded exponential backoff. |
 
 The default queue holds 1,024 publications. Callback admission raises
 `TriggerQueueFullError` rather than dropping an older event. Decorated sources

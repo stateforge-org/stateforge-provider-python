@@ -216,6 +216,7 @@ class TriggerPublicationRuntime:
 
     async def close_stream(self, lease: TriggerStreamLease) -> None:
         """Release one stream and make its unacknowledged events replayable."""
+        loop = asyncio.get_running_loop()
         async with self._condition:
             if lease.closed:
                 return
@@ -229,6 +230,11 @@ class TriggerPublicationRuntime:
                     and publication.lease_id == lease.identifier
                 ):
                     publication.lease_id = None
+                    publication.retry_at = max(
+                        publication.retry_at,
+                        loop.time()
+                        + self._exponential_retry_delay(publication),
+                    )
             lease.outstanding.clear()
             self._condition.notify_all()
 
@@ -460,6 +466,10 @@ class TriggerPublicationRuntime:
                     self._retry_max_seconds,
                 )
             )
+        return self._exponential_retry_delay(publication)
+
+    def _exponential_retry_delay(self, publication: _Publication) -> float:
+        """Bound retry timing for rejections and transient stream loss."""
         exponent = min(publication.attempts - 1, 30)
         return float(
             min(

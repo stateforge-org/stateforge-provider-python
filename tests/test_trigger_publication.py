@@ -374,6 +374,13 @@ async def test_unacknowledged_publication_replays_after_fresh_session(
     directory: Path,
 ) -> None:
     provider = _TriggerProvider(directory)
+    configuration = replace(
+        provider._configuration,
+        trigger_retry_base_seconds=1,
+        trigger_retry_max_seconds=1,
+    )
+    provider._configuration = configuration
+    provider._server.configuration = configuration
     async with _running(provider) as (bootstrap, manifest, trigger_stub, data):
         first_session, first_snapshot = await _session(
             bootstrap, manifest, data
@@ -399,7 +406,10 @@ async def test_unacknowledged_publication_replays_after_fresh_session(
             second_session,
             second_snapshot,
         )
-        second = (await second_call.read()).publication
+        pending_replay = asyncio.create_task(second_call.read())
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(asyncio.shield(pending_replay), 0.05)
+        second = (await asyncio.wait_for(pending_replay, 2)).publication
         assert second == first
         await _acknowledge(
             second_call,
