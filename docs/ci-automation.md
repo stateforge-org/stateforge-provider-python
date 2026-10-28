@@ -162,10 +162,11 @@ real Agent client; CI does not substitute a synthetic Agent-side caller.
 R4 Trigger Publication verification also uses a real Unix socket, but its peer
 is deliberately the canonical Protocol contract rather than an invented Agent
 runtime. The current Agent does not implement the P3 consumer yet. A4 owns that
-implementation, and the later R18 integration milestone will import the real
-Agent behavior into this repository's runtime CI. Until then, the direct peer
-proves the installed Provider wheel's exact P3 framing, flow control, retry,
-and replay semantics without pretending that Agent support already exists.
+implementation. After A4 lands, the real Agent exchange can be added to the
+Provider runtime matrix without replacing this direct Provider contract test.
+Until then, the direct peer proves the installed Provider wheel's exact P3
+framing, flow control, retry, and replay semantics without pretending that
+Agent support already exists.
 
 ## Evidence and security
 
