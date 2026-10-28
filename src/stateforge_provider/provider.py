@@ -7,6 +7,7 @@ import contextlib
 import logging
 import signal
 from collections.abc import Sequence
+from datetime import datetime
 from pathlib import Path
 from typing import ClassVar, final
 
@@ -31,6 +32,12 @@ from stateforge_provider._services.manifest.declaration import (
 from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
 )
+from stateforge_provider._services.trigger_publication.runtime import (
+    TriggerPublicationRuntime,
+)
+from stateforge_provider._services.trigger_publication.service import (
+    registration as trigger_publication_registration,
+)
 from stateforge_provider.declarations import (
     Platform,
     ProviderModel,
@@ -38,6 +45,10 @@ from stateforge_provider.declarations import (
     Trigger,
 )
 from stateforge_provider.health import HealthStatus
+from stateforge_provider.triggers import (
+    TriggerPublicationReceipt,
+    TriggerPublicationUnavailableError,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -95,6 +106,7 @@ class Provider:
         self._shutdown_requested = asyncio.Event()
         self._health_service: ProviderHealthService | None = None
         self._health_refresh_lock = asyncio.Lock()
+        self._trigger_runtime: TriggerPublicationRuntime | None = None
 
     async def on_startup(self) -> None:
         """Override to initialize Provider resources before publication."""
@@ -136,6 +148,32 @@ class Provider:
             return await self._refresh_health(service)
 
     @final
+    async def publish_trigger(
+        self,
+        trigger: Trigger | str,
+        payload: ProviderModel,
+        *,
+        observed_at: datetime | None = None,
+    ) -> TriggerPublicationReceipt:
+        """Validate and queue one callback-driven trigger publication.
+
+        The returned receipt confirms local queue admission. Await
+        :meth:`TriggerPublicationReceipt.outcome` only when the caller needs
+        the Agent's terminal acknowledgement; the runtime continues delivery
+        and retry ownership when the caller does not wait.
+        """
+        runtime = self._trigger_runtime
+        if runtime is None:
+            raise TriggerPublicationUnavailableError(
+                "Trigger publication runtime is not active"
+            )
+        return await runtime.publish(
+            trigger,
+            payload,
+            observed_at=observed_at,
+        )
+
+    @final
     def run(self) -> None:
         """Run to completion with an owned event loop and signal handlers.
 
@@ -153,7 +191,7 @@ class Provider:
         asyncio.run(run_with_signals())
 
     @final
-    async def serve(self) -> None:
+    async def serve(self) -> None:  # noqa: PLR0915
         """Validate declarations and serve on the caller's event loop.
 
         The caller retains signal-handler ownership and may initiate shutdown
@@ -173,6 +211,20 @@ class Provider:
             ),
         )
         bound_requirements = requirement_registry.bind(self)
+        trigger_runtime = TriggerPublicationRuntime(
+            declaration,
+            queue_capacity=(
+                self._configuration.limits.max_pending_trigger_publications
+            ),
+            maximum_in_flight=(
+                self._configuration.limits.max_trigger_in_flight_publications
+            ),
+            retry_base_seconds=(
+                self._configuration.trigger_retry_base_seconds
+            ),
+            retry_max_seconds=(self._configuration.trigger_retry_max_seconds),
+        )
+        self._trigger_runtime = trigger_runtime
         health_service = ProviderHealthService(
             max_watchers=self._configuration.limits.max_health_watchers,
             watch_queue_capacity=(
@@ -205,6 +257,13 @@ class Provider:
                     health=health_service,
                     requirements=bound_requirements,
                 ),
+                trigger_publication_registration(
+                    endpoint=identity,
+                    snapshot=snapshot,
+                    sessions=sessions,
+                    health=health_service,
+                    runtime=trigger_runtime,
+                ),
             )
 
         def health_registration(
@@ -222,9 +281,19 @@ class Provider:
                 procedure_factory=procedures,
                 supplemental_procedure_factory=health_registration,
             )
+            await trigger_runtime.start_sources(self)
             await self._shutdown_requested.wait()
         finally:
             health_service.begin_shutdown()
+            trigger_failure: BaseException | None = None
+            try:
+                await trigger_runtime.close()
+                async with asyncio.timeout(
+                    self._configuration.shutdown_timeout_seconds
+                ):
+                    await trigger_runtime.stop_sources()
+            except BaseException as error:
+                trigger_failure = error
             shutdown_called = False
 
             async def shutdown_author_resources() -> None:
@@ -253,13 +322,26 @@ class Provider:
                     shutdown_failure = error
 
             self._health_service = None
+            self._trigger_runtime = None
             if endpoint_failure is not None:
+                if trigger_failure is not None:
+                    endpoint_failure.add_note(
+                        "Provider trigger-runtime shutdown also failed: "
+                        f"{trigger_failure}"
+                    )
                 if shutdown_failure is not None:
                     endpoint_failure.add_note(
                         "Provider author-resource shutdown also failed: "
                         f"{shutdown_failure}"
                     )
                 raise endpoint_failure
+            if trigger_failure is not None:
+                if shutdown_failure is not None:
+                    trigger_failure.add_note(
+                        "Provider author-resource shutdown also failed: "
+                        f"{shutdown_failure}"
+                    )
+                raise trigger_failure
             if shutdown_failure is not None:
                 raise shutdown_failure
 

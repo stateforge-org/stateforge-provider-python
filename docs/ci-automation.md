@@ -140,7 +140,11 @@ The runtime suite currently covers:
 - same-installation replacement with a stable identity and newer generation;
 - rejection of malformed Provider discovery data followed by valid recovery;
 - abrupt process failure followed by a valid newer generation; and
-- uninstall and reinstall of the exact Provider wheel.
+- uninstall and reinstall of the exact Provider wheel; and
+- installed-wheel Trigger Publication through an independent Protocol peer,
+  including callback and decorated sources, a bounded receive window,
+  retryable rejection with immutable replay, accepted duplicate disposition,
+  stream loss, and replay under a fresh fenced session.
 
 The fixtures import only the public `stateforge_provider` API. Each runtime
 scenario installs the exact Agent RPM into an isolated Fedora system, starts
@@ -154,6 +158,14 @@ and Windows for Python 3.11, 3.12, and 3.13.
 Provider-level tests exercise Capability Assessment over a real Unix socket.
 There is intentionally no installed runtime P2 scenario until A3 supplies the
 real Agent client; CI does not substitute a synthetic Agent-side caller.
+
+R4 Trigger Publication verification also uses a real Unix socket, but its peer
+is deliberately the canonical Protocol contract rather than an invented Agent
+runtime. The current Agent does not implement the P3 consumer yet. A4 owns that
+implementation, and the later R18 integration milestone will import the real
+Agent behavior into this repository's runtime CI. Until then, the direct peer
+proves the installed Provider wheel's exact P3 framing, flow control, retry,
+and replay semantics without pretending that Agent support already exists.
 
 ## Evidence and security
 

@@ -1,11 +1,13 @@
 """Prevent normative SFP validation from drifting back into the Provider."""
 
+import inspect
 from uuid import UUID, uuid4
 
 import grpc
 import pytest
 from stateforge_protocol.sfp.bootstrap.v1 import bootstrap_pb2
 
+from stateforge_provider import Provider, TriggerPublicationReceipt, trigger
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._runtime.sessions import SessionRegistry
 from stateforge_provider._services.bootstrap import (
@@ -86,3 +88,33 @@ def test_provider_version_delegates_to_protocol(
 
     with pytest.raises(ValueError, match="canonical rejection"):
         ProtocolVersion(major=1, minor=0)
+
+
+def test_trigger_author_api_has_no_transport_parameters() -> None:
+    publish = inspect.signature(Provider.publish_trigger)
+    assert tuple(publish.parameters) == (
+        "self",
+        "trigger",
+        "payload",
+        "observed_at",
+    )
+    assert publish.return_annotation in (
+        "TriggerPublicationReceipt",
+        TriggerPublicationReceipt,
+    )
+    declare = inspect.signature(trigger)
+    assert tuple(declare.parameters) == ("identifier",)
+    forbidden = {
+        "protobuf",
+        "grpc",
+        "session",
+        "generation",
+        "envelope",
+        "source",
+        "target",
+    }
+    public_names = {
+        *publish.parameters,
+        *declare.parameters,
+    }
+    assert forbidden.isdisjoint(public_names)

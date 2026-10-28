@@ -3,7 +3,7 @@
 import copy
 import json
 import runpy
-from collections.abc import Callable
+from collections.abc import AsyncIterator, Callable
 from dataclasses import replace
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -28,6 +28,7 @@ from stateforge_provider import (
     RuntimeRequirement,
     Trigger,
     operation,
+    trigger,
 )
 from stateforge_provider._runtime.configuration import DEFAULT_RUNTIME_LIMITS
 from stateforge_provider._runtime.identity import ProviderEndpointIdentity
@@ -135,6 +136,74 @@ def test_minimal_and_representative_provider_authoring():
         set(operation) == {"inputSchema", "resultSchema", "implements"}
         for operation in declaration["operations"].values()
     )
+
+
+def test_decorated_trigger_source_joins_the_single_manifest_catalog():
+    class Decorated(_Minimal):
+        @trigger("example.reference/decorated@1")
+        async def changes(self) -> AsyncIterator[_Result]:
+            yield _Result(resolved="example")
+
+    declaration = ManifestDeclaration.discover(Decorated)
+    snapshot = declaration.snapshot(ProviderEndpointIdentity(_INSTANCE, 1))
+
+    assert snapshot.trigger_identifiers == {"example.reference/decorated@1"}
+    assert snapshot.trigger_declarations == (
+        Trigger("example.reference/decorated@1", _Result),
+    )
+    assert snapshot.trigger_source_methods == (
+        ("example.reference/decorated@1", "changes"),
+    )
+
+
+def test_rejects_invalid_duplicate_and_secret_trigger_sources():
+    class CoroutineSource(_Minimal):
+        @trigger("example.reference/coroutine@1")
+        async def changes(self) -> AsyncIterator[_Result]:
+            return object()  # type: ignore[return-value]
+
+    class WrongPayloadSource(_Minimal):
+        @trigger("example.reference/wrong@1")
+        async def changes(self) -> AsyncIterator[str]:
+            yield "wrong"
+
+    class DuplicateSource(_Minimal):
+        triggers = (Trigger("example.reference/duplicate@1", _Result),)
+
+        @trigger("example.reference/duplicate@1")
+        async def changes(self) -> AsyncIterator[_Result]:
+            yield _Result(resolved="duplicate")
+
+    class SecretPayload(ProviderModel):
+        token: SecretStr
+
+    class SecretSource(_Minimal):
+        @trigger("example.reference/secret@1")
+        async def changes(self) -> AsyncIterator[SecretPayload]:
+            yield SecretPayload(token=str(uuid4()))
+
+    for owner in (
+        CoroutineSource,
+        WrongPayloadSource,
+        DuplicateSource,
+        SecretSource,
+    ):
+        with pytest.raises(ManifestError):
+            ManifestDeclaration.discover(owner)
+
+
+def test_trigger_source_override_requires_redeclaration():
+    class Base(_Minimal):
+        @trigger("example.reference/inherited@1")
+        async def changes(self) -> AsyncIterator[_Result]:
+            yield _Result(resolved="base")
+
+    class InvalidOverride(Base):
+        async def changes(self) -> AsyncIterator[_Result]:
+            yield _Result(resolved="override")
+
+    with pytest.raises(ManifestError):
+        ManifestDeclaration.discover(InvalidOverride)
 
 
 @pytest.mark.parametrize(

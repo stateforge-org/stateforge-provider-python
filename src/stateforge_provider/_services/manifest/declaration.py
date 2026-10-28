@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import inspect
 import json
+from collections.abc import AsyncGenerator, AsyncIterator
 from dataclasses import dataclass
-from typing import Any, get_type_hints
+from typing import Any, get_args, get_origin, get_type_hints
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 from pydantic.errors import PydanticUndefinedAnnotation, PydanticUserError
@@ -39,6 +40,7 @@ from stateforge_provider.declarations import (
     _mro_namespace,
     _Operation,
 )
+from stateforge_provider.triggers import _TriggerSource
 
 
 def _model_schema(
@@ -137,6 +139,111 @@ def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
     return declarations
 
 
+def _triggers(  # noqa: PLR0912
+    owner: type,
+    limits: ProviderRuntimeLimits,
+) -> tuple[
+    dict[str, Any],
+    tuple[Trigger, ...],
+    tuple[tuple[str, str], ...],
+]:
+    """Discover explicit and decorated triggers through one path."""
+    declared: list[tuple[Trigger, str | None]] = []
+    for index, item in enumerate(
+        _sequence(owner, "triggers", manifest_contract.MAX_TRIGGERS)
+    ):
+        if not isinstance(item, Trigger):
+            raise ManifestError(f"triggers[{index}]: expected Trigger")
+        declared.append((item, None))
+
+    methods, metadata_erased = _effective_methods(
+        owner,
+        metadata_attribute="__stateforge_trigger_source__",
+        metadata_type=_TriggerSource,
+    )
+    if metadata_erased:
+        raise ManifestError("triggers: overrides must redeclare metadata")
+    for source_name, (method, declaring_class) in methods.items():
+        metadata = getattr(method, "__stateforge_trigger_source__", None)
+        if not isinstance(metadata, _TriggerSource):
+            continue
+        path = f"triggers.{source_name}"
+        if not inspect.isasyncgenfunction(method):
+            raise ManifestError(f"{path}: must be an async generator")
+        signature = inspect.signature(method)
+        if tuple(signature.parameters) != ("self",):
+            raise ManifestError(f"{path}: expected a (self) signature")
+        try:
+            annotations = get_type_hints(
+                method,
+                globalns=vars(inspect.getmodule(method) or {}),
+                localns=_mro_namespace(declaring_class),
+            )
+        except (NameError, TypeError):
+            raise ManifestError(
+                f"{path}: unresolved model annotations"
+            ) from None
+        return_annotation = annotations.get("return")
+        if get_origin(return_annotation) not in (
+            AsyncIterator,
+            AsyncGenerator,
+        ):
+            raise ManifestError(
+                f"{path}: return annotation must be "
+                "AsyncIterator[ProviderModel]"
+            )
+        arguments = get_args(return_annotation)
+        payload = arguments[0] if arguments else None
+        if not isinstance(payload, type) or not issubclass(
+            payload, ProviderModel
+        ):
+            raise ManifestError(
+                f"{path}: return annotation must contain a ProviderModel"
+            )
+        declared.append((Trigger(metadata.identifier, payload), source_name))
+
+    if len(declared) > manifest_contract.MAX_TRIGGERS:
+        raise ManifestError("triggers: entry limit exceeded")
+    documents: dict[str, Any] = {}
+    declarations: dict[str, Trigger] = {}
+    sources: list[tuple[str, str]] = []
+    for index, (item, declared_source_name) in enumerate(declared):
+        path = f"triggers[{index}]"
+        validate_structure(item.identifier, "identifier", path)
+        if item.identifier in documents:
+            raise ManifestError(f"{path}: duplicate trigger identifier")
+        payload_schema = _model_schema(
+            item.payload,
+            path,
+            "serialization",
+            limits,
+        )
+        if _contains_write_only(payload_schema):
+            raise ManifestError(
+                f"{path}: trigger payloads cannot contain secrets"
+            )
+        documents[item.identifier] = {"payloadSchema": payload_schema}
+        declarations[item.identifier] = item
+        if declared_source_name is not None:
+            sources.append((item.identifier, declared_source_name))
+    return (
+        documents,
+        tuple(declarations[key] for key in sorted(declarations)),
+        tuple(sorted(sources)),
+    )
+
+
+def _contains_write_only(value: Any) -> bool:
+    """Detect secret-bearing fields anywhere in a trigger payload schema."""
+    if isinstance(value, dict):
+        return value.get("writeOnly") is True or any(
+            _contains_write_only(item) for item in value.values()
+        )
+    if isinstance(value, list):
+        return any(_contains_write_only(item) for item in value)
+    return False
+
+
 def _check_combined_schema_budget(
     configuration: dict[str, Any],
     operations: dict[str, Any],
@@ -169,6 +276,17 @@ class ManifestDeclaration:
     """Freeze validated declaration bytes before author startup."""
 
     document: bytes
+    trigger_declarations: tuple[Trigger, ...] = ()
+    trigger_source_methods: tuple[tuple[str, str], ...] = ()
+
+    @property
+    def trigger_schemas(self) -> dict[str, dict[str, Any]]:
+        """Return fresh schemas from the one accepted declaration document."""
+        document = json.loads(self.document)
+        return {
+            identifier: declaration["payloadSchema"]
+            for identifier, declaration in document["triggers"].items()
+        }
 
     @classmethod
     def discover(
@@ -246,21 +364,10 @@ class ManifestDeclaration:
                 "description": requirement.description,
                 "versionConstraint": requirement.version_constraint,
             }
-        triggers = {}
-        for index, trigger in enumerate(
-            _sequence(owner, "triggers", manifest_contract.MAX_TRIGGERS)
-        ):
-            path = f"triggers[{index}]"
-            if not isinstance(trigger, Trigger):
-                raise ManifestError(f"{path}: expected Trigger")
-            validate_structure(trigger.identifier, "identifier", path)
-            if trigger.identifier in triggers:
-                raise ManifestError(f"{path}: duplicate trigger identifier")
-            triggers[trigger.identifier] = {
-                "payloadSchema": _model_schema(
-                    trigger.payload, path, "serialization", limits
-                )
-            }
+        triggers, trigger_declarations, trigger_sources = _triggers(
+            owner,
+            limits,
+        )
         operations = _operations(owner, limits)
         configuration = _model_schema(
             getattr(owner, "configuration_model", ProviderModel),
@@ -290,7 +397,7 @@ class ManifestDeclaration:
             document,
             limits=contract_limits,
         )
-        return cls(content)
+        return cls(content, trigger_declarations, trigger_sources)
 
     def snapshot(self, identity: ProviderEndpointIdentity) -> ManifestSnapshot:
         """Construct the exchange after identity allocation and startup."""
@@ -329,7 +436,11 @@ class ManifestDeclaration:
             raise ManifestError("manifest: response size limit exceeded")
         validate_manifest_response(response)
         response.ClearField("session_id")
-        return ManifestSnapshot(response.SerializeToString())
+        return ManifestSnapshot(
+            response.SerializeToString(),
+            self.trigger_declarations,
+            self.trigger_source_methods,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -337,6 +448,8 @@ class ManifestSnapshot:
     """Retain an immutable serialized response template."""
 
     document: bytes
+    trigger_declarations: tuple[Trigger, ...] = ()
+    trigger_source_methods: tuple[tuple[str, str], ...] = ()
 
     @property
     def manifest_revision(self) -> str:
@@ -350,6 +463,21 @@ class ManifestSnapshot:
         """Return the operations declared by this immutable snapshot."""
         response = manifest_pb2.GetManifestResponse.FromString(self.document)
         return frozenset(response.manifest.operations)
+
+    @property
+    def trigger_identifiers(self) -> frozenset[str]:
+        """Return the triggers declared by this immutable snapshot."""
+        response = manifest_pb2.GetManifestResponse.FromString(self.document)
+        return frozenset(response.manifest.triggers)
+
+    @property
+    def trigger_schemas(self) -> dict[str, dict[str, Any]]:
+        """Return fresh JSON Schemas keyed by accepted trigger identifier."""
+        response = manifest_pb2.GetManifestResponse.FromString(self.document)
+        return {
+            identifier: MessageToDict(declaration.payload_schema)
+            for identifier, declaration in response.manifest.triggers.items()
+        }
 
     def response(self, session_id: str) -> manifest_pb2.GetManifestResponse:
         """Return a fresh complete envelope bound to this validated call."""
