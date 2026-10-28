@@ -21,6 +21,7 @@ from stateforge_provider._services.health.service import ProviderHealthService
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
 from stateforge_provider._services.trigger_publication.runtime import (
     DuplicateTriggerStreamError,
+    StaleTriggerStreamError,
     TriggerAcknowledgementError,
     TriggerPublicationRuntime,
     TriggerStreamClosedError,
@@ -104,6 +105,12 @@ class TriggerPublicationService(
                     grpc.StatusCode.UNAVAILABLE,
                     "Trigger publication runtime is stopping",
                 ) from None
+            self._validate_fences(open_message)
+            if not self._health.is_serving():
+                raise _StreamFailureError(
+                    grpc.StatusCode.UNAVAILABLE,
+                    "Provider is not ready for Trigger Publication",
+                )
 
             ready = self._ready(open_message, lease)
             response = trigger_publication_pb2.StreamTriggersResponse(
@@ -249,7 +256,13 @@ class TriggerPublicationService(
                 await self._runtime.acknowledge(
                     lease,
                     request.acknowledgement,
+                    is_session_current=self._current_session,
                 )
+            except StaleTriggerStreamError:
+                raise _StreamFailureError(
+                    grpc.StatusCode.FAILED_PRECONDITION,
+                    "Trigger stream session is no longer active",
+                ) from None
             except (
                 TriggerAcknowledgementError,
                 validation.TriggerPublicationValidationError,

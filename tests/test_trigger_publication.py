@@ -518,6 +518,72 @@ async def test_stream_rejects_stale_binding_and_duplicate_session(
 
 
 @pytest.mark.asyncio
+async def test_evicted_session_cannot_acknowledge_pending_publication(
+    directory: Path,
+) -> None:
+    provider = _TriggerProvider(directory)
+    limits = replace(provider._configuration.limits, max_sessions=1)
+    configuration = replace(
+        provider._configuration,
+        limits=limits,
+        trigger_retry_base_seconds=0.001,
+        trigger_retry_max_seconds=0.001,
+    )
+    provider._configuration = configuration
+    provider._server.configuration = configuration
+    async with _running(provider) as (bootstrap, manifest, trigger_stub, data):
+        first_session, first_snapshot = await _session(
+            bootstrap,
+            manifest,
+            data,
+        )
+        stale_call = await _stream(
+            trigger_stub,
+            first_session,
+            first_snapshot,
+        )
+        receipt = await provider.publish_trigger(
+            _DEPLOYMENT_COMPLETED,
+            _DeploymentCompleted(environment="test", revision="stale-ack"),
+        )
+        publication = (await stale_call.read()).publication
+
+        current_session, current_snapshot = await _session(
+            bootstrap,
+            manifest,
+            data,
+        )
+        await _acknowledge(
+            stale_call,
+            publication.publication_id,
+            trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+        )
+        with pytest.raises(grpc.aio.AioRpcError) as stale_error:
+            await stale_call.read()
+        assert stale_error.value.code() is grpc.StatusCode.FAILED_PRECONDITION
+
+        pending_outcome = asyncio.create_task(receipt.outcome())
+        await asyncio.sleep(0)
+        assert not pending_outcome.done()
+        current_call = await _stream(
+            trigger_stub,
+            current_session,
+            current_snapshot,
+        )
+        replayed = (await current_call.read()).publication
+        assert replayed == publication
+        await _acknowledge(
+            current_call,
+            replayed.publication_id,
+            trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+        )
+        assert (
+            await asyncio.wait_for(pending_outcome, 1)
+        ).disposition is TriggerPublicationDisposition.ACCEPTED_NEW
+        await current_call.done_writing()
+
+
+@pytest.mark.asyncio
 async def test_stream_rejects_invalid_framing_and_unknown_acknowledgement(
     directory: Path,
 ) -> None:

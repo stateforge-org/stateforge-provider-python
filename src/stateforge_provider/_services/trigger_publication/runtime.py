@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -68,6 +68,10 @@ class DuplicateTriggerStreamError(RuntimeError):
 
 class TriggerAcknowledgementError(RuntimeError):
     """Reject an acknowledgement outside its current stream window."""
+
+
+class StaleTriggerStreamError(RuntimeError):
+    """Reject state changes from a session that is no longer active."""
 
 
 class TriggerStreamClosedError(RuntimeError):
@@ -286,9 +290,13 @@ class TriggerPublicationRuntime:
         self,
         lease: TriggerStreamLease,
         acknowledgement: trigger_publication_pb2.TriggerAcknowledgement,
+        *,
+        is_session_current: Callable[[str], bool],
     ) -> None:
         """Apply one Agent decision without changing event content."""
         async with self._condition:
+            if not is_session_current(lease.session_id):
+                raise StaleTriggerStreamError
             publication_id = acknowledgement.publication_id
             publication = self._publications.get(publication_id)
             if (
