@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "9f8bed474aeaa067f9dd1cbd3992c5c872186d1024bfdc8db595b04e31e2bd24",
+  "fingerprint": "f40f0e5470571938d94db5f9942f9eaa731ba1993cf6ba73b848a9c9045b39ee",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 35,
+      "revision": 36,
       "slug": "stateforge"
     },
     "repositories": [
@@ -1911,7 +1911,440 @@
       },
       {
         "branch_name": "mvp/operation-admission",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "r5-repository-instructions",
+            "explanation": "Preserve repository authority, generated-plan discipline, ownership boundaries, helper reuse rules, signed commits, and human-owned delivery.",
+            "path": "AGENTS.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-dpt-milestone-skill",
+            "explanation": "Follow the repository milestone workflow for context, blast radius, verification, retained evidence, and completion claims.",
+            "path": ".agents/skills/stateforge-dpt-milestone/SKILL.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-protocol-development-skill",
+            "explanation": "Apply SFP ownership, canonical validation, versioning, multiplexed-service, and cross-repository compatibility rules.",
+            "path": ".claude/skills/stateforge-protocol-development/SKILL.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-python-development-skill",
+            "explanation": "Apply strict typing, package-content, public-API, helper reuse, testing, installed-artifact, documentation, and evidence standards.",
+            "path": ".claude/skills/stateforge-python-development/SKILL.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-package-contract",
+            "explanation": "Preserve supported Python versions, dependency boundaries, wheel contents, coverage threshold, asyncio lifecycle, and configured quality gates.",
+            "path": "pyproject.toml",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-public-provider-api",
+            "explanation": "Integrate Operation Admission startup, shutdown, registration, dispatch, and task ownership into Provider lifecycle while keeping protobuf, sessions, fingerprints, and registry machinery private.",
+            "path": "src/stateforge_provider/provider.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 5
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-public-exports",
+            "explanation": "Export only simple typed author-facing operation declarations, inputs, results, and safe errors; never generated messages, admission records, or transport internals.",
+            "path": "src/stateforge_provider/__init__.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 6
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-operation-declarations",
+            "explanation": "Preserve the decorator-based typed operation API and bind declared async handlers, input/result models, required checks, and implementation-profile claims without exposing Protocol envelopes.",
+            "path": "src/stateforge_provider/declarations.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 7
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-requirement-api",
+            "explanation": "Reuse the existing typed requirement-check result surface when evaluating current prerequisites before new admission.",
+            "path": "src/stateforge_provider/requirements.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 8
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-health-api",
+            "explanation": "Use the existing process-wide health state as a new-admission prerequisite without making Health an operation result or authorization decision.",
+            "path": "src/stateforge_provider/health.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 9
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-manifest-declarations",
+            "explanation": "Resolve accepted operation identifiers, input/result schemas, required checks, and implementation-profile claims from the canonical Manifest declaration fence.",
+            "path": "src/stateforge_provider/_services/manifest/declaration.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 10
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-requirement-registry",
+            "explanation": "Reuse canonical requirement discovery, binding, deduplication, validation, and author-result adaptation rather than duplicating prerequisite machinery.",
+            "path": "src/stateforge_provider/_services/capability_assessment/declaration.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 11
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-capability-service",
+            "explanation": "Preserve existing requirement evaluation, cancellation, deadline, sanitization, and readiness patterns while keeping Operation Admission records and dispatch procedure-owned.",
+            "path": "src/stateforge_provider/_services/capability_assessment/service.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 12
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-runtime-configuration",
+            "explanation": "Add only bounded operator controls required for admission capacity and retention, with safe defaults and shared validation.",
+            "path": "src/stateforge_provider/_runtime/configuration.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 13
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-session-registry",
+            "explanation": "Fence every request to an authenticated current Provider instance, endpoint generation, negotiated session, and accepted manifest without storing procedure records in the session registry.",
+            "path": "src/stateforge_provider/_runtime/sessions.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 14
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-grpc-registration",
+            "explanation": "Register Operation Admission on the existing multiplexed endpoint and preserve canonical transport ceilings and shutdown behavior.",
+            "path": "src/stateforge_provider/_runtime/grpc.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 15
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-provider-services",
+            "explanation": "Add a private, procedure-owned Operation Admission service, handler registry, atomic admission registry, dispatch coordinator, and sanitized error boundary using shared helpers.",
+            "path": "src/stateforge_provider/_services",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 16
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-provider-tests",
+            "explanation": "Cover public operation authoring, canonical validation, atomic admission, idempotency, concurrency, prerequisites, capacity, deadlines, retention, dispatch-once, cancellation, shutdown, and unchanged Provider behavior.",
+            "path": "tests",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 17
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-provider-fixture",
+            "explanation": "Add deterministic typed operations and controls for valid dispatch, schema and requirement rejection, concurrent retries, conflicts, deadlines, expiry, capacity, handler failure, and secret-safety evidence.",
+            "path": ".github/actions/provider/create-fixture",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 18
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-scenario-catalogue",
+            "explanation": "Add focused direct-peer Operation Admission scenarios using the exact built Provider and Protocol wheels while preserving all existing runtime scenarios.",
+            "path": ".github/actions/scenarios",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 19
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-runtime-workflow",
+            "explanation": "Build immutable dependency artifacts once, run the direct P4 scenario over the real Unix socket, retain evidence, and avoid claiming installed-Agent admission before A5 and R19.",
+            "path": ".github/workflows/provider-runtime-scenarios.yml",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 20
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-ci-guardrails",
+            "explanation": "Enforce reusable action composition, immutable dependency revisions, exact-artifact reuse, evidence retention, workflow security, and the no-simulated-Agent boundary.",
+            "path": "tests/test_ci_automation.py",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 21
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-ci-documentation",
+            "explanation": "Document direct Protocol-peer admission coverage, exact artifacts, retained evidence, unchanged installed-Agent regressions, and the A5/R19 end-to-end boundary.",
+            "path": "docs/ci-automation.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 22
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-declarations-documentation",
+            "explanation": "Document typed operation decorators, handler signatures, input/result models, requirement references, implementation profiles, inheritance, and startup validation.",
+            "path": "docs/reference/declarations.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 23
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-provider-documentation",
+            "explanation": "Document dispatch semantics, admission outcomes, idempotent retries, transient and terminal rejection, deadlines, capacity, and sanitized failures from the Provider author's perspective.",
+            "path": "docs/reference/provider.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 24
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-runtime-architecture-documentation",
+            "explanation": "Document record-before-dispatch ordering, atomic identity ownership, in-memory or retained record boundaries, task lifecycle, cancellation, shutdown, expiry, and the separation from Operation Lifecycle.",
+            "path": "docs/runtime-architecture.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 25
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-manifest-documentation",
+            "explanation": "Explain how operation identifiers, input/result schemas, requirements, and profile claims enter the accepted Manifest and fence admission.",
+            "path": "docs/manifest-authoring.md",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 26
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-wire",
+            "explanation": "Authoritative P4 unary method, session binding, immutable invocation, admission modes, dispositions, retained record, and structured errors.",
+            "path": "proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 27
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-contract",
+            "explanation": "Import canonical service identity, message and JSON limits, role bounds, and error-detail ceilings instead of redefining them in Provider.",
+            "path": "src/stateforge_protocol/sfp/operation_admission/v1/contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 28
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-schema",
+            "explanation": "Use the packaged request, response, record, and error document shapes for structural validation and evidence.",
+            "path": "src/stateforge_protocol/sfp/operation_admission/v1/operation_admission.schema.json",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 29
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-validation",
+            "explanation": "Delegate context-independent P4 validation and canonical invocation fingerprinting to Protocol; retain Provider-owned session, manifest, schema, readiness, registry, capacity, and dispatch checks.",
+            "path": "src/stateforge_protocol/sfp/operation_admission/v1/validation.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 30
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "r5-admission-fixtures",
+            "explanation": "Consume canonical request, response, fingerprint, admission-mode, error, conflict, expiry, and conformance fixtures.",
+            "path": "tests/fixtures/operation_admission",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 31
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-contract-tests",
+            "explanation": "Treat executable P4 structure, validation order, fingerprint, disposition, error, and limit semantics as authoritative.",
+            "path": "tests/test_operation_admission_contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 32
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-admission-procedure",
+            "explanation": "Preserve normative record-before-dispatch, one-dispatch, retry, resolve-only, conflict, expiry, deadline, rejection, and recovery semantics.",
+            "path": "docs/v0.1.0/procedures/operation-admission.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 33
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-manifest-wire",
+            "explanation": "Preserve Manifest schema 1 operation declarations, versioned identifiers, input/result schemas, requirements, implementation-profile claims, and revision rules.",
+            "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 34
+          },
+          {
+            "authority": "canonical",
+            "context_id": "r5-manifest-contract",
+            "explanation": "Use canonical Manifest identifier, schema, count, document, and message limits when resolving declared operations.",
+            "path": "src/stateforge_protocol/sfp/manifest/v1/contract.py",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 35
+          }
+        ],
         "depends_on": [
           "P4",
           "P9",
@@ -1925,7 +2358,188 @@
         "sort_order": 16,
         "step_id": "R5",
         "title": "[TASK][MVP] Implement Operation Admission and Idempotency",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Confirm Provider authors see typed operations rather than protobuf or registry machinery, accepted identities dispatch at most once, and R5 does not simulate or claim a real Agent.",
+            "kind": "human",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 0,
+            "target": "Human review of public API simplicity, Protocol ownership, record-before-dispatch atomicity, idempotency, prerequisite boundaries, lifecycle isolation, and the A5/R19 boundary",
+            "verification_id": "r5-human-review"
+          },
+          {
+            "explanation": "Repository formatting passes.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 1,
+            "target": "python -m ruff format \u002d\u002dcheck .",
+            "verification_id": "r5-format"
+          },
+          {
+            "explanation": "Static linting passes without R5 exclusions.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 2,
+            "target": "python -m ruff check .",
+            "verification_id": "r5-lint"
+          },
+          {
+            "explanation": "Operation declarations, handler binding, registry, service, dispatch tasks, and public outcomes remain strictly typed.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 3,
+            "target": "python -m mypy src",
+            "verification_id": "r5-typing"
+          },
+          {
+            "explanation": "Verify R5 behavior and the complete existing Provider test suite.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 4,
+            "target": "Full pytest suite including operation declarations, service, registry, dispatch coordinator, lifecycle, and unchanged Provider regression tests",
+            "verification_id": "r5-unit-integration"
+          },
+          {
+            "explanation": "Prove canonical P4 consumption without Provider-local wire, fingerprint, or context-independent validation redefinition.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 5,
+            "target": "Exact stateforge-protocol wheel compatibility against packaged P4 protobufs, contract constants, schema, validators, fixtures, fingerprints, statuses, and limits",
+            "verification_id": "r5-protocol-contract"
+          },
+          {
+            "explanation": "Prove the author API remains simple, typed, inheritance-aware, and independent from transport internals.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 6,
+            "target": "Typed @operation handlers receive validated ProviderModel inputs and dispatch through the public Provider surface without protobuf, session, fingerprint, or admission-record parameters",
+            "verification_id": "r5-public-author-api"
+          },
+          {
+            "explanation": "Prove every request is fenced by the active session and accepted declaration before admission or dispatch.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 7,
+            "target": "Valid and invalid session binding, manifest revision, declared operation, required implementation roles, payload schema, JSON bounds, message limits, and writeOnly fields",
+            "verification_id": "r5-validation-fences"
+          },
+          {
+            "explanation": "Prove atomic insertion, ACCEPTED_NEW once, RESOLVED_EXISTING thereafter, one dispatch, and ALREADY_EXISTS for conflicting content.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 8,
+            "target": "Concurrent identical StartOperation requests, matching retries, changed-content reuse, and terminal identity reuse with exact fingerprint and dispatch-count assertions",
+            "verification_id": "r5-atomic-idempotency"
+          },
+          {
+            "explanation": "Prove rejected work creates no accepted record and never dispatches, while retryability and status/detail mappings remain canonical and sanitized.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 9,
+            "target": "Malformed request, undeclared operation, incompatible role, invalid payload, unhealthy Provider, unsatisfied or unknown requirement, capacity exhaustion, and elapsed execution deadline",
+            "verification_id": "r5-pre-admission-rejection"
+          },
+          {
+            "explanation": "Prove resolution never manufactures a record or redispatches work and expiry remains an explicit uncertainty boundary.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 10,
+            "target": "ADMIT_OR_RESOLVE and RESOLVE_ONLY against absent, retained, expired, and tombstoned records, including documented process-restart retention behavior",
+            "verification_id": "r5-resolve-retention"
+          },
+          {
+            "explanation": "Prove cancellation stops unadmitted work, never erases an admitted identity, and cannot produce duplicate dispatch.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 11,
+            "target": "gRPC deadline and client cancellation before insertion, during prerequisite evaluation, across atomic insertion, and during shutdown",
+            "verification_id": "r5-deadline-cancellation"
+          },
+          {
+            "explanation": "Prove Provider failures do not violate identity immutability or expose author exceptions; terminal progress/result handling remains reserved for the later lifecycle milestone.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 12,
+            "target": "Handler scheduling and execution failure after accepted admission with stable record, one dispatch attempt, sanitized diagnostics, and no automatic redispatch",
+            "verification_id": "r5-dispatch-failure"
+          },
+          {
+            "explanation": "No sensitive value reaches responses, error details, logs, diagnostics, or evidence; fingerprints are correlation data rather than authentication.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 13,
+            "target": "Secret-bearing writeOnly payloads, execution context, author exceptions, logs, structured errors, fixtures, diagnostics, and retained CI evidence",
+            "verification_id": "r5-secret-safety"
+          },
+          {
+            "explanation": "Exercise production packaging, transport, validation, atomic registry, and dispatch without an in-process fake or simulated Agent.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 14,
+            "target": "Exact built Provider and Protocol wheels run in separate real processes and exchange P4 StartOperation calls over the published Unix socket using a focused Protocol peer",
+            "verification_id": "r5-real-socket-service"
+          },
+          {
+            "explanation": "Preserve bootstrap, manifest, health, capability, trigger, lifecycle, resilience, adversarial, and destructive behavior while keeping the recursive CI boundary honest.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 15,
+            "target": "Unchanged existing installed-Agent runtime matrix; no R5 claim of real Agent Operation Admission before A5 and R19",
+            "verification_id": "r5-existing-installed-regression"
+          },
+          {
+            "explanation": "Verify the shipped artifacts rather than an editable source checkout.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 16,
+            "target": "Build the Provider wheel, install it with the exact Protocol wheel in a clean environment, and verify imports, public exports, package contents, metadata, and operation runtime dependencies",
+            "verification_id": "r5-package"
+          },
+          {
+            "explanation": "Document author API, admission semantics, idempotency, requirements, limits, errors, retention, evidence, and separation from Operation Lifecycle and A5/R19.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 17,
+            "target": "python -m mkdocs build \u002d\u002dstrict",
+            "verification_id": "r5-docs"
+          },
+          {
+            "explanation": "Actions remain pinned, least-privileged, exact-revision, evidence-preserving, and composed from reusable repository-owned actions.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 18,
+            "target": "CI automation and workflow-security tests",
+            "verification_id": "r5-ci-security"
+          },
+          {
+            "explanation": "Tie every admission, rejection, idempotency, deadline, expiry, and dispatch-once claim to exact artifacts and bounded observations without preserving secret payload values.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 19,
+            "target": "Evidence identifies exact Provider and Protocol wheel hashes, Provider/session/generation, manifest revision, operation ID and identifier, canonical fingerprint, admission mode and disposition, record identity/expiry, dispatch count, rejection status/detail, retry boundary, and final process state",
+            "verification_id": "r5-evidence"
+          }
+        ]
       },
       {
         "branch_name": "mvp/operation-lifecycle",
@@ -5126,7 +5740,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 35
+**Revision:** 36
 
 ## Repositories
 
@@ -5158,7 +5772,7 @@ STATEFORGE_DPT_MANIFEST -->
 | `R2` | `provider` | **[TASK][MVP] Implement Provider Health and Availability Reporting**<br>## Outcome and ownership  Expose standard `grpc.health.v1` on the existing standalone Provider server and connect it to the public Provider lifecycle/health hook. Use standard generated health contracts, not a new StateForge health protobuf.  ## Required behavior  - Register the actual negotiated operational service name(s) on the same multiplexed server/channel. Explicitly define startup NOT_SERVING, validated readiness SERVING, failed/degraded readiness, maintenance, and bounded shutdown behavior. - Keep author-facing status typed and simple; the runtime adapts it to standard Check/Watch. Health does not become a vendor polling scheduler or expose protobuf construction to authors. - Watch emits current status and changes with bounded observers/backpressure; invalid services and stream failures follow standard health semantics. Check is diagnostic, not a replacement for ongoing Watch. - Stop new operation eligibility before maintenance/shutdown. A health transition does not itself cancel admitted operations, and SERVING does not override an invalid manifest/session or guarantee target-specific capability. - Sanitize unexpected hook failures, prevent stale readiness from surviving a generation change, and clean up watchers/resources owned by this runtime only.  - Extend the reusable R11 Provider scenario catalogue with health-specific installed-runtime coverage using the exact Protocol wheel, Provider wheel, and built Agent RPM on Linux over the real Unix socket; do not substitute a simulated Agent transport.  ## Acceptance evidence  CI/CD evidence must include the focused health scenario in pull requests and the unchanged full Provider scenario matrix.  Exercise real gRPC Check/Watch on the same endpoint as handshake/manifest, initial and changed status, unknown service, hook failure, slow/disconnected observers, restart, and shutdown. Verify typed author examples and no duplicate server/channel or custom StateForge health contract.  ## Non-goals  No Agent availability coordinator, Control Plane reporting, business-operation cancellation, vendor-specific health logic, or implementation of later admission APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P6`, `R1`, `R11` | `COMPLETED` | [Issue #16](https://github.com/stateforge-org/stateforge-provider-python/issues/16) · [Pull Request #22](https://github.com/stateforge-org/stateforge-provider-python/pull/22) |
 | `R3` | `provider` | **[TASK][MVP] Implement Provider Capability Assessment**<br>## Outcome and ownership  Implement locked P2 Capability Assessment as a private Provider runtime service. Authors declare dynamic prerequisites with `@requirement_check(...)` and reference stable IDs from `@operation(..., requires=(...))`; they never implement the SFP procedure or construct protocol findings. Preserve P1 manifest schema, R2 readiness, and the P2 wire format.  ## Provider author API  - Add public `@requirement_check(identifier, description, version_constraint="")` for bounded async, read-only checks. - Add `requires=(...)` to `@operation`. Keep the registry reusable by future R4 trigger declarations, but do not implement triggers here. - Expose typed author results: satisfied, unsatisfied, incompatible, and unknown. Do not expose P2 messages, findings, sessions, correlation identity, or envelopes. - Discover checks through the existing declaration model. Publish static metadata through existing manifest `runtime_requirements`; keep operation associations Provider-owned for MVP and do not revise manifest schema 1. - Fail startup for non-canonical/duplicate IDs, duplicate/unresolved references, invalid async signatures, or metadata outside Protocol bounds.  ## Private service  - Implement `_services/capability_assessment` on the multiplexed Provider endpoint. - Delegate context-independent request/response validation to canonical Protocol validation. Provider owns only active session/generation, served manifest revision, declared operations, readiness, check execution, and adaptation. - Treat `execution_context` as bounded opaque metadata. P2 has no generic target, operation input, or permission semantics; invent none and perform no target mutation. - Collect requirements for requested operations, deduplicate by ID, and execute each distinct check at most once under RPC deadline/cancellation. Checks never dispatch operations or mutate targets. Reuse results across operations, preserve request-correlated ordering, and revalidate session/readiness before return. - Aggregate: all satisfied → SUPPORTED; unsatisfied → SUPPORTED_WITH_REQUIREMENTS; incompatible → UNSUPPORTED; unknown → INDETERMINATE unless incompatibility already proves UNSUPPORTED. Negative/unknown results are domain outcomes. Invalid returns or unhandled check exceptions produce sanitized INTERNAL, never silent UNKNOWN. - Preserve declaration vs readiness vs dynamic prerequisite vs point-in-time assessment vs later authorization/admission.  ## Documentation  - Replace obsolete `assess_capability` guidance in `.claude/PROVIDER_AUTHORING_VISION.md`. - Document `@requirement_check`, operation `requires`, result meanings, startup validation, deduplication, read-only/error semantics, internal service ownership, and static manifest metadata. - Include a complete filesystem-writability or service-control example. Do not edit or regenerate the PDF.  ## Verification  - Test declaration validation, dedup/result reuse, aggregation, ordering, deadlines/cancellation, invalid returns, sanitized exceptions, and no dispatch/mutation. - Test Protocol validation, limits, stale session/generation, manifest mismatch, undeclared operations, readiness loss, response validation, and error mapping. - Run a focused real Provider service scenario over a real Unix socket with exact Provider/Protocol artifacts. Preserve installed-Agent regressions, but A3 owns real Agent P2 consumption. - Pass formatting, lint, strict typing, docs, unit/integration, packaging, and applicable CI.  ## Non-goals  No wire redesign, manifest revision, public `assess_capability` hook, author-built findings, target model, authorization/admission, triggers, operation execution, SF-AOP, Agent P2 client, or PDF update. Preserve repository ownership and human delivery authority. | `P2`, `R1`, `R11`, `R2` | `COMPLETED` | [Issue #23](https://github.com/stateforge-org/stateforge-provider-python/issues/23) · [Pull Request #28](https://github.com/stateforge-org/stateforge-provider-python/pull/28) |
 | `R4` | `provider` | **[TASK][MVP] Implement Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Implement P3 Provider publication with a typed author-facing trigger API. The Provider runtime owns envelopes, stream adaptation, acknowledgement correlation, retries, and pending state.  ## Required behavior  - Publish only manifest-declared versioned trigger IDs with schema-valid payloads. Derive installation, session, and generation identity internally. Trigger-specific resource or source data belongs in the declared payload; expose no generic target, source, or resource parameter. - Allocate and preserve a stable publication ID and canonical semantic content. Keep bounded pending state until accepted or rejected; handle accepted-new, accepted-duplicate, and rejected acknowledgements; never accept conflicting content under one ID. - Replay the original ID and content after lost acknowledgements or transient stream failure with bounded backoff and backpressure. Stop retrying non-retryable rejection as P3 defines. - Respect startup, shutdown, session and generation fences, deadlines, cancellation, and queue limits without blocking unrelated channel services. Define queue-full and disconnected behavior. - In-memory pending state is sufficient for MVP. Optional Provider-controlled persistence may improve recovery, but documentation and APIs must state what a process crash can lose. - Keep generated messages, gRPC streams, canonical envelopes, fingerprints, and secret redaction private. A trigger is an observed event, not proof that a policy or operation completed. - Extend R11 with focused Trigger Publication service scenarios using the exact Protocol and Provider wheels over a real Unix socket. Preserve the installed-Agent RPM regression matrix without claiming Agent trigger consumption before A4.  ## Acceptance evidence  Verify declaration and startup validation; public publication; payload and ID rejection; accepted-new and accepted-duplicate; lost-ack replay; content conflict; retryable and non-retryable rejection; bounded queues; disconnect and reconnect; stale fences; deadlines and cancellation; shutdown; crash-loss limitations; secret-safe errors and evidence; and the absence of generic source or target parameters.  Exercise the built Provider wheel through the real gRPC service and Unix socket with the exact Protocol wheel. Human-facing examples must not require protobuf, envelopes, sessions, or generations.  A4 owns the first complete real Agent RPM and Provider trigger exchange, including responsibility transfer and durable Agent acknowledgement. R4 must not add a simulated Agent or present a Protocol-level contract peer as Agent evidence.  ## Non-goals  No generic target, source, or resource abstraction; Control Plane connection; policy executor; StateForge binding assignment; mandatory durable event log; backup-specific taxonomy; Agent trigger consumer; or A4 responsibility-transfer storage.  ## Compatibility and delivery  Preserve landed v1 contracts, public APIs, repository boundaries, Manifest schema 1, versioned identifiers, explicit `implements` roles, and revision rules. Import canonical Protocol contracts instead of duplicating them. New incompatible semantics require explicit versioning.  Implement only this issue with behavioral tests, documentation, package checks, exact-artifact CI, and retained evidence. Scoped local commits are allowed; a human pushes, opens, reviews, and merges the PR. Only matching merged GitHub evidence reconciled by DPT completes R4. | `P3`, `P9`, `R1`, `R11`, `R2` | `COMPLETED` | [Issue #24](https://github.com/stateforge-org/stateforge-provider-python/issues/24) · [Pull Request #33](https://github.com/stateforge-org/stateforge-provider-python/pull/33) |
-| `R5` | `provider` | **[TASK][MVP] Implement Operation Admission and Idempotency**<br>## Outcome Implement generic typed operation admission in Provider Python using direct Protocol-level tests. A5 owns the first real Agent admission exchange; R19 imports that landed Agent behavior into Provider CI.  ## Required behavior - Preserve the public Provider author API while keeping protobuf, session, generation, fingerprint, and registry machinery private. - Validate readiness, declarations, schemas, requirements, limits, identity, and idempotency before dispatch. - Prove concurrent identical requests dispatch once; changed content conflicts; terminal identities are immutable; rejected work creates no accepted record. - Use exact Protocol and Provider wheels over the real Unix socket. Do not simulate an Agent.  ## Acceptance Focused admission tests cover success, rejection, concurrency, retries, conflicts, deadlines, expiry, sanitized failures, and one dispatch per accepted identity. Full installed-Agent verification waits for A5 and R19. | `P4`, `P9`, `R11`, `R2`, `R3` | `READY` | — |
+| `R5` | `provider` | **[TASK][MVP] Implement Operation Admission and Idempotency**<br>## Outcome Implement generic typed operation admission in Provider Python using direct Protocol-level tests. A5 owns the first real Agent admission exchange; R19 imports that landed Agent behavior into Provider CI.  ## Required behavior - Preserve the public Provider author API while keeping protobuf, session, generation, fingerprint, and registry machinery private. - Validate readiness, declarations, schemas, requirements, limits, identity, and idempotency before dispatch. - Prove concurrent identical requests dispatch once; changed content conflicts; terminal identities are immutable; rejected work creates no accepted record. - Use exact Protocol and Provider wheels over the real Unix socket. Do not simulate an Agent.  ## Acceptance Focused admission tests cover success, rejection, concurrency, retries, conflicts, deadlines, expiry, sanitized failures, and one dispatch per accepted identity. Full installed-Agent verification waits for A5 and R19. | `P4`, `P9`, `R11`, `R2`, `R3` | `PENDING` | [Issue #40](https://github.com/stateforge-org/stateforge-provider-python/issues/40) |
 | `R6` | `provider` | **[TASK][MVP] Implement Operation Progress Results and Cancellation**<br>## Outcome Implement generic progress, terminal results, and cooperative cancellation by extending R5's operation registry. A6 owns the first real Agent lifecycle exchange; R20 imports that behavior into Provider CI.  ## Required behavior - Enforce canonical transitions, monotonic sequences, bounded replay, immutable terminal outcomes, typed result validation, and sanitized errors. - Distinguish cancellation requested from execution stopped and resolve terminal races deterministically. - Observer cancellation, deadlines, transport loss, and health changes must not implicitly stop business execution. - Use exact Protocol and Provider wheels over the real Unix socket. Do not simulate an Agent.  ## Acceptance Focused tests cover progress, cursor gaps, late replay, slow observers, terminal results, failures, cancellation races, shutdown, and no redispatch. Full installed-Agent verification waits for A6 and R20. | `P5`, `P9`, `R11`, `R5` | `BLOCKED` | — |
 | `R11` | `provider` | **[TASK][MVP] Build Reusable Provider Package and Runtime CI/CD Pipelines**<br>## Outcome and ownership  Create a reusable GitHub Actions ecosystem for building and validating the Provider Implementation package and its installed runtime. Package construction, dependency selection, public Provider fixtures, runtime lifecycle, SFP assertions, scenarios, and evidence collection are written once and composed by PR, integration, release-candidate, and future publication workflows. Test the public authoring surface and installed package; do not create a second runtime or execute from a source checkout.  ## Required behavior  - Build wheel and sdist once through a documented local command using canonical package metadata; record checksums and artifact/dependency provenance. - Organize focused composite actions under `.github/actions/` for package build, installed-package checks, Provider fixture creation, runtime start/stop, Bootstrap assertion, Manifest assertion, and evidence collection. Scenarios compose actions rather than growing one large action. - Provide reusable `workflow_call` workflows for artifact build, installed-package checks, runtime scenarios, and an aggregate gate. Thin PR/integration and manual release-candidate callers copy no environment or test logic. - Accept `protocol-ref`, defaulting to `mvp/implementation` while allowing an explicit ref or SHA. Record the resolved Protocol commit and artifact hash. - Install exact Provider and Protocol artifacts in clean environments outside both checkouts and without repository `PYTHONPATH`; prove package identity, import location, typed public API, descriptor/socket behavior, Bootstrap, Manifest, and clean shutdown. - Supply small declarative dummy Providers through the public API. Cover normal exchange/shutdown, concurrent distinct instances, same-instance replacement/generation, invalid peers, abrupt failure, restart, and uninstall/reinstall. Faults and evidence must be deterministic and bounded. - Separate platform-independent package/import checks from supported runtime checks. Do not imply Windows runtime support where Unix-domain sockets are required. - Pin external actions to immutable SHAs; keep permissions read-only, credentials absent, jobs bounded, caches dependency-keyed, and retention explicit. - Prefer action composition and existing commands. Add shell or Python only for reusable logic that cannot be expressed safely elsewhere; never duplicate runtime behavior in the harness.  ## Acceptance evidence  Validate action/workflow metadata; build wheel and sdist once; verify hashes/provenance; install exact artifacts outside the checkout; prove installed import origins and public authoring API; exercise valid Bootstrap/Manifest, multiple Providers, replacement, invalid peers, crash, restart, cleanup, uninstall, and reinstall; retain failure evidence. Pass Ruff, formatting, strict mypy, pytest/coverage, package build, installed-package checks, runtime scenario tiers, and strict docs.  ## Non-goals  No production Provider, new SFP semantics, Agent features, Control Plane integration, operation/trigger behavior, publication/signing, OS service package, cloud infrastructure, or organization-wide workflow repository.  ## Compatibility, discretion, and delivery  Preserve the public Provider framework, typed models, decorators, lifecycle hooks, internal SFP abstraction, landed Bootstrap/Manifest behavior, supported Python versions, and human Issue/PR/review/merge authority. Reusable workflows own job topology, composite actions own repeated runner steps, and the installed package plus public API remain the system under test. | `R1` | `COMPLETED` | [Issue #19](https://github.com/stateforge-org/stateforge-provider-python/issues/19) · [Pull Request #21](https://github.com/stateforge-org/stateforge-provider-python/pull/21) |
 | `R9` | `provider` | **[TASK][MVP] Complete Provider Disconnection and Recovery**<br>## Outcome Implement Provider reconnect and retained-state reconciliation by composing the existing SFP services. A11 owns the first complete real Agent recovery exchange; R21 imports that behavior into Provider CI.  ## Required behavior - Distinguish channel loss, process restart, generation replacement, and installation replacement. - Replay only provable retained operation and trigger state; never redispatch author operations or remint trigger identities. - Fence stale sessions and return explicit lost, expired, or indeterminate outcomes when continuity cannot be proven. - Use exact Protocol and Provider wheels for focused recovery tests. Do not simulate an Agent.  ## Acceptance Focused tests cover channel loss, lost replies and acknowledgements, retained and lost state, restarts, replacement, stale streams, expiry, optional persistence, and no blind redispatch. Full installed-Agent verification waits for A11 and R21. | `P8`, `P9`, `R11`, `R4`, `R6` | `BLOCKED` | — |
@@ -5167,7 +5781,7 @@ STATEFORGE_DPT_MANIFEST -->
 | `A1` | `agent` | **[TASK][MVP] Integrate Provider Manifest Exchange**<br>## Outcome and ownership  Integrate the landed P1/R1 manifest exchange into the Agent's existing session manager/channel. See the Protocol manifest procedure and checked-in schema/revision conformance vector.  ## Required behavior  - Retrieve only after successful handshake with expected installation/generation, finite deadlines, bounded read retry and an explicit supported-schema offer. Accept only an offered/understood version and a complete atomic response. - Enforce current P1 ProtoJSON/schema rules, embedded local-reference validation, size/nesting bounds and safe secret handling. Preserve versioned string IDs, target kinds, role claims, requirements and explicit platform pairs. - Compute the exact schema-1 revision preimage `{manifest, manifestSchemaVersion, providerInstanceId}` using RFC 8785 with ProtoJSON defaults emitted. Exclude generation/revision, not installation identity; do not substitute deterministic protobuf bytes or older DOCX hashing rules. - Cache only validated declarations under installation/SFP version/schema/revision. Reuse an unchanged declaration without merging unvalidated fields, but always check current generation/session. A digest is a change detector, not authentication. - Invalid/incompatible manifest blocks operational use independently of healthy transport. Replace valid changed declarations atomically and invalidate dependent local decisions; stale responses cannot activate a superseded session. - Transport/session connection state is not full operational availability. Compose with the upcoming A2 health gate rather than treating bootstrap success alone as sufficient. Preserve existing connection replacement behavior.  ## Acceptance evidence  Test a real manifest peer, conformance hash, unchanged cache reuse, changed/new-installation revision, complete-response validation, bad header/digest/schema/reference, offered-version mismatch, limits/secrets, stale generation, transport retry and invalid-manifest gating. Ensure no extra channel or vendor-specific interpretation.  ## Non-goals  No modification of locked P1/R1, new schema-1 fields, health implementation, capability/admission dispatch, mandatory inventory redesign, SF-AOP or Control Plane reporting.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `P1`, `R1` | `COMPLETED` | [Issue #8](https://github.com/stateforge-org/stateforge-agent/issues/8) · [Pull Request #9](https://github.com/stateforge-org/stateforge-agent/pull/9) |
 | `A2` | `agent` | **[TASK][MVP] Integrate Provider Health and Availability Monitoring**<br>## Outcome and ownership  Watch standard `grpc.health.v1` on the current Agent-established Provider channel and maintain coherent local operational eligibility with A1's manifest acceptance.  ## Required behavior  - Watch the proper versioned operational service on the existing channel; Check is diagnostic. Initial/unknown/NOT_SERVING states block new operation admission. - Availability requires current transport, validated handshake/session/generation, compatible valid manifest, and SERVING health. Keep connection state and eligibility distinguishable using existing state boundaries, not parallel unsynchronized ledgers. - On Watch end/failure, mark health unknown/unavailable and stop new admission while reconnect/Watch retry is bounded. Resume only after current-session prerequisites are valid again. - Fence stale Watch updates after generation replacement, manifest rejection or shutdown. Changes affect new-work eligibility, not the truth of already admitted operations or their terminal results. - Expose local status/reasons for diagnostics and later internal consumers without inventing Control Plane reporting. Do not embed vendor-specific health probes.  - Extend the reusable A13 installed-Agent scenario catalogue with health and eligibility coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused health/eligibility scenarios in pull requests and the unchanged full installed-Agent matrix.  Exercise initial replay, SERVING/NOT_SERVING, unknown service, Watch loss/recovery, invalid manifest despite SERVING, generation replacement/stale update, concurrent channel streams, and shutdown. Verify readiness transitions are coherent and admitted work is not automatically cancelled by health loss.  ## Non-goals  No custom health protobuf, second channel, remote Control Plane status, business-operation retry/cancellation, or wholesale replacement of landed session-management APIs.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `A13`, `P6`, `R2` | `COMPLETED` | [Issue #16](https://github.com/stateforge-org/stateforge-agent/issues/16) · [Pull Request #20](https://github.com/stateforge-org/stateforge-agent/pull/20) |
 | `A3` | `agent` | **[TASK][MVP] Integrate Provider Capability Assessment**<br>## Outcome and ownership  Consume locked P2/R3 capability assessment using only normalized SFP data, A1 declarations and A2 current eligibility. Preserve P2's issued contract/requirements.  ## Required behavior  - Validate current session/generation, declared versioned operation/target kind and bounded request/context before a finite read-only RPC. Reject unsupported declarations locally without assuming vendor knowledge. - Normalize/correlate the contract's per-operation support, requirements, reasons and assessment identity. Preserve SUPPORTED_WITH_REQUIREMENTS, UNSUPPORTED and INDETERMINATE distinctions; negative support is a domain finding, not successful eligibility. - A manifest advertises potential support, not current target compatibility or satisfied runtime prerequisites. Unknown requirements remain unresolved; do not infer Backup/DR compliance from operation names, capability findings, or operation-specific result shapes. - Any reusable assessment is bound to the relevant target/context and active declaration/session; invalidate stale decisions when identity/generation/manifest changes. Read-only retry may inspect a newer state and does not authorize business execution. - Surface temporary unavailability, malformed responses, deadline/transport errors and sanitized reasons distinctly. Keep a clean internal boundary for later authorized dispatch, not a policy interpreter.  - Extend the reusable A13 installed-Agent scenario catalogue with capability-assessment coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused capability normalization, rejection, timeout, stale-session, malformed-response, and limit scenarios plus the unchanged full installed-Agent matrix.  Cover generic non-backup and profile-related assessment, all support findings, unmet/unknown prerequisites, invalid/undeclared IDs/kinds, malformed/correlation-mismatched reply, readiness gate, stale cache/context, changed generation/manifest and read-only retry. Verify no target mutation or Provider/vendor imports.  ## Non-goals  No P2 redesign, operation dispatch, StateForge component assignment, policy selection, Control Plane connection or universal vendor requirement evaluator.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here.  - Use the public Capability Assessment Protocol `validation.py` before Agent state checks; never import private `sfp._validation` or duplicate its mechanics. Test installed-artifact delegation and sanitized errors. | `A1`, `A13`, `A2`, `P2`, `R3` | `COMPLETED` | [Issue #21](https://github.com/stateforge-org/stateforge-agent/issues/21) · [Pull Request #22](https://github.com/stateforge-org/stateforge-agent/pull/22) |
-| `A4` | `agent` | **[TASK][MVP] Integrate Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Receive P3/R4 Provider triggers, durably accept delivery responsibility, deduplicate, and acknowledge on the existing SFP stream. Keep an internal forwarding boundary for the later SF-AOP phase.  ## Required behavior  - Validate the authenticated Provider/session/generation, declared versioned trigger, schema-bound payload, stable publication ID, canonical content equality, and limits. SFP has no generic target/source/resource identity; any trigger-specific resource/source identity remains payload data and is not interpreted as a StateForge project/component assignment. - Commit an accepted event and Agent-owned responsibility state durably before ACCEPTED_NEW. A matching replay returns ACCEPTED_DUPLICATE without duplicate logical delivery; same ID/different semantic content rejects as a conflict. - Acknowledgement loss and Agent restart must recover the accepted event/responsibility without forcing a new ID or dropping it silently. A local durable acceptance is not proof that the Control Plane processed it, and downstream handoff is not part of the P3 wire acknowledgement. - Retain a bounded, recoverable pending-forward boundary with explicit queue-full/backpressure, rejection/retryability and retention behavior. Until SF-AOP exists, retain accepted events rather than pretending remote forwarding succeeded. - Fence stale streams/acks and handle reconnect/shutdown without acknowledging uncommitted work. Keep persistence implementation aligned with the current Agent; no prescribed database engine or new transport architecture. - This Provider-originated SFP route remains distinct from any legacy application/developer local-trigger interface; avoid conflating their identifiers or permissions.  - Extend the reusable A13 installed-Agent scenario catalogue with trigger-publication coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused responsibility-transfer, acknowledgement-loss, replay, duplicate, conflict, backpressure, and reconnect scenarios plus the unchanged full installed-Agent matrix.  Test valid/invalid publication, commit-before-ack, crash before commit/after commit-before-ack, lost acknowledgement, durable restart, matching duplicate, conflicting content, queue pressure, reconnect, stale generation, absent downstream transport, and the absence of generic source/target handling. Prove one retained logical event and honest forwarding status.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP wire protocol, Control Plane policy evaluation/component mapping, legacy Local API redesign, or exactly-once policy execution claim.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `A13`, `A2`, `P3`, `P9`, `R4` | `PENDING` | [Issue #29](https://github.com/stateforge-org/stateforge-agent/issues/29) |
+| `A4` | `agent` | **[TASK][MVP] Integrate Trigger Publication and Acknowledgement**<br>## Outcome and ownership  Receive P3/R4 Provider triggers, durably accept delivery responsibility, deduplicate, and acknowledge on the existing SFP stream. Keep an internal forwarding boundary for the later SF-AOP phase.  ## Required behavior  - Validate the authenticated Provider/session/generation, declared versioned trigger, schema-bound payload, stable publication ID, canonical content equality, and limits. SFP has no generic target/source/resource identity; any trigger-specific resource/source identity remains payload data and is not interpreted as a StateForge project/component assignment. - Commit an accepted event and Agent-owned responsibility state durably before ACCEPTED_NEW. A matching replay returns ACCEPTED_DUPLICATE without duplicate logical delivery; same ID/different semantic content rejects as a conflict. - Acknowledgement loss and Agent restart must recover the accepted event/responsibility without forcing a new ID or dropping it silently. A local durable acceptance is not proof that the Control Plane processed it, and downstream handoff is not part of the P3 wire acknowledgement. - Retain a bounded, recoverable pending-forward boundary with explicit queue-full/backpressure, rejection/retryability and retention behavior. Until SF-AOP exists, retain accepted events rather than pretending remote forwarding succeeded. - Fence stale streams/acks and handle reconnect/shutdown without acknowledging uncommitted work. Keep persistence implementation aligned with the current Agent; no prescribed database engine or new transport architecture. - This Provider-originated SFP route remains distinct from any legacy application/developer local-trigger interface; avoid conflating their identifiers or permissions.  - Extend the reusable A13 installed-Agent scenario catalogue with trigger-publication coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused responsibility-transfer, acknowledgement-loss, replay, duplicate, conflict, backpressure, and reconnect scenarios plus the unchanged full installed-Agent matrix.  Test valid/invalid publication, commit-before-ack, crash before commit/after commit-before-ack, lost acknowledgement, durable restart, matching duplicate, conflicting content, queue pressure, reconnect, stale generation, absent downstream transport, and the absence of generic source/target handling. Prove one retained logical event and honest forwarding status.  ## Non-goals  No generic target/source/resource abstraction, SF-AOP wire protocol, Control Plane policy evaluation/component mapping, legacy Local API redesign, or exactly-once policy execution claim.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A1`, `A13`, `A2`, `P3`, `P9`, `R4` | `COMPLETED` | [Issue #29](https://github.com/stateforge-org/stateforge-agent/issues/29) · [Pull Request #30](https://github.com/stateforge-org/stateforge-agent/pull/30) |
 | `A5` | `agent` | **[TASK][MVP] Integrate Operation Admission and Idempotency**<br>## Outcome and ownership  Submit immutable P4/R5 generic operations behind the Agent's local coordination boundary using active declarations, A2 readiness and A3 findings. Do not select policy business actions here.  ## Required behavior  - Allocate an operation ID before contact; keep the versioned identifier, target, schema-valid payload, deadline and authorized execution context immutable for that attempt. Track attempted/accepted/rejected/unresolved state using current Agent persistence patterns where recovery requires it. - Validate manifest declaration and relevant requirements/explicit profiles, current session/generation and readiness before submission. An arbitrary operation remains usable without Backup/DR compliance; an operation identifier is not an arbitrary shell command. - Handle ACCEPTED_NEW and RESOLVED_EXISTING, terminal resolution and structured rejection exactly as P4. Rejection does not create a successful execution; busy retry guidance does not authorize changing the request under the same ID. - A lost response uses the same semantic request/ID to resolve retained Provider state. Do not create a fresh ID because transport failed; retain uncertainty when admission/external effects cannot be established. - Keep delivery deduplication separate from vendor-action idempotency. Document retention/expiry and safe-retry boundaries; unresolved admitted work cannot be automatically repeated after Provider state loss. - Fence stale replies/session replacement and prevent concurrent local submissions from becoming duplicate attempts. Keep an internal authority/context boundary ready for future SF-AOP commands without designing that protocol.  - Extend the reusable A13 installed-Agent scenario catalogue with operation-admission coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused admission, idempotency, concurrency, conflict, deadline, schema, and limit scenarios plus the unchanged full installed-Agent matrix.  Test a generic non-backup invocation, invalid/undeclared input, readiness/requirement rejection, successful new/replayed/terminal admission, changed-request conflict, lost-response resolution, concurrent submission, deadline-before-admission, stale generation and retention/state-loss uncertainty. Prove no new execution identity is silently substituted.  ## Non-goals  No policy engine, vendor code, automatic remediation/new attempt, SF-AOP schema, full lifecycle Watch implementation or BackupEngine invocation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A2`, `A3`, `P4`, `P9`, `R5` | `BLOCKED` | — |
 | `A6` | `agent` | **[TASK][MVP] Integrate Operation Progress Results and Cancellation**<br>## Outcome and ownership  Observe P5/R6 admitted operations, normalize progress/results, and request race-safe operation-scoped cancellation without redispatch.  ## Required behavior  - Attach Watch only to known admitted identities; consume current-state/latest-progress replay, monotonic sequences and contract cursor/gap rules. Bound local buffering and fence stale responses from replaced sessions. - Validate typed terminal results against pinned declaration/profile context and accept one immutable terminal outcome. Preserve structured failure/partial-side-effect/cleanup evidence and sanitized diagnostics. - Request cancellation using the contract, distinguishing accepted/requested, unsupported and already-terminal. Record CANCELLED only after confirmed execution stopped; a successful request or RPC deadline is not confirmation. - Completion/cancellation races resolve to the first valid terminal outcome. Cancelling an observer, disconnecting, health loss or timeout does not fabricate FAILED/CANCELLED or stop unrelated work on the channel. - Persist/retain the evidence needed to reconcile outstanding attempts using current Agent facilities. Resume observation after interruption without resubmitting business work; P8/A11 provide complete state-loss reconciliation later. - Expose normalized local operation status through a clean coordination boundary, not direct vendor hooks or invented Control Plane reporting.  - Extend the reusable A13 installed-Agent scenario catalogue with operation-lifecycle coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused progress, replay, cancellation, terminal-race, interruption, restart-of-observation, and no-redispatch scenarios plus the unchanged full installed-Agent matrix.  Test initial/late/terminal replay, progress coalescing/gaps, slow observer, invalid result/correlation, terminal immutability, cancellation races, unsupported/already-terminal cases, interrupted Watch, stale session, partial effects and Agent restart of observation. Prove Watch and cancellation never cause a second dispatch.  ## Non-goals  No unlimited event-history system, process-wide cancellation, guessed rollback, generic auto-retry of side effects, policy executor or SF-AOP transport.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A5`, `P5`, `P9`, `R6` | `BLOCKED` | — |
 | `A7` | `agent` | **[TASK][MVP] Implement Agent-Managed Backup Workspaces**<br>## Outcome and ownership  Implement protected Agent-owned workspaces used as BackupEngine sources and restore destinations. Workspaces are Agent tooling, not SFP resources or Provider-owned storage.  ## Required behavior  - Allocate scoped source/restore workspace identities and paths with safe permissions, quotas, lifetime, ownership, and crash-recovery cleanup state. Reject traversal, unsafe symlink escape, and access outside authorized roots. - Let an Agent workflow expose an authorized workspace path to an ordinary Provider operation only through that operation's declared payload when configured. SFP treats the payload as operation data and assigns no backup meaning to it. - Support engine-only workflows where the managed entity needs no Provider preparation or native backup/restore API. A Provider preparation or post-restore operation is optional workflow behavior, not a prerequisite for using a BackupEngine. - Keep workspaces alive while an operation or BackupEngine still owns them. Cleanup may remove only Agent-owned workspace resources after all consumers release them. - Record enough local provenance and lifecycle state to associate later engine results with the selected source/destination without turning an ordinary Provider response into standardized backup evidence. - Keep repository credentials and BackupEngine configuration out of Provider payloads, SFP metadata, and workspace-visible files unless an engine-specific secure mechanism explicitly requires them.  - Extend the reusable A13 installed-Agent scenario catalogue with workspace security and lifecycle coverage against the exact installed Agent RPM, including deterministic filesystem faults and bounded retained evidence.  ## Acceptance evidence  CI/CD evidence must cover isolation, traversal and symlink escape, permissions, quotas, concurrency, interruption, ownership transfer, retention, and cleanup.  Test allocation, isolation, paths with spaces, traversal/symlink escape, permissions, quotas, concurrent workspaces, lifecycle handoff, cancellation, Agent interruption/recovery, in-use retention, and safe cleanup. Demonstrate both an engine-only workspace and a workspace path passed through an ordinary test operation payload.  ## Non-goals  No Protocol backup/DR contract, predefined operation identifier/schema/role, BackupEngine implementation, Restic adapter, Control Plane Snapshot, policy scheduling, or arbitrary filesystem deletion.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose. Choose compatible implementation details from the current codebase and document tradeoffs for human review. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A13`, `A6` | `BLOCKED` | — |
@@ -5191,8 +5805,8 @@ STATEFORGE_DPT_MANIFEST -->
 | `O0` | `sf-aop` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge AOP**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge AOP. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the SF-AOP specification, protocol procedures, diagrams, generated contract references, navigation, and repository-specific rendering behavior. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
 | `P12` | `protocol` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Protocol**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Protocol. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve all SFP procedure prose, sequence diagrams, protobuf references, generated Python-contract references, navigation, and repository-specific rendering behavior. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
 | `R16` | `provider` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Provider Python**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Provider Python. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the Provider authoring guide, runtime architecture, CI documentation, generated Python API references, examples, navigation, and repository-specific plugins. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
-| `R17` | `provider` | **[TASK][MVP] Verify Provider Capability Assessment Against the Installed Agent**<br>## Outcome After A3 lands, import its real Capability Assessment behavior into Provider CI.  Run the exact Protocol wheel, Provider wheel, and built Agent RPM as separate processes over the Unix socket. Cover every support state, unmet and unknown requirements, readiness, session/generation/manifest fences, transient retry, environment change, reassessment, malformed responses, and recovery. Prove assessment is read-only and the public requirement-check API exposes no transport internals. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A3`, `P2`, `R11`, `R3` | `READY` | — |
-| `R18` | `provider` | **[TASK][MVP] Verify Provider Trigger Publication Against the Installed Agent**<br>## Outcome After A4 lands, import its real Trigger Publication behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, accepted-duplicate, lost acknowledgement, replay, conflicting content, retryable and terminal rejection, pressure, reconnect, Agent restart, stale fencing, and shutdown. Preserve trigger identity and payload across retries. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A4`, `P3`, `R11`, `R4` | `BLOCKED` | — |
+| `R17` | `provider` | **[TASK][MVP] Verify Provider Capability Assessment Against the Installed Agent**<br>## Outcome After A3 lands, import its real Capability Assessment behavior into Provider CI.  Run the exact Protocol wheel, Provider wheel, and built Agent RPM as separate processes over the Unix socket. Cover every support state, unmet and unknown requirements, readiness, session/generation/manifest fences, transient retry, environment change, reassessment, malformed responses, and recovery. Prove assessment is read-only and the public requirement-check API exposes no transport internals. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A3`, `P2`, `R11`, `R3` | `COMPLETED` | [Issue #34](https://github.com/stateforge-org/stateforge-provider-python/issues/34) · [Pull Request #35](https://github.com/stateforge-org/stateforge-provider-python/pull/35) |
+| `R18` | `provider` | **[TASK][MVP] Verify Provider Trigger Publication Against the Installed Agent**<br>## Outcome After A4 lands, import its real Trigger Publication behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, accepted-duplicate, lost acknowledgement, replay, conflicting content, retryable and terminal rejection, pressure, reconnect, Agent restart, stale fencing, and shutdown. Preserve trigger identity and payload across retries. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A4`, `P3`, `R11`, `R4` | `COMPLETED` | [Pull Request #39](https://github.com/stateforge-org/stateforge-provider-python/pull/39) · [Issue #36](https://github.com/stateforge-org/stateforge-provider-python/issues/36) · [Issue #37](https://github.com/stateforge-org/stateforge-provider-python/issues/37) |
 | `R19` | `provider` | **[TASK][MVP] Verify Provider Operation Admission Against the Installed Agent**<br>## Outcome After A5 lands, import its real Operation Admission behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, resolved-existing, lost response, identical concurrency, changed-content conflict, schema and readiness rejection, deadlines, expiry, stale fencing, restart, and exactly one dispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A5`, `P4`, `R11`, `R5` | `BLOCKED` | — |
 | `R20` | `provider` | **[TASK][MVP] Verify Provider Operation Lifecycle Against the Installed Agent**<br>## Outcome After A6 lands, import its real operation lifecycle behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover initial and late Watch replay, progress sequences, cursor gaps, slow observers, terminal results, invalid results, sanitized failures, cancellation completion and races, Agent restart, stale fencing, shutdown, and no redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A6`, `P5`, `R11`, `R19`, `R6` | `BLOCKED` | — |
 | `R21` | `provider` | **[TASK][MVP] Verify Provider Recovery Against the Installed Agent**<br>## Outcome After A11 lands, import its real recovery and reconciliation behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover channel loss, lost admission responses and trigger acknowledgements, replay, Agent and Provider restart, retained and lost state, generation and installation replacement, stale responses, expiry, explicit indeterminate outcomes, and no blind redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A11`, `A13`, `P8`, `R11`, `R18`, `R20`, `R9` | `BLOCKED` | — |
@@ -5483,11 +6097,69 @@ _No verification evidence has been declared yet._
 
 ### `R5` — [TASK][MVP] Implement Operation Admission and Idempotency
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `provider/AGENTS.md` | `must_preserve` | `canonical` | Yes | Preserve repository authority, generated-plan discipline, ownership boundaries, helper reuse rules, signed commits, and human-owned delivery. |
+| `provider/.agents/skills/stateforge-dpt-milestone/SKILL.md` | `must_understand` | `canonical` | Yes | Follow the repository milestone workflow for context, blast radius, verification, retained evidence, and completion claims. |
+| `provider/.claude/skills/stateforge-protocol-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply SFP ownership, canonical validation, versioning, multiplexed-service, and cross-repository compatibility rules. |
+| `provider/.claude/skills/stateforge-python-development/SKILL.md` | `must_understand` | `canonical` | Yes | Apply strict typing, package-content, public-API, helper reuse, testing, installed-artifact, documentation, and evidence standards. |
+| `provider/pyproject.toml` | `must_preserve` | `canonical` | Yes | Preserve supported Python versions, dependency boundaries, wheel contents, coverage threshold, asyncio lifecycle, and configured quality gates. |
+| `provider/src/stateforge_provider/provider.py` | `expected_to_change` | `canonical` | Yes | Integrate Operation Admission startup, shutdown, registration, dispatch, and task ownership into Provider lifecycle while keeping protobuf, sessions, fingerprints, and registry machinery private. |
+| `provider/src/stateforge_provider/__init__.py` | `expected_to_change` | `canonical` | Yes | Export only simple typed author-facing operation declarations, inputs, results, and safe errors; never generated messages, admission records, or transport internals. |
+| `provider/src/stateforge_provider/declarations.py` | `expected_to_change` | `canonical` | Yes | Preserve the decorator-based typed operation API and bind declared async handlers, input/result models, required checks, and implementation-profile claims without exposing Protocol envelopes. |
+| `provider/src/stateforge_provider/requirements.py` | `must_understand` | `canonical` | Yes | Reuse the existing typed requirement-check result surface when evaluating current prerequisites before new admission. |
+| `provider/src/stateforge_provider/health.py` | `must_understand` | `canonical` | Yes | Use the existing process-wide health state as a new-admission prerequisite without making Health an operation result or authorization decision. |
+| `provider/src/stateforge_provider/_services/manifest/declaration.py` | `expected_to_change` | `canonical` | Yes | Resolve accepted operation identifiers, input/result schemas, required checks, and implementation-profile claims from the canonical Manifest declaration fence. |
+| `provider/src/stateforge_provider/_services/capability_assessment/declaration.py` | `must_understand` | `canonical` | Yes | Reuse canonical requirement discovery, binding, deduplication, validation, and author-result adaptation rather than duplicating prerequisite machinery. |
+| `provider/src/stateforge_provider/_services/capability_assessment/service.py` | `must_understand` | `canonical` | Yes | Preserve existing requirement evaluation, cancellation, deadline, sanitization, and readiness patterns while keeping Operation Admission records and dispatch procedure-owned. |
+| `provider/src/stateforge_provider/_runtime/configuration.py` | `expected_to_change` | `canonical` | Yes | Add only bounded operator controls required for admission capacity and retention, with safe defaults and shared validation. |
+| `provider/src/stateforge_provider/_runtime/sessions.py` | `must_understand` | `canonical` | Yes | Fence every request to an authenticated current Provider instance, endpoint generation, negotiated session, and accepted manifest without storing procedure records in the session registry. |
+| `provider/src/stateforge_provider/_runtime/grpc.py` | `must_understand` | `canonical` | Yes | Register Operation Admission on the existing multiplexed endpoint and preserve canonical transport ceilings and shutdown behavior. |
+| `provider/src/stateforge_provider/_services` | `expected_to_change` | `canonical` | Yes | Add a private, procedure-owned Operation Admission service, handler registry, atomic admission registry, dispatch coordinator, and sanitized error boundary using shared helpers. |
+| `provider/tests` | `expected_to_change` | `canonical` | Yes | Cover public operation authoring, canonical validation, atomic admission, idempotency, concurrency, prerequisites, capacity, deadlines, retention, dispatch-once, cancellation, shutdown, and unchanged Provider behavior. |
+| `provider/.github/actions/provider/create-fixture` | `expected_to_change` | `canonical` | Yes | Add deterministic typed operations and controls for valid dispatch, schema and requirement rejection, concurrent retries, conflicts, deadlines, expiry, capacity, handler failure, and secret-safety evidence. |
+| `provider/.github/actions/scenarios` | `expected_to_change` | `canonical` | Yes | Add focused direct-peer Operation Admission scenarios using the exact built Provider and Protocol wheels while preserving all existing runtime scenarios. |
+| `provider/.github/workflows/provider-runtime-scenarios.yml` | `expected_to_change` | `canonical` | Yes | Build immutable dependency artifacts once, run the direct P4 scenario over the real Unix socket, retain evidence, and avoid claiming installed-Agent admission before A5 and R19. |
+| `provider/tests/test_ci_automation.py` | `expected_to_change` | `canonical` | Yes | Enforce reusable action composition, immutable dependency revisions, exact-artifact reuse, evidence retention, workflow security, and the no-simulated-Agent boundary. |
+| `provider/docs/ci-automation.md` | `expected_to_change` | `canonical` | Yes | Document direct Protocol-peer admission coverage, exact artifacts, retained evidence, unchanged installed-Agent regressions, and the A5/R19 end-to-end boundary. |
+| `provider/docs/reference/declarations.md` | `expected_to_change` | `canonical` | Yes | Document typed operation decorators, handler signatures, input/result models, requirement references, implementation profiles, inheritance, and startup validation. |
+| `provider/docs/reference/provider.md` | `expected_to_change` | `canonical` | Yes | Document dispatch semantics, admission outcomes, idempotent retries, transient and terminal rejection, deadlines, capacity, and sanitized failures from the Provider author's perspective. |
+| `provider/docs/runtime-architecture.md` | `expected_to_change` | `canonical` | Yes | Document record-before-dispatch ordering, atomic identity ownership, in-memory or retained record boundaries, task lifecycle, cancellation, shutdown, expiry, and the separation from Operation Lifecycle. |
+| `provider/docs/manifest-authoring.md` | `expected_to_change` | `canonical` | Yes | Explain how operation identifiers, input/result schemas, requirements, and profile claims enter the accepted Manifest and fence admission. |
+| `protocol/proto/stateforge_protocol/sfp/operation_admission/v1/operation_admission.proto` | `must_understand` | `canonical` | Yes | Authoritative P4 unary method, session binding, immutable invocation, admission modes, dispositions, retained record, and structured errors. |
+| `protocol/src/stateforge_protocol/sfp/operation_admission/v1/contract.py` | `must_understand` | `canonical` | Yes | Import canonical service identity, message and JSON limits, role bounds, and error-detail ceilings instead of redefining them in Provider. |
+| `protocol/src/stateforge_protocol/sfp/operation_admission/v1/operation_admission.schema.json` | `must_understand` | `canonical` | Yes | Use the packaged request, response, record, and error document shapes for structural validation and evidence. |
+| `protocol/src/stateforge_protocol/sfp/operation_admission/v1/validation.py` | `must_understand` | `canonical` | Yes | Delegate context-independent P4 validation and canonical invocation fingerprinting to Protocol; retain Provider-owned session, manifest, schema, readiness, registry, capacity, and dispatch checks. |
+| `protocol/tests/fixtures/operation_admission` | `must_verify` | `compatibility` | Yes | Consume canonical request, response, fingerprint, admission-mode, error, conflict, expiry, and conformance fixtures. |
+| `protocol/tests/test_operation_admission_contract.py` | `must_understand` | `canonical` | Yes | Treat executable P4 structure, validation order, fingerprint, disposition, error, and limit semantics as authoritative. |
+| `protocol/docs/v0.1.0/procedures/operation-admission.md` | `must_understand` | `canonical` | Yes | Preserve normative record-before-dispatch, one-dispatch, retry, resolve-only, conflict, expiry, deadline, rejection, and recovery semantics. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `must_preserve` | `canonical` | Yes | Preserve Manifest schema 1 operation declarations, versioned identifiers, input/result schemas, requirements, implementation-profile claims, and revision rules. |
+| `protocol/src/stateforge_protocol/sfp/manifest/v1/contract.py` | `must_understand` | `canonical` | Yes | Use canonical Manifest identifier, schema, count, document, and message limits when resolving declared operations. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **human** · `provider` · `Human review of public API simplicity, Protocol ownership, record-before-dispatch atomicity, idempotency, prerequisite boundaries, lifecycle isolation, and the A5/R19 boundary` — Confirm Provider authors see typed operations rather than protobuf or registry machinery, accepted identities dispatch at most once, and R5 does not simulate or claim a real Agent.
+- **test** · `provider` · `python -m ruff format --check .` — Repository formatting passes.
+- **test** · `provider` · `python -m ruff check .` — Static linting passes without R5 exclusions.
+- **test** · `provider` · `python -m mypy src` — Operation declarations, handler binding, registry, service, dispatch tasks, and public outcomes remain strictly typed.
+- **test** · `provider` · `Full pytest suite including operation declarations, service, registry, dispatch coordinator, lifecycle, and unchanged Provider regression tests` — Verify R5 behavior and the complete existing Provider test suite.
+- **test** · `provider` · `Exact stateforge-protocol wheel compatibility against packaged P4 protobufs, contract constants, schema, validators, fixtures, fingerprints, statuses, and limits` — Prove canonical P4 consumption without Provider-local wire, fingerprint, or context-independent validation redefinition.
+- **test** · `provider` · `Typed @operation handlers receive validated ProviderModel inputs and dispatch through the public Provider surface without protobuf, session, fingerprint, or admission-record parameters` — Prove the author API remains simple, typed, inheritance-aware, and independent from transport internals.
+- **test** · `provider` · `Valid and invalid session binding, manifest revision, declared operation, required implementation roles, payload schema, JSON bounds, message limits, and writeOnly fields` — Prove every request is fenced by the active session and accepted declaration before admission or dispatch.
+- **test** · `provider` · `Concurrent identical StartOperation requests, matching retries, changed-content reuse, and terminal identity reuse with exact fingerprint and dispatch-count assertions` — Prove atomic insertion, ACCEPTED_NEW once, RESOLVED_EXISTING thereafter, one dispatch, and ALREADY_EXISTS for conflicting content.
+- **test** · `provider` · `Malformed request, undeclared operation, incompatible role, invalid payload, unhealthy Provider, unsatisfied or unknown requirement, capacity exhaustion, and elapsed execution deadline` — Prove rejected work creates no accepted record and never dispatches, while retryability and status/detail mappings remain canonical and sanitized.
+- **test** · `provider` · `ADMIT_OR_RESOLVE and RESOLVE_ONLY against absent, retained, expired, and tombstoned records, including documented process-restart retention behavior` — Prove resolution never manufactures a record or redispatches work and expiry remains an explicit uncertainty boundary.
+- **test** · `provider` · `gRPC deadline and client cancellation before insertion, during prerequisite evaluation, across atomic insertion, and during shutdown` — Prove cancellation stops unadmitted work, never erases an admitted identity, and cannot produce duplicate dispatch.
+- **test** · `provider` · `Handler scheduling and execution failure after accepted admission with stable record, one dispatch attempt, sanitized diagnostics, and no automatic redispatch` — Prove Provider failures do not violate identity immutability or expose author exceptions; terminal progress/result handling remains reserved for the later lifecycle milestone.
+- **test** · `provider` · `Secret-bearing writeOnly payloads, execution context, author exceptions, logs, structured errors, fixtures, diagnostics, and retained CI evidence` — No sensitive value reaches responses, error details, logs, diagnostics, or evidence; fingerprints are correlation data rather than authentication.
+- **test** · `provider` · `Exact built Provider and Protocol wheels run in separate real processes and exchange P4 StartOperation calls over the published Unix socket using a focused Protocol peer` — Exercise production packaging, transport, validation, atomic registry, and dispatch without an in-process fake or simulated Agent.
+- **test** · `provider` · `Unchanged existing installed-Agent runtime matrix; no R5 claim of real Agent Operation Admission before A5 and R19` — Preserve bootstrap, manifest, health, capability, trigger, lifecycle, resilience, adversarial, and destructive behavior while keeping the recursive CI boundary honest.
+- **test** · `provider` · `Build the Provider wheel, install it with the exact Protocol wheel in a clean environment, and verify imports, public exports, package contents, metadata, and operation runtime dependencies` — Verify the shipped artifacts rather than an editable source checkout.
+- **test** · `provider` · `python -m mkdocs build --strict` — Document author API, admission semantics, idempotency, requirements, limits, errors, retention, evidence, and separation from Operation Lifecycle and A5/R19.
+- **test** · `provider` · `CI automation and workflow-security tests` — Actions remain pinned, least-privileged, exact-revision, evidence-preserving, and composed from reusable repository-owned actions.
+- **test** · `provider` · `Evidence identifies exact Provider and Protocol wheel hashes, Provider/session/generation, manifest revision, operation ID and identifier, canonical fingerprint, admission mode and disposition, record identity/expiry, dispatch count, rejection status/detail, retry boundary, and final process state` — Tie every admission, rejection, idempotency, deadline, expiry, and dispatch-once claim to exact artifacts and bounded observations without preserving secret payload values.
 
 ### `R6` — [TASK][MVP] Implement Operation Progress Results and Cancellation
 
@@ -6068,11 +6740,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "784756ca849d4c499645d8175ba8213811c9c4b2b62f834fdc4597584a2040b6",
+  "fingerprint": "7629d5bd0c382de2014f8210ac2c667f74b80cbf031c150ee529fb2335c74b8b",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-10-28T13:28:02+00:00",
-  "plan_fingerprint": "9f8bed474aeaa067f9dd1cbd3992c5c872186d1024bfdc8db595b04e31e2bd24",
+  "generated_at": "2026-11-01T10:13:42+00:00",
+  "plan_fingerprint": "f40f0e5470571938d94db5f9942f9eaa731ba1993cf6ba73b848a9c9045b39ee",
   "repositories": [
     {
       "alias": "agent",
@@ -6080,7 +6752,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "18331c3c96a7a45043d152b9c97d925224d70a169517b9269cefac9da589c05c",
+        "digest": "ab6db1a4ee370c87eb46839344c3a9ad1e9b8e044aedeb0aac437e206ceab9a4",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -6088,12 +6760,12 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "cdf39e19c79477e89c0f37e1a17e40bd6ea0f77b",
+      "generated_at": "2026-10-29T10:04:40+00:00",
+      "observed_commit_sha": "84e08d2b0aeb79733b4a03aa2ced75d1cf408412",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
-        "component_count": 63,
+        "component_count": 64,
         "document": {
           "bomFormat": "CycloneDX",
           "components": [
@@ -16156,7 +16828,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3Da4c077a5b86757b1120b229c048aa0a4cbb9f147%23a4c077a5b86757b1120b229c048aa0a4cbb9f147",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3De4d67e8fd7abbb077e09c41664e6f2945760037e%23e4d67e8fd7abbb077e09c41664e6f2945760037e",
               "type": "library",
               "version": "0.1.0"
             },
@@ -16231,7 +16903,42 @@ this generated file manually.
               "version": "1.0.0.20261021"
             },
             {
-              "bom-ref": "types-protobuf-59@7.35.1.20260906",
+              "bom-ref": "types-jsonschema-59@4.26.0.20261006",
+              "externalReferences": [
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "3eb7db61b6819d40addfdaac7173e749071a7d4a9a4394f0c844598ec84b2500"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/29/d2/1f742605f5a6d39f993134885b8de41c98af606871d3ebddaf3e776bd1eb/types_jsonschema-4.26.0.20261006.tar.gz"
+                },
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "29301f4e65e3928540cdf5e23ad716e38bb0c0b416a48dada213edd3d70206ec"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/8b/a0/4f2e3c0dc3d5cad958006f2e0307065cc8fe4fbf0393ff0b69d55ee9bbe5/types_jsonschema-4.26.0.20261006-py3-none-any.whl"
+                }
+              ],
+              "name": "types-jsonschema",
+              "properties": [
+                {
+                  "name": "uv:package:marker",
+                  "value": "python_full_version == '3.13.*'"
+                }
+              ],
+              "purl": "pkg:pypi/types-jsonschema@4.26.0.20261006",
+              "type": "library",
+              "version": "4.26.0.20261006"
+            },
+            {
+              "bom-ref": "types-protobuf-60@7.35.1.20260906",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16266,7 +16973,7 @@ this generated file manually.
               "version": "7.35.1.20260906"
             },
             {
-              "bom-ref": "typing-extensions-60@4.16.0",
+              "bom-ref": "typing-extensions-61@4.16.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16301,7 +17008,7 @@ this generated file manually.
               "version": "4.16.0"
             },
             {
-              "bom-ref": "tzdata-61@2026.5",
+              "bom-ref": "tzdata-62@2026.5",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16336,7 +17043,7 @@ this generated file manually.
               "version": "2026.5"
             },
             {
-              "bom-ref": "urllib3-62@2.8.0",
+              "bom-ref": "urllib3-63@2.8.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16371,7 +17078,7 @@ this generated file manually.
               "version": "2.8.0"
             },
             {
-              "bom-ref": "watchdog-63@6.0.0",
+              "bom-ref": "watchdog-64@6.0.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16586,7 +17293,7 @@ this generated file manually.
               "version": "6.0.0"
             },
             {
-              "bom-ref": "watchfiles-64@1.3.0",
+              "bom-ref": "watchfiles-65@1.3.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -16935,7 +17642,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "idna-17@3.20",
-                "typing-extensions-60@4.16.0"
+                "typing-extensions-61@4.16.0"
               ],
               "ref": "anyio-2@4.15.1"
             },
@@ -16985,7 +17692,7 @@ this generated file manually.
             },
             {
               "dependsOn": [
-                "typing-extensions-60@4.16.0"
+                "typing-extensions-61@4.16.0"
               ],
               "ref": "grpcio-15@1.84.0"
             },
@@ -17049,7 +17756,7 @@ this generated file manually.
                 "pathspec-37@1.1.1",
                 "pyyaml-48@6.0.3",
                 "pyyaml-env-tag-49@1.1",
-                "watchdog-63@6.0.0"
+                "watchdog-64@6.0.0"
               ],
               "ref": "mkdocs-26@1.6.1"
             },
@@ -17114,7 +17821,7 @@ this generated file manually.
                 "librt-22@0.16.0",
                 "mypy-extensions-34@1.1.0",
                 "pathspec-37@1.1.1",
-                "typing-extensions-60@4.16.0"
+                "typing-extensions-61@4.16.0"
               ],
               "ref": "mypy-33@2.4.0"
             },
@@ -17179,7 +17886,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "six-55@1.17.0",
-                "tzdata-61@2026.5"
+                "tzdata-62@2026.5"
               ],
               "ref": "python-dateutil-47@3.0.0"
             },
@@ -17204,7 +17911,7 @@ this generated file manually.
                 "certifi-8@2026.10.19",
                 "charset-normalizer-9@3.5.2",
                 "idna-17@3.20",
-                "urllib3-62@2.8.0"
+                "urllib3-63@2.8.0"
               ],
               "ref": "requests-51@2.34.2"
             },
@@ -17225,6 +17932,7 @@ this generated file manually.
                 "build-7@1.6.1",
                 "grpcio-15@1.84.0",
                 "grpcio-health-checking-16@1.84.0",
+                "jsonschema-20@4.26.0",
                 "mkdocs-26@1.6.1",
                 "mkdocs-material-29@9.7.7",
                 "mkdocstrings-31@0.30.1",
@@ -17237,8 +17945,9 @@ this generated file manually.
                 "stateforge-protocol-56@0.1.0",
                 "types-grpcio-57@1.84.0.20261021",
                 "types-grpcio-health-checking-58@1.0.0.20261021",
-                "types-protobuf-59@7.35.1.20260906",
-                "watchfiles-64@1.3.0"
+                "types-jsonschema-59@4.26.0.20261006",
+                "types-protobuf-60@7.35.1.20260906",
+                "watchfiles-65@1.3.0"
               ],
               "ref": "stateforge-agent-1@0.1.0"
             },
@@ -17259,30 +17968,36 @@ this generated file manually.
             {
               "dependsOn": [
                 "types-grpcio-57@1.84.0.20261021",
-                "types-protobuf-59@7.35.1.20260906"
+                "types-protobuf-60@7.35.1.20260906"
               ],
               "ref": "types-grpcio-health-checking-58@1.0.0.20261021"
             },
             {
-              "ref": "types-protobuf-59@7.35.1.20260906"
+              "dependsOn": [
+                "referencing-50@0.37.0"
+              ],
+              "ref": "types-jsonschema-59@4.26.0.20261006"
             },
             {
-              "ref": "typing-extensions-60@4.16.0"
+              "ref": "types-protobuf-60@7.35.1.20260906"
             },
             {
-              "ref": "tzdata-61@2026.5"
+              "ref": "typing-extensions-61@4.16.0"
             },
             {
-              "ref": "urllib3-62@2.8.0"
+              "ref": "tzdata-62@2026.5"
             },
             {
-              "ref": "watchdog-63@6.0.0"
+              "ref": "urllib3-63@2.8.0"
+            },
+            {
+              "ref": "watchdog-64@6.0.0"
             },
             {
               "dependsOn": [
                 "anyio-2@4.15.1"
               ],
-              "ref": "watchfiles-64@1.3.0"
+              "ref": "watchfiles-65@1.3.0"
             }
           ],
           "metadata": {
@@ -17310,7 +18025,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "8a14f3d2b4af245eec33b9bbb3552ecd3e5865fc3b82f4c7cba135a81f69e88e",
+        "sha256": "fb87c5470785823c8b1b64d39bcf35a5a51947af4d8c4078b1cd243959ec134a",
         "spec_version": "1.5"
       }
     },
@@ -17329,7 +18044,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "cb4e9af352fc89204585d1f0b16d2870a990c560",
+      "observed_commit_sha": "e4d67e8fd7abbb077e09c41664e6f2945760037e",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
@@ -28861,7 +29576,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "50b90328ec59833f3e25db4d134e6afc7ce566f8be34a761699e8f35fd6b8e38",
+        "digest": "a570ed66526852171321dad8b47ab125c998d5b1f012fa5ae4cd120f5e442910",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -28869,8 +29584,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-10-28T12:11:40+00:00",
-      "observed_commit_sha": "36a0931f668bc944d3b6ba4fa6601a10b66339bc",
+      "generated_at": "2026-11-01T10:05:03+00:00",
+      "observed_commit_sha": "a80d2da6443d6988ac4220d4edca6af34b3093da",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
