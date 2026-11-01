@@ -32,6 +32,22 @@ inputs:
     description: Enable Capability cancellation and message-limit fixtures.
     required: false
     default: "false"
+  trigger-publication:
+    description: Enable the dedicated Trigger Publication fixture controls.
+    required: false
+    default: "false"
+  drop-trigger-acks-until-marker:
+    description: Discard terminal trigger ACKs until the state marker exists.
+    required: false
+    default: "false"
+  first-trigger-publication-id:
+    description: Deterministic UUIDv4 for the first fixture publication.
+    required: false
+    default: ""
+  trigger-startup-sequence:
+    description: Payload sequence emitted by the decorated startup source.
+    required: false
+    default: "1"
 
 outputs:
   unit-name:
@@ -52,6 +68,9 @@ outputs:
   event-log:
     description: Lifecycle event log inside Fedora.
     value: ${{ steps.start.outputs.event-log }}
+  service-invocation-id:
+    description: systemd invocation that published this endpoint.
+    value: ${{ steps.start.outputs.service-invocation-id }}
   state-directory:
     description: Stable Provider installation state inside Fedora.
     value: ${{ steps.start.outputs.state-directory }}
@@ -68,13 +87,17 @@ runs:
       env:
         CONTAINER_NAME: ${{ inputs.container-name }}
         CAPABILITY_BOUNDARIES: ${{ inputs.capability-boundaries }}
+        DROP_TRIGGER_ACKS: ${{ inputs.drop-trigger-acks-until-marker }}
         DISPLAY_NAME: ${{ inputs.display-name }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
         FIXTURE_PATH: ${{ inputs.fixture-path }}
         IDENTITY: ${{ inputs.identity }}
         INSTANCE_NAME: ${{ inputs.instance-name }}
+        FIRST_TRIGGER_PUBLICATION_ID: ${{ inputs.first-trigger-publication-id }}
         STATE_NAME: ${{ inputs.state-name }}
         TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        TRIGGER_PUBLICATION: ${{ inputs.trigger-publication }}
+        TRIGGER_STARTUP_SEQUENCE: ${{ inputs.trigger-startup-sequence }}
       run: |
         set -euo pipefail
         if [[ ! "${INSTANCE_NAME}" =~ ^[a-z][a-z0-9-]{0,20}$ || \
@@ -137,6 +160,47 @@ runs:
             ;;
         esac
 
+        trigger_arguments=()
+        case "${TRIGGER_PUBLICATION}" in
+          true)
+            if [[ "${DROP_TRIGGER_ACKS}" != "true" \
+              && "${DROP_TRIGGER_ACKS}" != "false" ]]; then
+              echo "drop-trigger-acks-until-marker must be true or false" >&2
+              exit 2
+            fi
+            if [[ -n "${FIRST_TRIGGER_PUBLICATION_ID}" \
+              && ! "${FIRST_TRIGGER_PUBLICATION_ID}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+              echo "first-trigger-publication-id must be a lowercase UUIDv4" >&2
+              exit 2
+            fi
+            if [[ ! "${TRIGGER_STARTUP_SEQUENCE}" =~ ^[1-9][0-9]*$ ]]; then
+              echo "trigger-startup-sequence must be positive" >&2
+              exit 2
+            fi
+            trigger_arguments+=(
+              --trigger-publication
+              --trigger-startup-sequence "${TRIGGER_STARTUP_SEQUENCE}"
+            )
+            if [[ "${DROP_TRIGGER_ACKS}" == "true" ]]; then
+              trigger_arguments+=(--drop-trigger-acks-until-marker)
+              docker exec "${CONTAINER_NAME}" rm -f \
+                "${state_directory}/accept-trigger-acks"
+            fi
+            if [[ -n "${FIRST_TRIGGER_PUBLICATION_ID}" ]]; then
+              trigger_arguments+=(
+                --first-trigger-publication-id \
+                "${FIRST_TRIGGER_PUBLICATION_ID}"
+              )
+            fi
+            ;;
+          false)
+            ;;
+          *)
+            echo "trigger-publication must be true or false" >&2
+            exit 2
+            ;;
+        esac
+
         docker exec "${CONTAINER_NAME}" systemd-run \
           --unit "${unit_name}" \
           --property "User=${service_user}" \
@@ -150,7 +214,8 @@ runs:
           --state-directory "${state_directory}" \
           --event-log "${event_log}" \
           --target-path "${target_path}" \
-          "${capability_arguments[@]}"
+          "${capability_arguments[@]}" \
+          "${trigger_arguments[@]}"
 
         deadline=$((SECONDS + TIMEOUT_SECONDS))
         while (( SECONDS < deadline )); do
@@ -184,9 +249,27 @@ runs:
 
         socket_path="$(docker exec "${CONTAINER_NAME}" \
           jq -r .transport.socket_path "${descriptor}")"
+        invocation_id="$(docker exec "${CONTAINER_NAME}" \
+          systemctl show "${unit_name}" \
+            --property InvocationID --value)"
+        main_pid="$(docker exec "${CONTAINER_NAME}" \
+          systemctl show "${unit_name}" --property MainPID --value)"
+        if [[ ! "${invocation_id}" =~ ^[0-9a-f]{32}$ \
+          || ! "${main_pid}" =~ ^[1-9][0-9]*$ ]]; then
+          echo "Provider service identity is incomplete" >&2
+          exit 1
+        fi
         docker exec "${CONTAINER_NAME}" test -S "${socket_path}"
         docker exec "${CONTAINER_NAME}" cat "${descriptor}" \
           > "${EVIDENCE_DIRECTORY}/descriptor.json"
+        printf '%s\n' \
+          "unit-name=${unit_name}" \
+          "service-invocation-id=${invocation_id}" \
+          "main-pid=${main_pid}" \
+          "provider-instance-id=${provider_id}" \
+          "endpoint-generation=${generation}" \
+          "socket-path=${socket_path}" \
+          > "${EVIDENCE_DIRECTORY}/process-identity.txt"
         {
           echo "unit-name=${unit_name}"
           echo "descriptor-path=${descriptor}"
@@ -194,6 +277,7 @@ runs:
           echo "endpoint-generation=${generation}"
           echo "socket-path=${socket_path}"
           echo "event-log=${event_log}"
+          echo "service-invocation-id=${invocation_id}"
           echo "state-directory=${state_directory}"
           echo "target-path=${target_path}"
         } >> "${GITHUB_OUTPUT}"

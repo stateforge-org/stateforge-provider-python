@@ -191,6 +191,79 @@ async def _ack(
     )
 
 
+async def _assert_stale_fence(
+    stub: trigger_publication_pb2_grpc.TriggerPublicationServiceStub,
+    handshake: bootstrap_pb2.HandshakeResponse,
+    snapshot: manifest_pb2.GetManifestResponse,
+) -> str:
+    """Prove an endpoint-generation mismatch cannot open a stream."""
+    call = stub.StreamTriggers(timeout=3)
+    try:
+        await call.write(
+            trigger_publication_pb2.StreamTriggersRequest(
+                open=trigger_publication_pb2.TriggerStreamOpen(
+                    session_binding=(
+                        trigger_publication_pb2.TriggerSessionBinding(
+                            expected_provider_instance_id=(
+                                handshake.provider_instance_id
+                            ),
+                            expected_endpoint_generation=(
+                                handshake.endpoint_generation + 1
+                            ),
+                            expected_session_id=handshake.session_id,
+                            expected_manifest_revision=(
+                                snapshot.manifest_revision
+                            ),
+                        )
+                    ),
+                    requested_max_in_flight_publications=1,
+                )
+            )
+        )
+        await call.read()
+    except grpc.aio.AioRpcError as error:
+        _require(
+            error.code() is grpc.StatusCode.FAILED_PRECONDITION,
+            "stale endpoint fence status",
+        )
+        return error.code().name
+    finally:
+        call.cancel()
+    raise RuntimeError("Trigger Publication accepted a stale endpoint fence")
+
+
+async def _open_verified_stream(
+    stub: trigger_publication_pb2_grpc.TriggerPublicationServiceStub,
+    handshake: bootstrap_pb2.HandshakeResponse,
+    snapshot: manifest_pb2.GetManifestResponse,
+) -> tuple[
+    grpc.aio.StreamStreamCall[
+        trigger_publication_pb2.StreamTriggersRequest,
+        trigger_publication_pb2.StreamTriggersResponse,
+    ],
+    str,
+]:
+    """Open the current stream after proving stale fences are rejected."""
+    stale_fence_status = await _assert_stale_fence(
+        stub,
+        handshake,
+        snapshot,
+    )
+    return (
+        await _stream(stub, handshake, snapshot),
+        stale_fence_status,
+    )
+
+
+async def _prepare_runtime(runtime_directory: Path) -> None:
+    """Create only the scenario-owned runtime directories."""
+    await asyncio.to_thread(runtime_directory.mkdir, parents=True)
+    await asyncio.to_thread(
+        (runtime_directory / "discovery").mkdir,
+        parents=True,
+    )
+
+
 async def _prove_source_acknowledgement(
     provider: TriggerProvider,
     call: grpc.aio.StreamStreamCall[
@@ -229,13 +302,178 @@ async def _prove_source_acknowledgement(
     return sentinel.publication_id, outcome.disposition
 
 
+async def _prove_terminal_rejection(
+    provider: TriggerProvider,
+    call: grpc.aio.StreamStreamCall[
+        trigger_publication_pb2.StreamTriggersRequest,
+        trigger_publication_pb2.StreamTriggersResponse,
+    ],
+) -> TriggerPublicationDisposition:
+    """Prove nonretryable rejection resolves the public receipt once."""
+    receipt = await provider.publish_trigger(
+        DEPLOYMENT_COMPLETED,
+        DeploymentCompleted(environment="rejected", revision="terminal"),
+    )
+    publication = (await call.read()).publication
+    await call.write(
+        trigger_publication_pb2.StreamTriggersRequest(
+            acknowledgement=trigger_publication_pb2.TriggerAcknowledgement(
+                publication_id=publication.publication_id,
+                disposition=(
+                    trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_REJECTED
+                ),
+                rejection=trigger_publication_pb2.TriggerRejection(
+                    reason=(
+                        trigger_publication_pb2.TRIGGER_REJECTION_REASON_TRIGGER_NOT_DECLARED
+                    ),
+                    retryable=False,
+                    explanation="Injected terminal rejection",
+                ),
+            )
+        )
+    )
+    outcome = await receipt.outcome()
+    _require(
+        outcome.disposition is TriggerPublicationDisposition.REJECTED,
+        "terminal rejection outcome",
+    )
+    _require(
+        outcome.rejection is not None and not outcome.rejection.retryable,
+        "terminal rejection details",
+    )
+    return outcome.disposition
+
+
+async def _prove_receive_window_pressure(
+    provider: TriggerProvider,
+    call: grpc.aio.StreamStreamCall[
+        trigger_publication_pb2.StreamTriggersRequest,
+        trigger_publication_pb2.StreamTriggersResponse,
+    ],
+) -> dict[str, object]:
+    """Prove a selected window of one blocks a second publication."""
+    first_receipt = await provider.publish_trigger(
+        DEPLOYMENT_COMPLETED,
+        DeploymentCompleted(environment="pressure", revision="first"),
+    )
+    second_receipt = await provider.publish_trigger(
+        DEPLOYMENT_COMPLETED,
+        DeploymentCompleted(environment="pressure", revision="second"),
+    )
+    first = (await call.read()).publication
+    pending_second = asyncio.create_task(call.read())
+    try:
+        await asyncio.wait_for(asyncio.shield(pending_second), timeout=0.05)
+    except TimeoutError:
+        second_blocked = True
+    else:
+        second_blocked = False
+    _require(second_blocked, "receive-window pressure")
+
+    await _ack(
+        call,
+        first.publication_id,
+        trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+    )
+    second = (await asyncio.wait_for(pending_second, timeout=2)).publication
+    _require(
+        first.publication_id != second.publication_id,
+        "pressure publication identity",
+    )
+    _require(
+        first.payload != second.payload,
+        "pressure publication payload",
+    )
+    await _ack(
+        call,
+        second.publication_id,
+        trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_NEW,
+    )
+    first_outcome, second_outcome = await asyncio.gather(
+        first_receipt.outcome(),
+        second_receipt.outcome(),
+    )
+    _require(
+        first_outcome.disposition
+        is TriggerPublicationDisposition.ACCEPTED_NEW,
+        "first pressure acknowledgement",
+    )
+    _require(
+        second_outcome.disposition
+        is TriggerPublicationDisposition.ACCEPTED_NEW,
+        "second pressure acknowledgement",
+    )
+    return {
+        "first_content_fingerprint": (
+            compute_publication_content_fingerprint(first)
+        ),
+        "first_publication_id": first.publication_id,
+        "second_blocked_until_acknowledgement": second_blocked,
+        "second_content_fingerprint": (
+            compute_publication_content_fingerprint(second)
+        ),
+        "second_publication_id": second.publication_id,
+    }
+
+
+async def _prove_retryable_rejection(
+    provider: TriggerProvider,
+    call: grpc.aio.StreamStreamCall[
+        trigger_publication_pb2.StreamTriggersRequest,
+        trigger_publication_pb2.StreamTriggersResponse,
+    ],
+) -> dict[str, object]:
+    """Prove a retryable rejection preserves the complete publication."""
+    receipt = await provider.publish_trigger(
+        DEPLOYMENT_COMPLETED,
+        DeploymentCompleted(environment="production", revision="abc123"),
+        observed_at=datetime(2026, 10, 28, 12, 0, tzinfo=UTC),
+    )
+    first = (await call.read()).publication
+    retry_after = Duration()
+    retry_after.FromMilliseconds(1)
+    await call.write(
+        trigger_publication_pb2.StreamTriggersRequest(
+            acknowledgement=trigger_publication_pb2.TriggerAcknowledgement(
+                publication_id=first.publication_id,
+                disposition=(
+                    trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_REJECTED
+                ),
+                rejection=trigger_publication_pb2.TriggerRejection(
+                    reason=(
+                        trigger_publication_pb2.TRIGGER_REJECTION_REASON_AGENT_CAPACITY_EXHAUSTED
+                    ),
+                    retryable=True,
+                    retry_after=retry_after,
+                    explanation="Temporary capacity exhaustion",
+                ),
+            )
+        )
+    )
+    retried = (await call.read()).publication
+    _require(retried == first, "immutable retry publication")
+    await _ack(
+        call,
+        retried.publication_id,
+        trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_DUPLICATE,
+    )
+    outcome = await receipt.outcome()
+    _require(
+        outcome.disposition
+        is TriggerPublicationDisposition.ACCEPTED_DUPLICATE,
+        "callback acknowledgement outcome",
+    )
+    return {
+        "content_fingerprint": compute_publication_content_fingerprint(first),
+        "delivery_attempts": 2,
+        "disposition": outcome.disposition.value,
+        "publication_id": first.publication_id,
+    }
+
+
 async def _verify(runtime_directory: Path) -> dict[str, object]:
     """Exercise retry and reconnect replay over the installed endpoint."""
-    await asyncio.to_thread(runtime_directory.mkdir, parents=True)
-    await asyncio.to_thread(
-        (runtime_directory / "discovery").mkdir,
-        parents=True,
-    )
+    await _prepare_runtime(runtime_directory)
     provider = TriggerProvider(runtime_directory)
     provider_task = asyncio.create_task(provider.serve())
     channel: grpc.aio.Channel | None = None
@@ -266,49 +504,16 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
             },
             "manifest trigger declarations",
         )
-        call = await _stream(trigger_stub, handshake, snapshot)
+        call, stale_fence_status = await _open_verified_stream(
+            trigger_stub,
+            handshake,
+            snapshot,
+        )
 
-        receipt = await provider.publish_trigger(
-            DEPLOYMENT_COMPLETED,
-            DeploymentCompleted(environment="production", revision="abc123"),
-            observed_at=datetime(2026, 10, 28, 12, 0, tzinfo=UTC),
-        )
-        first = (await call.read()).publication
-        retry_after = Duration()
-        retry_after.FromMilliseconds(1)
-        await call.write(
-            trigger_publication_pb2.StreamTriggersRequest(
-                acknowledgement=(
-                    trigger_publication_pb2.TriggerAcknowledgement(
-                        publication_id=first.publication_id,
-                        disposition=(
-                            trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_REJECTED
-                        ),
-                        rejection=trigger_publication_pb2.TriggerRejection(
-                            reason=(
-                                trigger_publication_pb2.TRIGGER_REJECTION_REASON_AGENT_CAPACITY_EXHAUSTED
-                            ),
-                            retryable=True,
-                            retry_after=retry_after,
-                            explanation="Temporary capacity exhaustion",
-                        ),
-                    )
-                )
-            )
-        )
-        retried = (await call.read()).publication
-        _require(retried == first, "immutable retry publication")
-        await _ack(
-            call,
-            retried.publication_id,
-            trigger_publication_pb2.TRIGGER_ACKNOWLEDGEMENT_DISPOSITION_ACCEPTED_DUPLICATE,
-        )
-        callback_outcome = await receipt.outcome()
-        _require(
-            callback_outcome.disposition
-            is TriggerPublicationDisposition.ACCEPTED_DUPLICATE,
-            "callback acknowledgement outcome",
-        )
+        pressure = await _prove_receive_window_pressure(provider, call)
+        retryable_rejection = await _prove_retryable_rejection(provider, call)
+
+        terminal_rejection = await _prove_terminal_rejection(provider, call)
 
         await provider.failures.put(
             UnitFailed(unit="nginx.service", result="exit-code")
@@ -355,12 +560,16 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
             "replacement_session_id": replacement_handshake.session_id,
             "manifest_revision": snapshot.manifest_revision,
             "declared_triggers": sorted(snapshot.manifest.triggers),
-            "callback_publication_id": first.publication_id,
-            "callback_fingerprint": (
-                compute_publication_content_fingerprint(first)
-            ),
-            "callback_outcome": callback_outcome.disposition.value,
-            "callback_delivery_attempts": 2,
+            "callback_publication_id": retryable_rejection["publication_id"],
+            "callback_fingerprint": retryable_rejection["content_fingerprint"],
+            "callback_outcome": retryable_rejection["disposition"],
+            "callback_delivery_attempts": retryable_rejection[
+                "delivery_attempts"
+            ],
+            "retryable_rejection": retryable_rejection,
+            "receive_window_pressure": pressure,
+            "terminal_rejection": terminal_rejection.value,
+            "stale_fence_status": stale_fence_status,
             "source_publication_id": source_publication.publication_id,
             "source_replayed_after_reconnect": replayed == source_publication,
             "source_acknowledgement_observed": (

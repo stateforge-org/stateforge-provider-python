@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 9
+SCENARIO_COUNT = 10
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -23,6 +23,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
     expected = {
         "agent/assert-invalid-descriptor",
         "agent/assert-capability-assessment",
+        "agent/assert-trigger-publication",
         "agent/assert-session",
         "agent/install",
         "agent/start",
@@ -44,6 +45,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
         "scenarios/trigger/publication",
+        "scenarios/trigger/installed-agent",
     }
     observed = {
         str(path.parent.relative_to(ACTIONS))
@@ -207,6 +209,8 @@ def test_provider_start_uses_installed_runtime_in_agent_system() -> None:
     assert "import stateforge_provider" not in action
     assert "previous_generation=0" in action
     assert "generation > previous_generation" in action
+    assert "service-invocation-id" in action
+    assert "process-identity.txt" in action
     assert (
         'log_directory="/var/log/stateforge-provider-tests/${INSTANCE_NAME}"'
         in action
@@ -224,6 +228,16 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
             assert "./.github/actions/environment/install" in content
             assert "./.github/actions/agent/" not in content
             assert '"${ISOLATED_PYTHON}" -I' in content
+        elif "scenarios/trigger/installed-agent" in str(scenario):
+            assert "./.github/actions/agent/install" in content
+            assert "./.github/actions/agent/start" in content
+            assert (
+                "./.github/actions/agent/assert-trigger-publication" in content
+            )
+            assert "./.github/actions/provider/start" in content
+            assert "./.github/actions/provider/stop" in content
+            assert "./.github/actions/evidence/collect" in content
+            assert "if: ${{ always() }}" in content
         else:
             assert "./.github/actions/agent/install" in content
             assert "./.github/actions/agent/start" in content
@@ -244,6 +258,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "uninstall-reinstall",
         "standard-health",
         "trigger-publication",
+        "trigger-publication-agent",
         "capability-assessment",
     }
     for scenario in scenarios:
@@ -258,8 +273,8 @@ def test_runtime_catalog_covers_required_behavior() -> None:
     assert "/agent/test-image" in workflow
 
 
-def test_trigger_publication_uses_installed_wheels_and_direct_peer() -> None:
-    """Verify R4 without inventing an Agent-side trigger implementation."""
+def test_trigger_publication_keeps_the_focused_protocol_peer() -> None:
+    """Keep retry, pressure, rejection, and fencing faults deterministic."""
     scenario = read(
         ACTIONS / "scenarios" / "trigger" / "publication" / "action.yml"
     )
@@ -285,6 +300,9 @@ def test_trigger_publication_uses_installed_wheels_and_direct_peer() -> None:
         "initial_session_id",
         "replacement_session_id",
         "callback_delivery_attempts",
+        "receive_window_pressure",
+        "terminal_rejection",
+        "stale_fence_status",
         "source_acknowledgement_observed",
         "sentinel_publication_id",
         "sentinel_outcome",
@@ -294,6 +312,51 @@ def test_trigger_publication_uses_installed_wheels_and_direct_peer() -> None:
     ):
         assert evidence_field in verifier
     assert "Trigger Publication / direct Protocol peer" in workflow
+
+
+def test_trigger_publication_uses_exact_installed_agent_runtime() -> None:
+    """Verify R18 across the real RPM, wheels, socket, and journal."""
+    scenario = read(
+        ACTIONS / "scenarios" / "trigger" / "installed-agent" / "action.yml"
+    )
+    fixture = read(
+        ACTIONS / "scenarios" / "trigger" / "installed-agent" / "fixture.py"
+    )
+    assertion = read(
+        ACTIONS / "agent" / "assert-trigger-publication" / "assert.py"
+    )
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    for action in (
+        "agent/install",
+        "agent/start",
+        "agent/assert-session",
+        "agent/assert-trigger-publication",
+        "provider/start",
+        "provider/stop",
+        "evidence/collect",
+    ):
+        assert f"./.github/actions/{action}" in scenario
+    assert "@trigger(" in fixture
+    assert "publish_trigger(" in fixture
+    assert "TriggerPublicationRuntime.acknowledge" in fixture
+    assert "trigger_runtime.uuid4" in fixture
+    assert "accepted_duplicate" in scenario
+    assert "delivery_responsibility_unavailable" in scenario
+    assert "idempotency_conflict" in scenario
+    assert "journal-permissions-before" in scenario
+    assert "after-storage-recovery" in scenario
+    assert "after-stale-publication" in scenario
+    assert "superseded-publication.txt" in scenario
+    assert "trigger-queued" in fixture
+    assert "endpoint-generation" in scenario
+    assert "invocation-fences.txt" in scenario
+    assert "service-invocation-id" in scenario
+    assert "trigger_publications" in assertion
+    assert "validate_trigger_publication" in assertion
+    assert "compute_publication_content_fingerprint" in assertion
+    assert "Trigger Publication / installed Agent RPM" in workflow
+    assert "${{ runner.temp }}/sfp-trigger-agent" in workflow
 
 
 def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
