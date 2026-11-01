@@ -428,6 +428,18 @@ wheels = [
 ]
 
 [[package]]
+name = "googleapis-common-protos"
+version = "1.76.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/62/b6/bc095b23a3e0d978e75c8c18cabe4c11f791837410670e4486f0d539bfba/googleapis_common_protos-1.76.0.tar.gz", hash = "sha256:71db0e44a1d4c2dd024ebad44ca67129cc1e2892e4861df466764749d5ef8642", size = 156250, upload-time = "2026-10-22T23:43:36.263Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/6d/78dc67a9e779e594b49bf62604034d3a6aa428a55afc729cafda4b7333e1/googleapis_common_protos-1.76.0-py3-none-any.whl", hash = "sha256:59e13344a9f3651aa201a03e2bee815a3bf43a4baf1f9ff8a9b62a840ce25fac", size = 307707, upload-time = "2026-10-22T23:43:10.445Z" },
+]
+
+[[package]]
 name = "griffelib"
 version = "2.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -508,6 +520,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/4e/92/a8c62e9ab04957fe06e272244ed3d7a6780aacd3b72d9d723309ffbe5e9a/grpcio_health_checking-1.84.0.tar.gz", hash = "sha256:c69ea3775a5f90cd094f294859dfd0150a560f7101a8936bf7b4e08b7186a14e", size = 17089, upload-time = "2026-09-14T07:10:24.092Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1a/7c/4eb98f1e644b95704ac97693995a8158bd43c3c4030b63c9e980dab7bacb/grpcio_health_checking-1.84.0-py3-none-any.whl", hash = "sha256:3eab9b688e5e09bd1d584c296d3440358f11817388db87b807edd61f45b464d1", size = 19088, upload-time = "2026-09-14T07:09:00.21Z" },
+]
+
+[[package]]
+name = "grpcio-status"
+version = "1.84.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "googleapis-common-protos" },
+    { name = "grpcio" },
+    { name = "protobuf" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/45/f80309cdb6a7dbf8f65e2082dd2ddc9797ba7180516a73c54d966ba632c4/grpcio_status-1.84.0.tar.gz", hash = "sha256:5caf28ba7184b81f618b5f7f094859fd2541bf429d2189bbbcd715c9c2cdcee2", size = 14015, upload-time = "2026-09-14T07:10:29.402Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/c4/3a77e4273e866b1b0c412afd80882e95941a37170032b5109d847c501124/grpcio_status-1.84.0-py3-none-any.whl", hash = "sha256:0c182ca0d6e60acbfd0e14499cf39a155e4827a1c3fd9f7638e49af15a74c30a", size = 14639, upload-time = "2026-09-14T07:10:15.175Z" },
 ]
 
 [[package]]
@@ -1604,6 +1630,7 @@ source = { editable = "." }
 dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
+    { name = "grpcio-status" },
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "stateforge-protocol" },
@@ -1619,6 +1646,7 @@ dev = [
     { name = "ruff" },
     { name = "types-grpcio" },
     { name = "types-grpcio-health-checking" },
+    { name = "types-grpcio-status" },
     { name = "types-jsonschema" },
     { name = "types-protobuf" },
 ]
@@ -1633,6 +1661,7 @@ docs = [
 requires-dist = [
     { name = "grpcio", specifier = ">=1.83" },
     { name = "grpcio-health-checking", specifier = ">=1.83" },
+    { name = "grpcio-status", specifier = ">=1.83" },
     { name = "jsonschema", specifier = ">=4.25,<5" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "stateforge-protocol", git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=cb4e9af352fc89204585d1f0b16d2870a990c560" },
@@ -1648,6 +1677,7 @@ dev = [
     { name = "ruff", specifier = ">=0.12" },
     { name = "types-grpcio" },
     { name = "types-grpcio-health-checking" },
+    { name = "types-grpcio-status" },
     { name = "types-jsonschema" },
     { name = "types-protobuf" },
 ]
@@ -1678,6 +1708,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/34/09/45e818a73ba3b674648744dce85bf2e4507a990bb07966dfca14a2712a4c/types_grpcio_health_checking-1.0.0.20261021.tar.gz", hash = "sha256:155d53811ca7810c2caaa63bf8769324753ac8f01b397dd8cf95d08bda4c134a", size = 8627, upload-time = "2026-10-21T06:42:11.465Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/19/de/eca76e380f7e3b93bd7032847e4e9d43904e604b5782c83be9cf733be962/types_grpcio_health_checking-1.0.0.20261021-py3-none-any.whl", hash = "sha256:bac5319aa52e2012f745dba9c125f77326e60db14d60e15cff268dc8759387f5", size = 9828, upload-time = "2026-10-21T06:42:10.574Z" },
+]
+
+[[package]]
+name = "types-grpcio-status"
+version = "1.0.0.20260408"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "types-grpcio" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fa/ff/a0270f7083f76167030dacc1eaa81f9424a450b1828733c7b7f1607e7d40/types_grpcio_status-1.0.0.20260408.tar.gz", hash = "sha256:8c8b5a5fd5e661488bb3dfb924fd3562892bae01b9a24e607a26bb0029f3fb71", size = 7092, upload-time = "2026-04-08T04:35:18.169Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/b1/dcdd89efd40eb4a4c2458681a53faf057096db8e2b52a4f94f2bb935aef0/types_grpcio_status-1.0.0.20260408-py3-none-any.whl", hash = "sha256:5d421512b6a9ae5d0f84cde9c251394da5bd77ddc96e122221ac23c8e1ce3acf", size = 7859, upload-time = "2026-04-08T04:35:17.434Z" },
 ]
 
 [[package]]

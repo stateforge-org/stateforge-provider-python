@@ -20,6 +20,10 @@ Typed triggers can be published from a managed `@trigger` async source or an
 existing callback through `publish_trigger()`. The runtime owns P3 streaming,
 bounded flow control, acknowledgement receipts, retry, and reconnect replay.
 See the [trigger publication guide](docs/trigger-publication.md).
+Operation handlers receive typed requests and an optional immutable
+`OperationContext`; the runtime owns fences, requirement revalidation,
+idempotency, record-before-dispatch, and bounded shutdown. See the
+[operation admission guide](docs/operation-admission.md).
 
 Install the Provider framework from PyPI:
 

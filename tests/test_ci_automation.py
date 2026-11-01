@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 10
+SCENARIO_COUNT = 11
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -42,6 +42,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/health/standard-health",
         "scenarios/lifecycle/concurrent-providers",
         "scenarios/lifecycle/same-instance-replacement",
+        "scenarios/operation/admission",
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
         "scenarios/trigger/publication",
@@ -224,7 +225,9 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
     assert len(scenarios) == SCENARIO_COUNT
     for scenario in scenarios:
         content = read(scenario)
-        if "scenarios/trigger/publication" in str(scenario):
+        if "scenarios/trigger/publication" in str(
+            scenario
+        ) or "scenarios/operation/admission" in str(scenario):
             assert "./.github/actions/environment/install" in content
             assert "./.github/actions/agent/" not in content
             assert '"${ISOLATED_PYTHON}" -I' in content
@@ -260,6 +263,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "trigger-publication",
         "trigger-publication-agent",
         "capability-assessment",
+        "operation-admission",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -312,6 +316,44 @@ def test_trigger_publication_keeps_the_focused_protocol_peer() -> None:
     ):
         assert evidence_field in verifier
     assert "Trigger Publication / direct Protocol peer" in workflow
+
+
+def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
+    """Prove R5 installed behavior without simulating a future Agent."""
+    scenario = read(
+        ACTIONS / "scenarios" / "operation" / "admission" / "action.yml"
+    )
+    verifier = read(
+        ACTIONS / "scenarios" / "operation" / "admission" / "verify.py"
+    )
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    assert "./.github/actions/environment/install" in scenario
+    assert "./.github/actions/agent/" not in scenario
+    assert '"${ISOLATED_PYTHON}" -I' in scenario
+    assert "stateforge_protocol" in verifier
+    assert "stateforge_agent" not in verifier
+    assert "@operation(" in verifier
+    assert "OperationContext" in verifier
+    assert "StartOperation" in verifier
+    for evidence_field in (
+        "installed_artifacts",
+        "concurrent_requests",
+        "accepted_new",
+        "resolved_existing",
+        "author_dispatches",
+        "stale_fence_status",
+        "missing_role_status",
+        "requirement_status",
+        "idempotency_conflict_status",
+        "immutable_context",
+        "final_process_state",
+        "descriptor_removed",
+        "socket_removed",
+    ):
+        assert evidence_field in verifier
+    assert "Operation Admission / direct Protocol peer" in workflow
+    assert "${{ runner.temp }}/sfp-r5" in workflow
 
 
 def test_trigger_publication_uses_exact_installed_agent_runtime() -> None:

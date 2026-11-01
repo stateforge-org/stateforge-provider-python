@@ -12,6 +12,7 @@ stateforge_provider/
     capability_assessment/ # Private P2 declaration and service adaptation
     health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
+    operation_admission/ # Private P4 admission and dispatch runtime
     trigger_publication/ # Private P3 stream, queue, retry, and replay runtime
 ```
 
@@ -63,6 +64,13 @@ Python values into canonical Protocol messages and owns the bounded queue,
 stream receive window, acknowledgement correlation, retry backoff, and replay
 after a fresh session. Publications remain process-local in this version;
 durability across Provider process restarts is not implied.
+
+Operation Admission binds the operation declarations already accepted for the
+manifest to their author methods. Its private P4 service validates canonical
+requests and active runtime fences, re-evaluates referenced requirements,
+owns the bounded idempotency registry, records admission before dispatch, and
+passes typed values plus an immutable public `OperationContext` to author code.
+It does not own later operation progress or terminal results.
 
 To add a future procedure:
 

@@ -22,11 +22,13 @@ nav:
   - Manifest declarations: manifest-authoring.md
   - Health and readiness: health-reporting.md
   - Trigger publication: trigger-publication.md
+  - Operation admission: operation-admission.md
   - Package and runtime CI/CD: ci-automation.md
   - Python API:
       - Provider: reference/provider.md
       - Declarations: reference/declarations.md
       - Trigger publication: reference/triggers.md
+      - Operations: reference/operations.md
       - Protocol version: reference/version.md
 
 plugins:

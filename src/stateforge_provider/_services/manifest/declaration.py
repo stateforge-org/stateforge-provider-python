@@ -40,7 +40,28 @@ from stateforge_provider.declarations import (
     _mro_namespace,
     _Operation,
 )
+from stateforge_provider.operations import OperationContext
 from stateforge_provider.triggers import _TriggerSource
+
+
+@dataclass(frozen=True, slots=True)
+class OperationDeclaration:
+    """Retain one operation's accepted author and manifest contract."""
+
+    identifier: str
+    method_name: str
+    request_model: type[ProviderModel]
+    result_model: type[ProviderModel]
+    implements: tuple[str, ...]
+    requires: tuple[str, ...]
+    accepts_context: bool
+
+
+def _provider_model(model: object, path: str) -> type[ProviderModel]:
+    """Return one author model with a type understood by static analysis."""
+    if not isinstance(model, type) or not issubclass(model, ProviderModel):
+        raise ManifestError(f"{path}: must be a ProviderModel subclass")
+    return model
 
 
 def _model_schema(
@@ -49,10 +70,9 @@ def _model_schema(
     mode: JsonSchemaMode,
     limits: ProviderRuntimeLimits,
 ) -> dict[str, Any]:
-    if not isinstance(model, type) or not issubclass(model, ProviderModel):
-        raise ManifestError(f"{path}: must be a ProviderModel subclass")
+    resolved_model = _provider_model(model, path)
     try:
-        schema = model.model_json_schema(mode=mode)
+        schema = resolved_model.model_json_schema(mode=mode)
     except (
         PydanticUndefinedAnnotation,
         PydanticUserError,
@@ -75,7 +95,10 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
 
 
 # Keep discovery and its rejection rules adjacent.
-def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
+def _operations(  # noqa: PLR0912
+    owner: type,
+    limits: ProviderRuntimeLimits,
+) -> tuple[dict[str, Any], tuple[OperationDeclaration, ...]]:
     methods, metadata_erased = _effective_methods(
         owner,
         metadata_attribute="__stateforge_operation__",
@@ -83,16 +106,19 @@ def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
     )
     if metadata_erased:
         raise ManifestError("operations: overrides must redeclare metadata")
-    declared_methods: list[tuple[Any, type, _Operation]] = []
-    for method, declaring_class in methods.values():
+    declared_methods: list[tuple[str, Any, type, _Operation]] = []
+    for method_name, (method, declaring_class) in methods.items():
         metadata = getattr(method, "__stateforge_operation__", None)
         if isinstance(metadata, _Operation):
-            declared_methods.append((method, declaring_class, metadata))
+            declared_methods.append(
+                (method_name, method, declaring_class, metadata)
+            )
     if len(declared_methods) > manifest_contract.MAX_OPERATIONS:
         raise ManifestError("operations: entry limit exceeded")
 
     declarations: dict[str, Any] = {}
-    for method, declaring_class, metadata in declared_methods:
+    runtime_declarations: list[OperationDeclaration] = []
+    for method_name, method, declaring_class, metadata in declared_methods:
         path = f"operations[{len(declarations)}]"
         validate_structure(metadata.identifier, "identifier", path)
         if metadata.identifier in declarations:
@@ -100,8 +126,14 @@ def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
         if not inspect.iscoroutinefunction(method):
             raise ManifestError(f"{path}: operation method must be async")
         parameters = tuple(inspect.signature(method).parameters)
-        if parameters != ("self", "request"):
-            raise ManifestError(f"{path}: expected (self, request) signature")
+        if parameters not in (
+            ("self", "request"),
+            ("self", "request", "context"),
+        ):
+            raise ManifestError(
+                f"{path}: expected (self, request) or "
+                "(self, request, context) signature"
+            )
         try:
             annotations = get_type_hints(
                 method,
@@ -111,6 +143,22 @@ def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
             raise ManifestError(
                 f"{path}: unresolved model annotations"
             ) from None
+        request_model = _provider_model(
+            annotations.get("request"), f"{path}.input"
+        )
+        result_model = _provider_model(
+            annotations.get("return"), f"{path}.result"
+        )
+        accepts_context = len(parameters) == len(
+            ("self", "request", "context")
+        )
+        if (
+            accepts_context
+            and annotations.get("context") is not OperationContext
+        ):
+            raise ManifestError(
+                f"{path}: context must be annotated as OperationContext"
+            )
         roles = metadata.implements
         if (
             not isinstance(roles, tuple)
@@ -121,22 +169,37 @@ def _operations(owner: type, limits: ProviderRuntimeLimits) -> dict[str, Any]:
             validate_structure(role, "dottedIdentifier", f"{path}.implements")
         if len(set(roles)) != len(roles):
             raise ManifestError(f"{path}.implements: duplicate role")
+        input_schema = _model_schema(
+            request_model,
+            f"{path}.input",
+            "validation",
+            limits,
+        )
+        result_schema = _model_schema(
+            result_model,
+            f"{path}.result",
+            "serialization",
+            limits,
+        )
         declarations[metadata.identifier] = {
-            "inputSchema": _model_schema(
-                annotations.get("request"),
-                f"{path}.input",
-                "validation",
-                limits,
-            ),
-            "resultSchema": _model_schema(
-                annotations.get("return"),
-                f"{path}.result",
-                "serialization",
-                limits,
-            ),
+            "inputSchema": input_schema,
+            "resultSchema": result_schema,
             "implements": sorted(roles),
         }
-    return declarations
+        runtime_declarations.append(
+            OperationDeclaration(
+                identifier=metadata.identifier,
+                method_name=method_name,
+                request_model=request_model,
+                result_model=result_model,
+                implements=tuple(sorted(roles)),
+                requires=metadata.requires,
+                accepts_context=accepts_context,
+            )
+        )
+    return declarations, tuple(
+        sorted(runtime_declarations, key=lambda item: item.identifier)
+    )
 
 
 def _triggers(  # noqa: PLR0912
@@ -278,6 +341,21 @@ class ManifestDeclaration:
     document: bytes
     trigger_declarations: tuple[Trigger, ...] = ()
     trigger_source_methods: tuple[tuple[str, str], ...] = ()
+    operation_declarations: tuple[OperationDeclaration, ...] = ()
+
+    @property
+    def operation_schemas(
+        self,
+    ) -> dict[str, tuple[dict[str, Any], dict[str, Any]]]:
+        """Return fresh accepted input/result schemas keyed by operation."""
+        document = json.loads(self.document)
+        return {
+            identifier: (
+                declaration["inputSchema"],
+                declaration["resultSchema"],
+            )
+            for identifier, declaration in document["operations"].items()
+        }
 
     @property
     def trigger_schemas(self) -> dict[str, dict[str, Any]]:
@@ -368,7 +446,7 @@ class ManifestDeclaration:
             owner,
             limits,
         )
-        operations = _operations(owner, limits)
+        operations, operation_declarations = _operations(owner, limits)
         configuration = _model_schema(
             getattr(owner, "configuration_model", ProviderModel),
             "configuration_schema",
@@ -397,7 +475,12 @@ class ManifestDeclaration:
             document,
             limits=contract_limits,
         )
-        return cls(content, trigger_declarations, trigger_sources)
+        return cls(
+            document=content,
+            trigger_declarations=trigger_declarations,
+            trigger_source_methods=trigger_sources,
+            operation_declarations=operation_declarations,
+        )
 
     def snapshot(self, identity: ProviderEndpointIdentity) -> ManifestSnapshot:
         """Construct the exchange after identity allocation and startup."""
@@ -437,9 +520,10 @@ class ManifestDeclaration:
         validate_manifest_response(response)
         response.ClearField("session_id")
         return ManifestSnapshot(
-            response.SerializeToString(),
-            self.trigger_declarations,
-            self.trigger_source_methods,
+            document=response.SerializeToString(),
+            trigger_declarations=self.trigger_declarations,
+            trigger_source_methods=self.trigger_source_methods,
+            operation_declarations=self.operation_declarations,
         )
 
 
@@ -450,6 +534,7 @@ class ManifestSnapshot:
     document: bytes
     trigger_declarations: tuple[Trigger, ...] = ()
     trigger_source_methods: tuple[tuple[str, str], ...] = ()
+    operation_declarations: tuple[OperationDeclaration, ...] = ()
 
     @property
     def manifest_revision(self) -> str:
@@ -463,6 +548,24 @@ class ManifestSnapshot:
         """Return the operations declared by this immutable snapshot."""
         response = manifest_pb2.GetManifestResponse.FromString(self.document)
         return frozenset(response.manifest.operations)
+
+    @property
+    def operation_schemas(
+        self,
+    ) -> dict[str, tuple[dict[str, Any], dict[str, Any]]]:
+        """Return fresh input/result schemas from the accepted manifest."""
+        response = manifest_pb2.GetManifestResponse.FromString(self.document)
+        projected = MessageToDict(
+            response.manifest,
+            always_print_fields_with_no_presence=True,
+        )
+        return {
+            identifier: (
+                declaration["inputSchema"],
+                declaration["resultSchema"],
+            )
+            for identifier, declaration in projected["operations"].items()
+        }
 
     @property
     def trigger_identifiers(self) -> frozenset[str]:

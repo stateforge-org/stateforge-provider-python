@@ -109,8 +109,9 @@ projection; result/trigger schemas use its serialization projection. The
 runtime adds the explicit Draft 2020-12 dialect and validates the object
 schema. It never serializes a configured model instance into the manifest.
 
-Decorated methods are async and currently have `(self, request)` plus typed
-input and return annotations. Metadata discovery does not call them. Methods
+Decorated methods are async and have `(self, request)` or
+`(self, request, context: OperationContext)` plus typed input and return
+annotations. Metadata discovery does not call them. Methods
 are inherited using Python's MRO; overriding a declared method requires a new
 `@operation` declaration. Duplicate operation IDs or stacked decorators are
 errors. Unresolvable annotations fail startup; keep model classes importable
@@ -274,6 +275,6 @@ Install the package and its development dependencies from `pyproject.toml`:
 python -m pip install -e . --group dev --group docs
 ```
 
-This milestone does not implement configuration loading, operation dispatch,
-OperationContext, Agent routing, or vendor work. Those remain their own
-milestones; these declarations are their shared input.
+The runtime uses accepted operation declarations as the input to
+[Operation Admission](operation-admission.md). Agent routing and vendor work
+remain outside manifest construction.
