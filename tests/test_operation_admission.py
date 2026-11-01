@@ -20,6 +20,7 @@ from google.protobuf.json_format import ParseDict
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
 from grpc_status import rpc_status
+from jsonschema import Draft202012Validator
 from pydantic import Field
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
@@ -624,8 +625,33 @@ async def test_dispatch_failure_is_local_and_record_still_resolves(
 async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
     first_release = asyncio.Event()
 
-    async def blocked() -> None:
+    async def blocked(_context: OperationContext) -> ProviderModel:
         await first_release.wait()
+        return _Output(accepted=True)
+
+    result_validator = Draft202012Validator(
+        _Output.model_json_schema(mode="serialization")
+    )
+
+    def admit(
+        runtime: OperationAdmissionRuntime,
+        operation_id: str,
+        fingerprint: str,
+    ):
+        return runtime.admit(
+            operation_id=operation_id,
+            fingerprint=fingerprint,
+            endpoint_generation=1,
+            operation_identifier="example.admission/run@1",
+            manifest_revision="sha256:" + ("a" * 64),
+            result_model=_Output,
+            result_validator=result_validator,
+            cancellable=False,
+            progress_policy=None,
+            execution_deadline=datetime.now(UTC) + timedelta(minutes=1),
+            execution_context={},
+            dispatch=blocked,
+        )
 
     runtime = OperationAdmissionRuntime(
         maximum_records=1,
@@ -633,18 +659,16 @@ async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
         record_retention_seconds=0.01,
         tombstone_retention_seconds=0.01,
     )
-    first = runtime.admit(
-        operation_id=str(uuid4()),
-        fingerprint="sha256:" + ("1" * 64),
-        endpoint_generation=1,
-        dispatch=blocked,
+    first = admit(
+        runtime,
+        str(uuid4()),
+        "sha256:" + ("1" * 64),
     )
     with pytest.raises(AdmissionRegistryError) as capacity:
-        runtime.admit(
-            operation_id=str(uuid4()),
-            fingerprint="sha256:" + ("2" * 64),
-            endpoint_generation=1,
-            dispatch=blocked,
+        admit(
+            runtime,
+            str(uuid4()),
+            "sha256:" + ("2" * 64),
         )
     assert capacity.value.failure is AdmissionRegistryFailure.CAPACITY
 
@@ -662,22 +686,20 @@ async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
     second_operation_id = str(uuid4())
     second_fingerprint = "sha256:" + ("2" * 64)
     with pytest.raises(AdmissionRegistryError) as tombstone_capacity:
-        runtime.admit(
-            operation_id=second_operation_id,
-            fingerprint=second_fingerprint,
-            endpoint_generation=1,
-            dispatch=blocked,
+        admit(
+            runtime,
+            second_operation_id,
+            second_fingerprint,
         )
     assert (
         tombstone_capacity.value.failure is AdmissionRegistryFailure.CAPACITY
     )
 
     await asyncio.sleep(0.02)
-    admitted = runtime.admit(
-        operation_id=second_operation_id,
-        fingerprint=second_fingerprint,
-        endpoint_generation=1,
-        dispatch=blocked,
+    admitted = admit(
+        runtime,
+        second_operation_id,
+        second_fingerprint,
     )
     assert admitted.accepted_new
     await runtime.close()

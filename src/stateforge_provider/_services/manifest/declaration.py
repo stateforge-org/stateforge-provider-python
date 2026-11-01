@@ -40,7 +40,10 @@ from stateforge_provider.declarations import (
     _mro_namespace,
     _Operation,
 )
-from stateforge_provider.operations import OperationContext
+from stateforge_provider.operations import (
+    OperationContext,
+    OperationProgressPolicy,
+)
 from stateforge_provider.triggers import _TriggerSource
 
 
@@ -55,6 +58,8 @@ class OperationDeclaration:
     implements: tuple[str, ...]
     requires: tuple[str, ...]
     accepts_context: bool
+    cancellable: bool
+    progress: OperationProgressPolicy | None
 
 
 def _provider_model(model: object, path: str) -> type[ProviderModel]:
@@ -159,6 +164,13 @@ def _operations(  # noqa: PLR0912
             raise ManifestError(
                 f"{path}: context must be annotated as OperationContext"
             )
+        if (metadata.cancellable or metadata.progress is not None) and not (
+            accepts_context
+        ):
+            raise ManifestError(
+                f"{path}: cancellation and progress policies require "
+                "OperationContext"
+            )
         roles = metadata.implements
         if (
             not isinstance(roles, tuple)
@@ -195,6 +207,8 @@ def _operations(  # noqa: PLR0912
                 implements=tuple(sorted(roles)),
                 requires=metadata.requires,
                 accepts_context=accepts_context,
+                cancellable=metadata.cancellable,
+                progress=metadata.progress,
             )
         )
     return declarations, tuple(

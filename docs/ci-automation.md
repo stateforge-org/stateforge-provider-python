@@ -156,7 +156,12 @@ The runtime suite currently covers:
   including exact fences, role and requirement rejection, 20 concurrent
   identical requests converging on one dispatch, typed idempotency conflict,
   immutable author context, secret-safe evidence, and clean endpoint removal;
-  and
+- installed-wheel Operation Lifecycle through an independent Protocol peer,
+  including determinate progress, typed terminal results, coalesced state,
+  immutable terminal replay, requested and repeated cancellation, confirmed
+  cancellation effects, unsupported cancellation, invalid-progress
+  normalization, stale-session rejection, canonical request limits, and clean
+  endpoint removal; and
 - end-to-end Trigger Publication through the exact installed Agent RPM and
   exact Provider and Protocol wheels, including durable `accepted_new`, a lost
   acknowledgement, Agent crash and restart, immutable replay with

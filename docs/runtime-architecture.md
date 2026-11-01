@@ -13,6 +13,7 @@ stateforge_provider/
     health/              # Standard gRPC Health adaptation and bounded Watch
     manifest/            # Manifest declaration, validation, and RPC service
     operation_admission/ # Private P4 admission and dispatch runtime
+    operation_lifecycle/ # Private P5 progress, results, and cancellation
     trigger_publication/ # Private P3 stream, queue, retry, and replay runtime
 ```
 
@@ -70,7 +71,13 @@ manifest to their author methods. Its private P4 service validates canonical
 requests and active runtime fences, re-evaluates referenced requirements,
 owns the bounded idempotency registry, records admission before dispatch, and
 passes typed values plus an immutable public `OperationContext` to author code.
-It does not own later operation progress or terminal results.
+
+Operation Lifecycle shares that same admitted-operation registry rather than
+creating a second identity store. Its private P5 service owns current-state
+snapshots, bounded observers, progress-policy enforcement, typed terminal
+results, normalized failures, execution deadlines, and cooperative
+cancellation. It retains only the latest complete snapshot, so observer
+pressure is bounded and cannot delay Provider-owned business execution.
 
 To add a future procedure:
 
