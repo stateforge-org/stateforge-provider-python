@@ -28,6 +28,10 @@ inputs:
     description: Maximum time to wait for endpoint publication.
     required: false
     default: "60"
+  capability-boundaries:
+    description: Enable Capability cancellation and message-limit fixtures.
+    required: false
+    default: "false"
 
 outputs:
   unit-name:
@@ -48,6 +52,12 @@ outputs:
   event-log:
     description: Lifecycle event log inside Fedora.
     value: ${{ steps.start.outputs.event-log }}
+  state-directory:
+    description: Stable Provider installation state inside Fedora.
+    value: ${{ steps.start.outputs.state-directory }}
+  target-path:
+    description: Scenario target inspected by requirement checks.
+    value: ${{ steps.start.outputs.target-path }}
 
 runs:
   using: composite
@@ -57,6 +67,7 @@ runs:
       shell: bash
       env:
         CONTAINER_NAME: ${{ inputs.container-name }}
+        CAPABILITY_BOUNDARIES: ${{ inputs.capability-boundaries }}
         DISPLAY_NAME: ${{ inputs.display-name }}
         EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
         FIXTURE_PATH: ${{ inputs.fixture-path }}
@@ -77,6 +88,7 @@ runs:
         state_directory="/var/lib/stateforge-provider-tests/${STATE_NAME}"
         log_directory="/var/log/stateforge-provider-tests/${INSTANCE_NAME}"
         event_log="${log_directory}/events.log"
+        target_path="${state_directory}/target-state.txt"
         service_user="sf-${STATE_NAME}"
         unit_name="stateforge-test-${INSTANCE_NAME}.service"
 
@@ -84,6 +96,10 @@ runs:
           "${fixture_root}" "${state_directory}" "${log_directory}"
         docker cp "${FIXTURE_PATH}" \
           "${CONTAINER_NAME}:${fixture_root}/provider.py"
+        if ! docker exec "${CONTAINER_NAME}" test -f "${target_path}"; then
+          docker exec "${CONTAINER_NAME}" bash -c \
+            "printf '%s\\n' 'fixture-target-state' > '${target_path}'"
+        fi
         if ! docker exec "${CONTAINER_NAME}" id "${service_user}" \
           >/dev/null 2>&1; then
           docker exec "${CONTAINER_NAME}" \
@@ -108,6 +124,19 @@ runs:
           fi
         fi
 
+        capability_arguments=()
+        case "${CAPABILITY_BOUNDARIES}" in
+          true)
+            capability_arguments+=(--capability-boundaries)
+            ;;
+          false)
+            ;;
+          *)
+            echo "capability-boundaries must be true or false" >&2
+            exit 2
+            ;;
+        esac
+
         docker exec "${CONTAINER_NAME}" systemd-run \
           --unit "${unit_name}" \
           --property "User=${service_user}" \
@@ -119,7 +148,9 @@ runs:
           --display-name "${DISPLAY_NAME}" \
           --discovery-directory /run/stateforge-agent/providers \
           --state-directory "${state_directory}" \
-          --event-log "${event_log}"
+          --event-log "${event_log}" \
+          --target-path "${target_path}" \
+          "${capability_arguments[@]}"
 
         deadline=$((SECONDS + TIMEOUT_SECONDS))
         while (( SECONDS < deadline )); do
@@ -163,4 +194,6 @@ runs:
           echo "endpoint-generation=${generation}"
           echo "socket-path=${socket_path}"
           echo "event-log=${event_log}"
+          echo "state-directory=${state_directory}"
+          echo "target-path=${target_path}"
         } >> "${GITHUB_OUTPUT}"
