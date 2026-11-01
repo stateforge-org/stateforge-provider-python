@@ -136,6 +136,12 @@ The runtime suite currently covers:
   shutdown, and cleanup;
 - standard Health Check and Watch on the same Provider socket, including
   initial replay, maintenance, recovery, unknown service, and hook failure;
+- Capability Assessment through the installed Agent client and real Provider,
+  including every support state, unmet and unknown requirements, exact-scope
+  evidence reuse, request-preserving retry, stale session/generation/manifest
+  rejection, readiness loss and recovery, environment-driven reassessment,
+  cooperative cancellation, canonical request and response limits,
+  malformed-response rejection, and reassessment after Provider restart;
 - two distinct Provider installations running concurrently;
 - same-installation replacement with a stable identity and newer generation;
 - rejection of malformed Provider discovery data followed by valid recovery;
@@ -155,9 +161,34 @@ contract uses Unix-domain sockets and the Agent is packaged as a Linux service.
 Package identity and import checks remain independent and run on Linux, macOS,
 and Windows for Python 3.11, 3.12, and 3.13.
 
-Provider-level tests exercise Capability Assessment over a real Unix socket.
-There is intentionally no installed runtime P2 scenario until A3 supplies the
-real Agent client; CI does not substitute a synthetic Agent-side caller.
+R17 Capability Assessment verification installs the exact Agent RPM, Provider
+wheel, and Protocol wheel from the immutable build bundle. The Provider and
+Agent run as separate systemd-managed processes and communicate over the real
+generation-specific Unix socket. The scenario uses the installed Agent's A3
+client and session manager; it does not substitute a Provider-side probe.
+
+The fixture declares four operations through the public Provider author API.
+Together they produce `supported`, `supported_with_requirements`,
+`unsupported`, and `indeterminate` evidence. CI also removes access to a
+separate target file and proves that fresh assessment reflects the changed
+environment without changing process-wide Health. Target hashes and fixture
+events prove assessment is read-only and never dispatches an operation.
+
+Transient retry is injected at the Agent requester boundary before the second
+attempt reaches the real Provider. The retained evidence proves both attempts
+carry identical serialized requests. A narrowly isolated malformed-response
+peer verifies the installed Agent rejects invalid wire data; all successful,
+readiness, fence, environment, and restart paths continue to use the real
+Provider process.
+
+The boundary fixture also exposes one cancellable public requirement check.
+The installed Agent cancels the active RPC, the Provider observes cancellation
+without completing the check, no partial evidence enters the Agent cache, and
+the same session completes a later assessment. Message-size coverage imports
+the canonical Protocol limits: the real Provider accepts an exact-limit
+request, rejects an oversized request before author code, and rejects a valid
+assessment whose repeated findings would exceed the response limit. A normal
+assessment must still succeed after both limit failures.
 
 R4 Trigger Publication verification also uses a real Unix socket, but its peer
 is deliberately the canonical Protocol contract rather than an invented Agent

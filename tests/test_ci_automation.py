@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 8
+SCENARIO_COUNT = 9
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -22,6 +22,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
     """Keep repeated operations and scenarios independently reusable."""
     expected = {
         "agent/assert-invalid-descriptor",
+        "agent/assert-capability-assessment",
         "agent/assert-session",
         "agent/install",
         "agent/start",
@@ -35,6 +36,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "provider/start",
         "provider/stop",
         "scenarios/adversarial/invalid-peer",
+        "scenarios/capability/assessment",
         "scenarios/destructive/uninstall-reinstall",
         "scenarios/health/standard-health",
         "scenarios/lifecycle/concurrent-providers",
@@ -242,6 +244,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "uninstall-reinstall",
         "standard-health",
         "trigger-publication",
+        "capability-assessment",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -327,6 +330,52 @@ def test_health_scenario_uses_standard_wire_service_and_public_hook() -> None:
     assert 'state}" != "inactive"' in stop
     assert 'state}" != "failed"' in stop
     assert "health:" in workflow
+
+
+def test_capability_scenario_uses_exact_installed_runtime() -> None:
+    """Keep R17 on the real Agent RPM and public Provider author surface."""
+    scenario = read(
+        ACTIONS / "scenarios" / "capability" / "assessment" / "action.yml"
+    )
+    action = read(
+        ACTIONS / "agent" / "assert-capability-assessment" / "action.yml"
+    )
+    verifier = read(
+        ACTIONS / "agent" / "assert-capability-assessment" / "verify.py"
+    )
+    fixture = read(ACTIONS / "provider" / "create-fixture" / "fixture.py")
+
+    assert "./.github/actions/agent/install" in scenario
+    assert "./.github/actions/agent/start" in scenario
+    assert "./.github/actions/agent/assert-session" in scenario
+    assert "./.github/actions/agent/assert-capability-assessment" in scenario
+    assert "./.github/actions/provider/start" in scenario
+    assert "./.github/actions/provider/stop" in scenario
+    assert "/usr/bin/python3 -I" in action
+    assert "final-endpoint-generation" in action
+    assert "final-socket-path" in action
+    assert "steps.assessment.outputs.final-socket-path" in scenario
+    assert "stateforge-agent" in verifier
+    assert "stateforge-provider" in verifier
+    assert "stateforge-protocol" in verifier
+    assert "ProviderSessionManager" in verifier
+    assert "SfpCapabilityAssessmentStaleError" in verifier
+    assert "SfpCapabilityAssessmentMalformedResponseError" in verifier
+    assert "_restart_and_reassess" in verifier
+    assert "_availability_cycle" in verifier
+    assert "_environment_change" in verifier
+    assert "_cancel_assessment" in verifier
+    assert "_request_limits" in verifier
+    assert "_response_limit" in verifier
+    assert "contract.MAX_REQUEST_BYTES" in verifier
+    assert "contract.MAX_RESPONSE_BYTES" in verifier
+    assert "SfpCapabilityAssessmentLimitError" in verifier
+    assert 'capability-boundaries: "true"' in scenario
+    assert '"operation_dispatches": 0' in verifier
+    assert "stateforge.test/inspect@1" in fixture
+    assert "stateforge.test/snapshot@1" in fixture
+    assert "runtime.target.readable" in fixture
+    assert "stateforge_provider._" not in fixture
 
 
 def test_sfp_wire_contracts_are_protocol_owned() -> None:

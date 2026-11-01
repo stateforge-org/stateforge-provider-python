@@ -1,0 +1,106 @@
+name: Assert installed Agent Capability Assessment
+description: Exercise the exact Agent RPM against the exact Provider wheel.
+
+inputs:
+  container-name:
+    description: Fedora container running the installed Agent and Provider.
+    required: true
+  provider-instance-id:
+    description: Stable Provider installation identity.
+    required: true
+  descriptor-path:
+    description: Current Provider endpoint descriptor inside Fedora.
+    required: true
+  unit-name:
+    description: Transient systemd unit running the Provider fixture.
+    required: true
+  state-directory:
+    description: Provider installation state directory inside Fedora.
+    required: true
+  target-path:
+    description: Read-only target inspected by requirement checks.
+    required: true
+  event-log:
+    description: Provider author-API event log inside Fedora.
+    required: true
+  evidence-directory:
+    description: Host directory receiving Capability Assessment evidence.
+    required: true
+
+outputs:
+  final-endpoint-generation:
+    description: Endpoint generation active after restart recovery.
+    value: ${{ steps.verify.outputs.final-endpoint-generation }}
+  final-socket-path:
+    description: Generation-specific socket active after restart recovery.
+    value: ${{ steps.verify.outputs.final-socket-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Exercise the installed Capability Assessment boundary
+      id: verify
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        DESCRIPTOR_PATH: ${{ inputs.descriptor-path }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        EVENT_LOG: ${{ inputs.event-log }}
+        PROVIDER_INSTANCE_ID: ${{ inputs.provider-instance-id }}
+        STATE_DIRECTORY: ${{ inputs.state-directory }}
+        TARGET_PATH: ${{ inputs.target-path }}
+        UNIT_NAME: ${{ inputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier_root="/opt/stateforge-provider-tests/capability-assessment"
+        verifier="${verifier_root}/verify.py"
+        docker exec "${CONTAINER_NAME}" mkdir -p "${verifier_root}"
+        docker cp "${ACTION_PATH}/verify.py" \
+          "${CONTAINER_NAME}:${verifier}"
+
+        set +e
+        docker exec "${CONTAINER_NAME}" \
+          env -u PYTHONHOME -u PYTHONPATH \
+          /usr/bin/python3 -I "${verifier}" \
+            --provider-instance-id "${PROVIDER_INSTANCE_ID}" \
+            --descriptor-path "${DESCRIPTOR_PATH}" \
+            --state-directory "${STATE_DIRECTORY}" \
+            --target-path "${TARGET_PATH}" \
+            --event-log "${EVENT_LOG}" \
+            --unit-name "${UNIT_NAME}" \
+          > "${EVIDENCE_DIRECTORY}/capability-assessment.json"
+        status=$?
+        set -e
+
+        docker exec "${CONTAINER_NAME}" cat "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/provider-events.txt" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" cat \
+          "${STATE_DIRECTORY}/identity.json" \
+          > "${EVIDENCE_DIRECTORY}/provider-identity.json" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" cat "${DESCRIPTOR_PATH}" \
+          > "${EVIDENCE_DIRECTORY}/final-descriptor.json" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" stat \
+          --format='mode=%a owner=%U:%G size=%s path=%n' "${TARGET_PATH}" \
+          > "${EVIDENCE_DIRECTORY}/target-stat.txt" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" sha256sum "${TARGET_PATH}" \
+          > "${EVIDENCE_DIRECTORY}/target-sha256.txt" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" systemctl show "${UNIT_NAME}" \
+          --property=Id \
+          --property=ActiveState \
+          --property=SubState \
+          --property=ExecMainPID \
+          --property=ExecStart \
+          > "${EVIDENCE_DIRECTORY}/provider-unit.txt" 2>&1 || true
+        if (( status == 0 )); then
+          final_generation="$(docker exec "${CONTAINER_NAME}" \
+            jq -er .endpoint_generation "${DESCRIPTOR_PATH}")"
+          final_socket="$(docker exec "${CONTAINER_NAME}" \
+            jq -er .transport.socket_path "${DESCRIPTOR_PATH}")"
+          {
+            echo "final-endpoint-generation=${final_generation}"
+            echo "final-socket-path=${final_socket}"
+          } >> "${GITHUB_OUTPUT}"
+        fi
+        exit "${status}"
