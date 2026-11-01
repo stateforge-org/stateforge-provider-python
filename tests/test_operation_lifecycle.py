@@ -20,6 +20,7 @@ from google.protobuf.struct_pb2 import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
 from grpc_status import rpc_status
 from jsonschema import Draft202012Validator
+from pydantic import field_serializer
 from stateforge_protocol.sfp.bootstrap.v1 import (
     bootstrap_pb2,
     bootstrap_pb2_grpc,
@@ -110,6 +111,12 @@ class _Output(ProviderModel):
     value: int
 
 
+class _SerializationFailureOutput(_Output):
+    @field_serializer("value")
+    def serialize_value(self, _value: int) -> int:
+        raise ValueError("result serialization failed")
+
+
 class _LargeOutput(ProviderModel):
     value: str
 
@@ -185,6 +192,9 @@ class _LifecycleProvider(Provider):
         if request.mode == "invalid-result":
             await context.report_progress("Finished", percentage=100)
             return cast(_Output, ProviderModel())
+        if request.mode == "serialization-failure":
+            await context.report_progress("Finished", percentage=100)
+            return _SerializationFailureOutput(value=100)
         await self.release.wait()
         await context.report_progress("Finished", percentage=100)
         return _Output(value=100)
@@ -623,6 +633,7 @@ async def test_unsupported_cancellation_does_not_signal_execution(
         ("oversized-progress", "stateforge.operation.invalid_progress"),
         ("no-100", "stateforge.operation.invalid_progress"),
         ("invalid-result", "stateforge.operation.invalid_result"),
+        ("serialization-failure", "stateforge.operation.invalid_result"),
         ("failure", "example.lifecycle.failed"),
     ],
 )

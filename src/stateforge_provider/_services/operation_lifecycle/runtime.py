@@ -15,6 +15,7 @@ from google.protobuf.struct_pb2 import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
 from jsonschema import Draft202012Validator
 from pydantic import JsonValue
+from pydantic_core import PydanticSerializationError
 from stateforge_protocol.sfp.operation_admission.v1 import (
     operation_admission_pb2,
 )
@@ -360,11 +361,11 @@ class OperationLifecycleRecord:
         if not isinstance(result, self._result_model):
             self._commit_invalid_result()
             return
-        serialized = result.model_dump(mode="json")
-        if not self._result_validator.is_valid(serialized):
-            self._commit_invalid_result()
-            return
         try:
+            serialized = result.model_dump(mode="json")
+            if not self._result_validator.is_valid(serialized):
+                self._commit_invalid_result()
+                return
             result_message = ParseDict(serialized, Struct())
             candidate = self._state_snapshot(
                 operation_lifecycle_pb2.OPERATION_STATE_SUCCEEDED
@@ -374,6 +375,7 @@ class OperationLifecycleRecord:
         except (
             TypeError,
             ValueError,
+            PydanticSerializationError,
             validation.OperationLifecycleValidationError,
         ):
             self._commit_invalid_result()
