@@ -292,6 +292,13 @@ def test_trigger_publication_keeps_the_focused_protocol_peer() -> None:
     assert '"${ISOLATED_PYTHON}" -I' in scenario
     assert "${{ inputs.runtime-directory }}/venv" in scenario
     assert "${{ inputs.runtime-directory }}/p" in scenario
+    assert (
+        'evidence_directory="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"'
+        in scenario
+    )
+    assert (
+        '--output "${evidence_directory}/trigger-publication.json"' in scenario
+    )
     assert "${{ runner.temp }}/sfp-r4" in workflow
     assert "stateforge_protocol" in verifier
     assert "stateforge_agent" not in verifier
@@ -331,6 +338,13 @@ def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
     assert "./.github/actions/environment/install" in scenario
     assert "./.github/actions/agent/" not in scenario
     assert '"${ISOLATED_PYTHON}" -I' in scenario
+    assert (
+        'evidence_directory="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"'
+        in scenario
+    )
+    assert (
+        '--output "${evidence_directory}/operation-admission.json"' in scenario
+    )
     assert "stateforge_protocol" in verifier
     assert "stateforge_agent" not in verifier
     assert "@operation(" in verifier
