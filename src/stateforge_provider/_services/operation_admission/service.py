@@ -101,6 +101,7 @@ class OperationAdmissionService(
             )
 
         invocation = request.invocation
+        session = await self._validate_fences(request, context)
         operation = self._operations.get(invocation.operation_identifier)
         if operation is None:
             await self._reject(
@@ -112,7 +113,6 @@ class OperationAdmissionService(
                     operation_id,
                 ),
             )
-        session = await self._validate_fences(request, context)
         try:
             self._validate_contract(invocation, operation)
             payload = self._validate_payload(invocation, operation)

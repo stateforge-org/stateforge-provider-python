@@ -423,6 +423,33 @@ async def test_changed_content_conflicts_with_structured_safe_error(
         provider.release.set()
 
 
+@pytest.mark.asyncio
+async def test_stale_session_is_rejected_before_declaration_lookup(
+    endpoint_directory: Path,
+) -> None:
+    provider = _AdmissionProvider(endpoint_directory)
+    async with _running(provider) as (
+        admission,
+        bootstrap,
+        manifest,
+        descriptor,
+    ):
+        handshake, snapshot = await _session(bootstrap, manifest, descriptor)
+        request = _request(
+            handshake,
+            snapshot,
+            operation_identifier="example.admission/missing@1",
+        )
+        request.session_binding.expected_session_id = "stale-session"
+
+        with pytest.raises(grpc.aio.AioRpcError) as captured:
+            await admission.StartOperation(request, timeout=2)
+
+        assert captured.value.code() is grpc.StatusCode.FAILED_PRECONDITION
+        assert _detail(captured.value).reason == _PRECONDITION_FAILED
+        assert provider.calls == 0
+
+
 @pytest.mark.parametrize(
     ("change", "expected_code", "expected_reason"),
     [
