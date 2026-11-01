@@ -41,6 +41,9 @@ from stateforge_provider._services.operation_admission.runtime import (
 from stateforge_provider._services.operation_admission.service import (
     registration as operation_admission_registration,
 )
+from stateforge_provider._services.operation_lifecycle.service import (
+    registration as operation_lifecycle_registration,
+)
 from stateforge_provider._services.trigger_publication.runtime import (
     TriggerPublicationRuntime,
 )
@@ -233,6 +236,9 @@ class Provider:
             maximum_dispatches=(
                 self._configuration.limits.max_operation_dispatches
             ),
+            maximum_observers_per_operation=(
+                self._configuration.limits.max_operation_observers_per_operation
+            ),
             record_retention_seconds=(
                 self._configuration.operation_record_retention_seconds
             ),
@@ -295,6 +301,14 @@ class Provider:
                     requirements=bound_requirements,
                     operations=bound_operations,
                     runtime=operation_runtime,
+                ),
+                operation_lifecycle_registration(
+                    endpoint=identity,
+                    sessions=sessions,
+                    runtime=operation_runtime,
+                    delivery_timeout_seconds=(
+                        self._configuration.operation_observer_delivery_timeout_seconds
+                    ),
                 ),
                 trigger_publication_registration(
                     endpoint=identity,

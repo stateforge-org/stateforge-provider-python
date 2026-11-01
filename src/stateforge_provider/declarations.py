@@ -8,6 +8,8 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ConfigDict
 
+from stateforge_provider.operations import OperationProgressPolicy
+
 
 class ProviderModel(BaseModel):
     """Describe an object input, result, configuration, or trigger payload.
@@ -54,6 +56,8 @@ class _Operation:
     identifier: str
     implements: tuple[str, ...]
     requires: tuple[str, ...]
+    cancellable: bool
+    progress: OperationProgressPolicy | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,6 +108,8 @@ def operation(
     *,
     implements: tuple[str, ...] = (),
     requires: tuple[str, ...] = (),
+    cancellable: bool = False,
+    progress: OperationProgressPolicy | None = None,
 ) -> Callable[[_Handler], _Handler]:
     """Declare an async method's versioned input/result contract.
 
@@ -117,17 +123,32 @@ def operation(
     ``requires`` contains stable IDs declared by :func:`requirement_check`.
     The runtime evaluates each distinct check once per assessment or admission
     attempt.
+    ``cancellable`` opts into cooperative operation-scoped cancellation.
+    ``progress`` optionally adds author-selected consistency requirements;
+    omitting it preserves the flexible SFP progress contract.
     Inherited methods follow Python's MRO; overriding requires redeclaration.
     """
 
     def decorate(handler: _Handler) -> _Handler:
         if hasattr(handler, "__stateforge_operation__"):
             raise ValueError("An operation method cannot be declared twice")
+        if not isinstance(cancellable, bool):
+            raise TypeError("cancellable must be a boolean")
+        if progress is not None and not isinstance(
+            progress, OperationProgressPolicy
+        ):
+            raise TypeError("progress must be OperationProgressPolicy")
         # Attach metadata while retaining the original callable's static type.
         setattr(  # noqa: B010
             handler,
             "__stateforge_operation__",
-            _Operation(identifier, implements, requires),
+            _Operation(
+                identifier,
+                implements,
+                requires,
+                cancellable,
+                progress,
+            ),
         )
         return handler
 

@@ -7,6 +7,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
+from stateforge_protocol.sfp.operation_lifecycle.v1 import (
+    contract as lifecycle_contract,
+)
 from stateforge_protocol.sfp.trigger_publication.v1 import (
     contract as trigger_contract,
 )
@@ -25,6 +28,9 @@ class ProviderRuntimeLimits:
     max_trigger_in_flight_publications: int = 128
     max_operation_admission_records: int = 1_024
     max_operation_dispatches: int = 128
+    max_operation_observers_per_operation: int = (
+        lifecycle_contract.MAX_OBSERVERS_PER_OPERATION
+    )
 
     def __post_init__(self) -> None:
         """Reject unusable operational limits."""
@@ -38,6 +44,7 @@ class ProviderRuntimeLimits:
             "max_trigger_in_flight_publications",
             "max_operation_admission_records",
             "max_operation_dispatches",
+            "max_operation_observers_per_operation",
         ):
             value = getattr(self, name)
             if (
@@ -62,6 +69,14 @@ class ProviderRuntimeLimits:
                 "max_trigger_in_flight_publications must not exceed the "
                 "Trigger Publication contract"
             )
+        if (
+            self.max_operation_observers_per_operation
+            > lifecycle_contract.MAX_OBSERVERS_PER_OPERATION
+        ):
+            raise ValueError(
+                "max_operation_observers_per_operation must not exceed the "
+                "Operation Lifecycle contract"
+            )
 
 
 DEFAULT_RUNTIME_LIMITS = ProviderRuntimeLimits()
@@ -79,6 +94,7 @@ class ProviderRuntimeConfiguration:
     trigger_retry_max_seconds: float = 30.0
     operation_record_retention_seconds: float = 86_400.0
     operation_tombstone_retention_seconds: float = 86_400.0
+    operation_observer_delivery_timeout_seconds: float = 5.0
     limits: ProviderRuntimeLimits = field(
         default_factory=ProviderRuntimeLimits
     )
@@ -118,6 +134,7 @@ class ProviderRuntimeConfiguration:
             "trigger_retry_max_seconds",
             "operation_record_retention_seconds",
             "operation_tombstone_retention_seconds",
+            "operation_observer_delivery_timeout_seconds",
         ):
             timeout = getattr(self, name)
             if (
@@ -131,6 +148,14 @@ class ProviderRuntimeConfiguration:
             raise ValueError(
                 "trigger_retry_base_seconds must not exceed "
                 "trigger_retry_max_seconds"
+            )
+        if (
+            self.operation_observer_delivery_timeout_seconds
+            > lifecycle_contract.MAX_STALLED_DELIVERY_SECONDS
+        ):
+            raise ValueError(
+                "operation_observer_delivery_timeout_seconds must not exceed "
+                "the Operation Lifecycle contract"
             )
         if not isinstance(self.limits, ProviderRuntimeLimits):
             raise ValueError("limits must be ProviderRuntimeLimits")

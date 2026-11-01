@@ -11,7 +11,17 @@ from stateforge_provider.declarations import (
     requirement_check,
 )
 from stateforge_provider.health import HealthStatus
-from stateforge_provider.operations import OperationContext
+from stateforge_provider.operations import (
+    OperationCancelledError,
+    OperationCleanup,
+    OperationContext,
+    OperationEffects,
+    OperationFailedError,
+    OperationProgressError,
+    OperationProgressPolicy,
+    OperationSideEffects,
+    ProgressPercentageMode,
+)
 from stateforge_provider.provider import Provider
 from stateforge_provider.requirements import (
     RequirementCheckOutcome,
@@ -34,8 +44,16 @@ from stateforge_provider.version import ProtocolVersion
 __all__ = [
     "HealthStatus",
     "ManifestError",
+    "OperationCancelledError",
+    "OperationCleanup",
     "OperationContext",
+    "OperationEffects",
+    "OperationFailedError",
+    "OperationProgressError",
+    "OperationProgressPolicy",
+    "OperationSideEffects",
     "Platform",
+    "ProgressPercentageMode",
     "ProtocolVersion",
     "Provider",
     "ProviderModel",

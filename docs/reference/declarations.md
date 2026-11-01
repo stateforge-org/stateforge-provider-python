@@ -17,4 +17,7 @@ Operation methods are asynchronous instance methods with either
 `(self, request)` or `(self, request, context)`. The request and return
 annotations must be `ProviderModel` subclasses. The optional third parameter
 must be annotated as the public `OperationContext`; it exposes only the
-operation ID, execution deadline, and recursively immutable execution context.
+operation ID, execution deadline, recursively immutable execution context,
+explicit progress reporting, and cooperative cancellation state. Setting
+`cancellable=True` or `progress=OperationProgressPolicy(...)` requires that
+context parameter. Both decorator options are optional.

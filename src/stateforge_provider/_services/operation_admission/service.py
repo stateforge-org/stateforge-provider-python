@@ -6,7 +6,6 @@ import logging
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
 from typing import NoReturn, cast
-from uuid import UUID
 
 import grpc
 from google.protobuf.json_format import MessageToDict
@@ -43,6 +42,7 @@ from stateforge_provider._services.operation_admission.runtime import (
     AdmissionRegistryFailure,
     OperationAdmissionRuntime,
 )
+from stateforge_provider.declarations import ProviderModel
 from stateforge_provider.operations import OperationContext
 from stateforge_provider.requirements import RequirementCheckOutcome
 from stateforge_provider.version import ProtocolVersion
@@ -221,11 +221,23 @@ class OperationAdmissionService(
             )
 
         dispatch = self._dispatch(operation, invocation, payload)
+        execution_context = cast(
+            dict[str, JsonValue],
+            MessageToDict(invocation.execution_context),
+        )
         try:
             decision = self._runtime.admit(
                 operation_id=operation_id,
                 fingerprint=fingerprint,
                 endpoint_generation=self._endpoint.endpoint_generation,
+                operation_identifier=invocation.operation_identifier,
+                manifest_revision=invocation.contract.manifest_revision,
+                result_model=operation.declaration.result_model,
+                result_validator=operation.result_validator,
+                cancellable=operation.declaration.cancellable,
+                progress_policy=operation.declaration.progress,
+                execution_deadline=execution_deadline,
+                execution_context=execution_context,
                 dispatch=dispatch,
             )
         except AdmissionRegistryError as error:
@@ -311,29 +323,17 @@ class OperationAdmissionService(
         operation: BoundOperation,
         invocation: operation_admission_pb2.OperationInvocation,
         payload: object,
-    ) -> Callable[[], Awaitable[None]]:
+    ) -> Callable[[OperationContext], Awaitable[ProviderModel]]:
         """Capture typed immutable inputs for post-record dispatch."""
-        operation_context = OperationContext._create(
-            operation_id=UUID(invocation.operation_id),
-            execution_deadline=invocation.execution_deadline.ToDatetime(
-                tzinfo=UTC
-            ),
-            execution_context=cast(
-                dict[str, JsonValue],
-                MessageToDict(invocation.execution_context),
-            ),
-        )
 
-        async def dispatch() -> None:
+        async def dispatch(
+            operation_context: OperationContext,
+        ) -> ProviderModel:
             if operation.declaration.accepts_context:
                 result = await operation.handler(payload, operation_context)
             else:
                 result = await operation.handler(payload)
-            if not isinstance(result, operation.declaration.result_model):
-                raise TypeError("operation returned an invalid result type")
-            serialized = result.model_dump(mode="json")
-            if not operation.result_validator.is_valid(serialized):
-                raise ValueError("operation result violates its schema")
+            return result
 
         return dispatch
 

@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 11
+SCENARIO_COUNT = 12
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -43,6 +43,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/lifecycle/concurrent-providers",
         "scenarios/lifecycle/same-instance-replacement",
         "scenarios/operation/admission",
+        "scenarios/operation/lifecycle",
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
         "scenarios/trigger/publication",
@@ -227,7 +228,7 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
         content = read(scenario)
         if "scenarios/trigger/publication" in str(
             scenario
-        ) or "scenarios/operation/admission" in str(scenario):
+        ) or "scenarios/operation/" in str(scenario):
             assert "./.github/actions/environment/install" in content
             assert "./.github/actions/agent/" not in content
             assert '"${ISOLATED_PYTHON}" -I' in content
@@ -264,6 +265,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "trigger-publication-agent",
         "capability-assessment",
         "operation-admission",
+        "operation-lifecycle",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -368,6 +370,56 @@ def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
         assert evidence_field in verifier
     assert "Operation Admission / direct Protocol peer" in workflow
     assert "${{ runner.temp }}/sfp-r5" in workflow
+
+
+def test_operation_lifecycle_keeps_the_focused_protocol_peer() -> None:
+    """Prove R6 installed behavior without simulating a future Agent."""
+    scenario = read(
+        ACTIONS / "scenarios" / "operation" / "lifecycle" / "action.yml"
+    )
+    verifier = read(
+        ACTIONS / "scenarios" / "operation" / "lifecycle" / "verify.py"
+    )
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    assert "./.github/actions/environment/install" in scenario
+    assert "./.github/actions/agent/" not in scenario
+    assert '"${ISOLATED_PYTHON}" -I' in scenario
+    assert (
+        'evidence_directory="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"'
+        in scenario
+    )
+    assert (
+        '--output "${evidence_directory}/operation-lifecycle.json"' in scenario
+    )
+    assert "stateforge_protocol" in verifier
+    assert "stateforge_agent" not in verifier
+    assert "@operation(" in verifier
+    assert "OperationProgressPolicy.determinate()" in verifier
+    assert "report_progress(" in verifier
+    assert "CancelOperation" in verifier
+    assert "WatchOperation" in verifier
+    for evidence_field in (
+        "installed_artifacts",
+        "success_sequences",
+        "success_result",
+        "terminal_progress",
+        "terminal_replay_count",
+        "cancellation_requested",
+        "cancellation_repeated",
+        "cancellation_terminal",
+        "unsupported_cancellation",
+        "invalid_progress_code",
+        "stale_fence_status",
+        "oversized_request_status",
+        "author_dispatches",
+        "final_process_state",
+        "descriptor_removed",
+        "socket_removed",
+    ):
+        assert evidence_field in verifier
+    assert "Operation Lifecycle / direct Protocol peer" in workflow
+    assert "${{ runner.temp }}/sfp-r6" in workflow
 
 
 def test_trigger_publication_uses_exact_installed_agent_runtime() -> None:
@@ -573,7 +625,7 @@ def test_package_matrix_is_separate_from_unix_runtime() -> None:
     runtime = read(WORKFLOWS / "provider-runtime-scenarios.yml")
 
     assert "windows-2022" in installed
-    assert "macos-14" in installed
+    assert "macos-15" in installed
     assert installed.count('          - "3.1') == SUPPORTED_PYTHON_COUNT
     assert "windows-" not in runtime
     assert "macos-" not in runtime
