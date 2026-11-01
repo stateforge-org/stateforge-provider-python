@@ -63,6 +63,10 @@ class LifecycleCursorAheadError(LifecycleRecordError):
     """Reject a cursor newer than retained operation state."""
 
 
+class _ExecutionDeadlineExceededError(RuntimeError):
+    """Identify expiry of the runtime-owned operation deadline."""
+
+
 @dataclass(eq=False, slots=True)
 class LifecycleObserver:
     """Retain one bounded current-state notification slot."""
@@ -226,15 +230,11 @@ class OperationLifecycleRecord:
             cancellation=self._cancellation,
         )
         try:
-            remaining = (
-                execution_deadline - datetime.now(UTC)
-            ).total_seconds()
-            if remaining <= 0:
-                raise TimeoutError
-            async with asyncio.timeout(remaining):
-                result = await dispatch(context)
-            if datetime.now(UTC) >= execution_deadline:
-                raise TimeoutError
+            result = await _dispatch_before_deadline(
+                execution_deadline=execution_deadline,
+                context=context,
+                dispatch=dispatch,
+            )
             self._validate_completion_policy()
             self._commit_success(result)
         except OperationCancelledError as cancelled:
@@ -256,7 +256,7 @@ class OperationLifecycleRecord:
                 "Operation progress violated its declared policy.",
                 _unknown_effects(),
             )
-        except TimeoutError:
+        except _ExecutionDeadlineExceededError:
             self._commit_failure(
                 "stateforge.operation.execution_deadline_exceeded",
                 "Operation execution exceeded its deadline.",
@@ -468,6 +468,29 @@ def _timestamp(value: datetime) -> Timestamp:
     timestamp = Timestamp()
     timestamp.FromDatetime(value)
     return timestamp
+
+
+async def _dispatch_before_deadline(
+    *,
+    execution_deadline: datetime,
+    context: OperationContext,
+    dispatch: _Dispatch,
+) -> ProviderModel:
+    """Run author behavior under only the runtime-owned deadline."""
+    remaining = (execution_deadline - datetime.now(UTC)).total_seconds()
+    if remaining <= 0:
+        raise _ExecutionDeadlineExceededError
+    deadline = asyncio.timeout(remaining)
+    try:
+        async with deadline:
+            result = await dispatch(context)
+    except TimeoutError:
+        if deadline.expired():
+            raise _ExecutionDeadlineExceededError from None
+        raise
+    if datetime.now(UTC) >= execution_deadline:
+        raise _ExecutionDeadlineExceededError
+    return result
 
 
 def _unknown_effects() -> OperationEffects:

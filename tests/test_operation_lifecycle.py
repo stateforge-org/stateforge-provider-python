@@ -1147,3 +1147,22 @@ async def test_execution_deadline_produces_sanitized_failure() -> None:
     assert terminal.failure.code == (
         "stateforge.operation.execution_deadline_exceeded"
     )
+
+
+@pytest.mark.asyncio
+async def test_author_timeout_is_not_reported_as_execution_deadline() -> None:
+    record = _runtime_record(cancellable=False)
+
+    async def dispatch(_context: OperationContext) -> ProviderModel:
+        raise TimeoutError("an operation dependency timed out")
+
+    operation_id = record.snapshot().admission_record.operation_id
+    await record.execute(
+        operation_id=operation_id,
+        execution_deadline=datetime.now(UTC) + timedelta(minutes=1),
+        execution_context={},
+        dispatch=dispatch,
+    )
+    terminal = record.snapshot()
+    assert terminal.state == operation_lifecycle_pb2.OPERATION_STATE_FAILED
+    assert terminal.failure.code == "stateforge.operation.provider_error"
