@@ -326,7 +326,12 @@ class OperationLifecycleRecord:
         candidate.progress.message = message
         if percentage is not None:
             candidate.progress.percentage = percentage
-        self._commit(candidate)
+        try:
+            self._commit(candidate)
+        except validation.OperationLifecycleValidationError as error:
+            raise OperationProgressError(
+                "progress violates the Operation Lifecycle contract"
+            ) from error
         if percentage is not None:
             self._last_percentage = percentage
 

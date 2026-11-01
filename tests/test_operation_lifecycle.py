@@ -147,6 +147,11 @@ class _LifecycleProvider(Provider):
         if request.mode == "invalid-progress":
             await context.report_progress("Half", percentage=50)
             await context.report_progress("Backwards", percentage=40)
+        if request.mode == "oversized-progress":
+            await context.report_progress(
+                "x" * (lifecycle_contract.MAX_EXPLANATION_CODE_POINTS + 1),
+                percentage=0,
+            )
         if request.mode == "no-100":
             await context.report_progress("Nearly done", percentage=90)
             return _Output(value=90)
@@ -615,6 +620,7 @@ async def test_unsupported_cancellation_does_not_signal_execution(
     ("mode", "code"),
     [
         ("invalid-progress", "stateforge.operation.invalid_progress"),
+        ("oversized-progress", "stateforge.operation.invalid_progress"),
         ("no-100", "stateforge.operation.invalid_progress"),
         ("invalid-result", "stateforge.operation.invalid_result"),
         ("failure", "example.lifecycle.failed"),
