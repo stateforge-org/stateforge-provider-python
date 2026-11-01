@@ -10,10 +10,19 @@ inputs:
     required: false
     default: "60"
 
+outputs:
+  service-state:
+    description: Final systemd active state.
+    value: ${{ steps.start.outputs.service-state }}
+  service-invocation-id:
+    description: systemd invocation that reached readiness.
+    value: ${{ steps.start.outputs.service-invocation-id }}
+
 runs:
   using: composite
   steps:
     - name: Start Agent service
+      id: start
       shell: bash
       env:
         CONTAINER_NAME: ${{ inputs.container-name }}
@@ -27,9 +36,18 @@ runs:
         while (( SECONDS < deadline )); do
           state="$(docker exec "${CONTAINER_NAME}" \
             systemctl is-active stateforge-agent.service 2>/dev/null || true)"
-          if [[ "${state}" == "active" ]] && docker exec \
+          invocation_id="$(docker exec "${CONTAINER_NAME}" \
+            systemctl show stateforge-agent.service \
+              --property InvocationID --value 2>/dev/null || true)"
+          if [[ "${state}" == "active" \
+            && "${invocation_id}" =~ ^[0-9a-f]{32}$ ]] && docker exec \
             "${CONTAINER_NAME}" journalctl -u stateforge-agent.service \
+              "_SYSTEMD_INVOCATION_ID=${invocation_id}" \
               --no-pager -o cat | grep -Fq 'StateForge Agent started'; then
+            {
+              echo "service-state=${state}"
+              echo "service-invocation-id=${invocation_id}"
+            } >> "${GITHUB_OUTPUT}"
             exit 0
           fi
           if [[ "${state}" == "failed" || "${state}" == "inactive" ]]; then

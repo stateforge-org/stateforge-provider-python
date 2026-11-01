@@ -1,0 +1,66 @@
+name: Assert durable Agent trigger acceptance
+description: Validate Provider publications in the installed Agent journal.
+
+inputs:
+  container-name:
+    description: Fedora container running the installed Agent.
+    required: true
+  provider-instance-id:
+    description: Provider identity whose durable publications are expected.
+    required: true
+  expected-triggers:
+    description: Space-separated trigger identifiers expected in the journal.
+    required: true
+  evidence-name:
+    description: Safe basename for the resulting JSON evidence.
+    required: true
+  evidence-directory:
+    description: Host directory receiving validated journal evidence.
+    required: true
+  timeout-seconds:
+    description: Maximum time to wait for the exact publication set.
+    required: false
+    default: "60"
+
+runs:
+  using: composite
+  steps:
+    - name: Assert durable trigger publications
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ inputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+        EVIDENCE_NAME: ${{ inputs.evidence-name }}
+        EXPECTED_TRIGGERS: ${{ inputs.expected-triggers }}
+        PROVIDER_INSTANCE_ID: ${{ inputs.provider-instance-id }}
+        TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+      run: |
+        set -euo pipefail
+        if [[ ! "${EVIDENCE_NAME}" =~ ^[a-z][a-z0-9-]{0,40}$ \
+          || ! "${TIMEOUT_SECONDS}" =~ ^[1-9][0-9]*$ ]]; then
+          echo "Trigger assertion inputs are invalid" >&2
+          exit 2
+        fi
+        read -r -a expected_triggers <<< "${EXPECTED_TRIGGERS}"
+        if (( ${#expected_triggers[@]} == 0 )); then
+          echo "At least one expected trigger is required" >&2
+          exit 2
+        fi
+
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier_directory=/opt/stateforge-provider-tests/trigger-publication
+        verifier="${verifier_directory}/assert.py"
+        docker exec "${CONTAINER_NAME}" mkdir -p "${verifier_directory}"
+        docker cp "${ACTION_PATH}/assert.py" "${CONTAINER_NAME}:${verifier}"
+
+        arguments=()
+        for identifier in "${expected_triggers[@]}"; do
+          arguments+=(--expected-trigger "${identifier}")
+        done
+        docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \
+          --database /var/lib/stateforge-agent/journal/agent.db \
+          --provider-instance-id "${PROVIDER_INSTANCE_ID}" \
+          --timeout-seconds "${TIMEOUT_SECONDS}" \
+          "${arguments[@]}" \
+          > "${EVIDENCE_DIRECTORY}/${EVIDENCE_NAME}.json"

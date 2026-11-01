@@ -145,15 +145,27 @@ The runtime suite currently covers:
 - two distinct Provider installations running concurrently;
 - same-installation replacement with a stable identity and newer generation;
 - rejection of malformed Provider discovery data followed by valid recovery;
-- abrupt process failure followed by a valid newer generation; and
-- uninstall and reinstall of the exact Provider wheel; and
+- abrupt process failure followed by a valid newer generation;
+- uninstall and reinstall of the exact Provider wheel;
 - installed-wheel Trigger Publication through an independent Protocol peer,
   including callback and decorated sources, a bounded receive window,
   retryable rejection with immutable replay, accepted duplicate disposition,
-  stream loss, and replay under a fresh fenced session.
+  terminal rejection, stale-fence rejection, stream loss, and replay under a
+  fresh fenced session; and
+- end-to-end Trigger Publication through the exact installed Agent RPM and
+  exact Provider and Protocol wheels, including durable `accepted_new`, a lost
+  acknowledgement, Agent crash and restart, immutable replay with
+  `accepted_duplicate`, callback publication, retry across journal write
+failure with an explicitly correlated retryable rejection,
+conflicting-content rejection, a newer Provider endpoint generation,
+rejection of publication from the superseded session, and clean shutdown.
 
-The fixtures import only the public `stateforge_provider` API. Each runtime
-scenario installs the exact Agent RPM into an isolated Fedora system, starts
+Runtime fixtures exercise Provider behavior through the public
+`stateforge_provider` API. The R18 fixture uses narrowly scoped private hooks
+only to discard one acknowledgement and assign one deterministic publication
+ID for fault injection; its publications still originate from the public
+decorator and callback APIs. Each runtime scenario installs the exact Agent
+RPM into an isolated Fedora system, starts
 the packaged `stateforge-agent.service`, installs the exact Provider and
 Protocol wheels beside it, and observes acceptance or rejection through the
 real Agent journal. Runtime scenarios run on Linux because the current endpoint
@@ -190,14 +202,29 @@ request, rejects an oversized request before author code, and rejects a valid
 assessment whose repeated findings would exceed the response limit. A normal
 assessment must still succeed after both limit failures.
 
-R4 Trigger Publication verification also uses a real Unix socket, but its peer
-is deliberately the canonical Protocol contract rather than an invented Agent
-runtime. The current Agent does not implement the P3 consumer yet. A4 owns that
-implementation. After A4 lands, the real Agent exchange can be added to the
-Provider runtime matrix without replacing this direct Provider contract test.
-Until then, the direct peer proves the installed Provider wheel's exact P3
-framing, flow control, retry, and replay semantics without pretending that
-Agent support already exists.
+R18 Trigger Publication verification keeps two intentionally different
+boundaries. The focused Protocol peer injects exact wire decisions and checks
+Provider-owned retry, flow control, terminal rejection, stale fencing, and
+shutdown without replacing any Agent behavior. The installed-runtime scenario
+runs the packaged Agent and Provider as separate systemd-managed processes over
+the real generation-specific Unix socket. It validates the Agent's durable
+journal with canonical Protocol parsing and content fingerprints.
+
+The installed scenario deliberately loses the first terminal acknowledgement
+after the Agent has committed the publication, crashes and restarts the Agent,
+and proves the Provider replays the same publication identity and content. The
+Agent returns `accepted_duplicate`, after which callback publication continues.
+The same scenario makes the Agent journal temporarily unwritable and proves the
+Provider retains and retries the publication until responsibility can be
+accepted. Finally, the Provider is restarted with the same installation
+identity and publication ID but different content; the Agent returns the
+terminal idempotency-conflict decision without creating another durable row.
+The focused peer also fixes the receive window at one, queues two publications,
+and proves the second remains blocked until the first terminal acknowledgement
+releases capacity. The installed Agent scenario keeps the first Provider alive
+while accepting a newer endpoint generation, then proves a publication queued
+by the superseded Provider is never acknowledged or added to durable Agent
+state.
 
 ## Evidence and security
 

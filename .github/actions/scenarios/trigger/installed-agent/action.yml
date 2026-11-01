@@ -1,0 +1,553 @@
+name: Verify Trigger Publication with the installed Agent
+description: Exercise the exact Provider wheel against the exact Agent RPM.
+
+inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
+    required: true
+  provider-artifact-directory:
+    description: Directory containing the exact Provider build.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol build.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact runtime artifacts
+      id: system
+      uses: ./.github/actions/agent/install
+      with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-test-image-directory: ${{ inputs.agent-test-image-directory }}
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent
+      id: agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Stage Trigger Publication fixture
+      id: fixture
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}
+      run: |
+        set -euo pipefail
+        root="${RUNTIME_DIRECTORY}/trigger-provider"
+        mkdir -p "${root}"
+        install -m 0644 "${ACTION_PATH}/fixture.py" "${root}/provider.py"
+        {
+          echo "fixture-path=${root}/provider.py"
+          echo "instance-name=trigger-provider"
+          echo "state-name=trigger-provider"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Start real Provider and lose its first acknowledgement
+      id: provider
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
+        identity: stateforge.test.trigger
+        trigger-publication: "true"
+        drop-trigger-acks-until-marker: "true"
+        first-trigger-publication-id: 22222222-2222-4222-8222-222222222222
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Assert Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
+
+    - name: Assert durable accepted-new publication
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: stateforge.test/runtime.started@1
+        evidence-name: before-agent-restart
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Confirm durable commit preceded the lost acknowledgement
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+      run: |
+        set -euo pipefail
+        publication_id=22222222-2222-4222-8222-222222222222
+        expected="trigger-ack-dropped:${publication_id}:accepted_new"
+        deadline=$((SECONDS + 60))
+        while (( SECONDS < deadline )); do
+          if docker exec "${CONTAINER_NAME}" grep -Fxq "${expected}" "${EVENT_LOG}"; then
+            break
+          fi
+          sleep 1
+        done
+        docker exec "${CONTAINER_NAME}" grep -Fx "${expected}" "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/lost-acknowledgement.txt"
+        jq -e --arg publication_id "${publication_id}" \
+          '.publication_count == 1
+           and .publications[0].publication_id == $publication_id' \
+          "${EVIDENCE_DIRECTORY}/before-agent-restart.json" >/dev/null
+
+    - name: Crash the installed Agent after durable acceptance
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+      run: |
+        set -euo pipefail
+        docker exec "${CONTAINER_NAME}" \
+          systemctl kill --kill-whom=main --signal=SIGKILL \
+            stateforge-agent.service
+        docker exec "${CONTAINER_NAME}" systemctl stop stateforge-agent.service
+
+    - name: Permit the replay acknowledgement
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        STATE_DIRECTORY: ${{ steps.provider.outputs.state-directory }}
+      run: |
+        set -euo pipefail
+        docker exec "${CONTAINER_NAME}" touch \
+          "${STATE_DIRECTORY}/accept-trigger-acks"
+
+    - name: Restart the exact installed Agent
+      id: agent-restart
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Confirm immutable replay received accepted-duplicate
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+      run: |
+        set -euo pipefail
+        publication_id=22222222-2222-4222-8222-222222222222
+        expected="trigger-ack-observed:${publication_id}:accepted_duplicate"
+        deadline=$((SECONDS + 60))
+        while (( SECONDS < deadline )); do
+          if docker exec "${CONTAINER_NAME}" grep -Fxq "${expected}" "${EVENT_LOG}"; then
+            break
+          fi
+          sleep 1
+        done
+        docker exec "${CONTAINER_NAME}" grep -Fx "${expected}" "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/replay-outcome.txt"
+
+    - name: Assert restart retained one immutable publication
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: stateforge.test/runtime.started@1
+        evidence-name: after-agent-restart
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Compare durable evidence across replay
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+      run: |
+        set -euo pipefail
+        jq -e --slurp \
+          '.[0].publication_count == 1
+           and .[1].publication_count == 1
+           and .[0].publications[0].publication_id
+             == .[1].publications[0].publication_id
+           and .[0].publications[0].content_fingerprint
+             == .[1].publications[0].content_fingerprint' \
+          "${EVIDENCE_DIRECTORY}/before-agent-restart.json" \
+          "${EVIDENCE_DIRECTORY}/after-agent-restart.json" >/dev/null
+
+    - name: Publish through the callback API
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        docker exec "${CONTAINER_NAME}" \
+          systemctl kill --kill-whom=main --signal=SIGALRM "${UNIT_NAME}"
+
+    - name: Assert callback accepted-new
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: >-
+          stateforge.test/runtime.started@1
+          stateforge.test/runtime.refreshed@1
+        evidence-name: after-callback
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Deny Agent journal writes and publish again
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        journal_directory=/var/lib/stateforge-agent/journal
+        database="${journal_directory}/agent.db"
+        docker exec "${CONTAINER_NAME}" stat --format='%A %a %U:%G %n' \
+          "${journal_directory}" "${database}" \
+          > "${EVIDENCE_DIRECTORY}/journal-permissions-before.txt"
+        docker exec "${CONTAINER_NAME}" bash -lc \
+          "chmod u-w '${journal_directory}' '${database}'*"
+        docker exec "${CONTAINER_NAME}" \
+          systemctl kill --kill-whom=main --signal=SIGALRM "${UNIT_NAME}"
+        sleep 3
+
+    - name: Assert retryable storage rejection assumed no responsibility
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: >-
+          stateforge.test/runtime.started@1
+          stateforge.test/runtime.refreshed@1
+        evidence-name: during-storage-failure
+        timeout-seconds: "5"
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Correlate the retryable storage rejection
+      id: storage-rejection
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+      run: |
+        set -euo pipefail
+        pattern='^trigger-ack-observed:[0-9a-f-]+:rejected:delivery_responsibility_unavailable:true$'
+        deadline=$((SECONDS + 60))
+        line=""
+        while (( SECONDS < deadline )); do
+          line="$(docker exec "${CONTAINER_NAME}" \
+            grep -E "${pattern}" "${EVENT_LOG}" | tail -n 1 || true)"
+          [[ -n "${line}" ]] && break
+          sleep 1
+        done
+        if [[ -z "${line}" ]]; then
+          echo "Provider did not observe the retryable storage rejection" >&2
+          exit 1
+        fi
+        publication_id="$(cut -d: -f2 <<< "${line}")"
+        if [[ ! "${publication_id}" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]]; then
+          echo "Retryable rejection has an invalid publication identity" >&2
+          exit 1
+        fi
+        printf '%s\n' "${line}" \
+          > "${EVIDENCE_DIRECTORY}/retryable-storage-rejection.txt"
+        echo "publication-id=${publication_id}" >> "${GITHUB_OUTPUT}"
+
+    - name: Restore Agent journal writes
+      if: ${{ always() }}
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+      run: |
+        set -euo pipefail
+        journal_directory=/var/lib/stateforge-agent/journal
+        database="${journal_directory}/agent.db"
+        if docker inspect "${CONTAINER_NAME}" >/dev/null 2>&1; then
+          docker exec "${CONTAINER_NAME}" bash -lc \
+            "chmod u+w '${journal_directory}' '${database}'*"
+          docker exec "${CONTAINER_NAME}" stat --format='%A %a %U:%G %n' \
+            "${journal_directory}" "${database}" \
+            > "${EVIDENCE_DIRECTORY}/journal-permissions-after.txt"
+        fi
+
+    - name: Assert queued publication succeeds after storage recovery
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: >-
+          stateforge.test/runtime.started@1
+          stateforge.test/runtime.refreshed@1
+          stateforge.test/runtime.refreshed@1
+        evidence-name: after-storage-recovery
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Confirm the same rejected publication was accepted
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+        PUBLICATION_ID: ${{ steps.storage-rejection.outputs.publication-id }}
+      run: |
+        set -euo pipefail
+        acknowledgement="trigger-ack-observed:${PUBLICATION_ID}:accepted_new"
+        outcome="trigger-outcome:${PUBLICATION_ID}:accepted_new"
+        deadline=$((SECONDS + 60))
+        while (( SECONDS < deadline )); do
+          if docker exec "${CONTAINER_NAME}" \
+            grep -Fxq "${acknowledgement}" "${EVENT_LOG}" \
+            && docker exec "${CONTAINER_NAME}" \
+              grep -Fxq "${outcome}" "${EVENT_LOG}"; then
+            break
+          fi
+          sleep 1
+        done
+        docker exec "${CONTAINER_NAME}" \
+          grep -Fx "${acknowledgement}" "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/storage-recovery-acknowledgement.txt"
+        docker exec "${CONTAINER_NAME}" grep -Fx "${outcome}" "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/storage-recovery-outcome.txt"
+        jq -e --arg publication_id "${PUBLICATION_ID}" \
+          'any(.publications[]; .publication_id == $publication_id
+            and .trigger_identifier == "stateforge.test/runtime.refreshed@1")' \
+          "${EVIDENCE_DIRECTORY}/after-storage-recovery.json" >/dev/null
+
+    - name: Supersede the live Provider with a newer generation
+      id: conflict
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: trigger-conflict
+        state-name: ${{ steps.fixture.outputs.state-name }}
+        identity: stateforge.test.trigger
+        trigger-publication: "true"
+        first-trigger-publication-id: 22222222-2222-4222-8222-222222222222
+        trigger-startup-sequence: "99"
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-conflict
+
+    - name: Assert replacement session uses a newer endpoint fence
+      shell: bash
+      env:
+        INITIAL_GENERATION: ${{ steps.provider.outputs.endpoint-generation }}
+        REPLACEMENT_GENERATION: ${{ steps.conflict.outputs.endpoint-generation }}
+      run: |
+        set -euo pipefail
+        if (( REPLACEMENT_GENERATION <= INITIAL_GENERATION )); then
+          echo "Replacement Provider did not advance its endpoint fence" >&2
+          exit 1
+        fi
+
+    - name: Assert Agent-accepted replacement session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.conflict.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.conflict.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent-conflict
+
+    - name: Preserve invocation identities and endpoint fences
+      shell: bash
+      env:
+        AGENT_INITIAL_INVOCATION: ${{ steps.agent.outputs.service-invocation-id }}
+        AGENT_RESTART_INVOCATION: ${{ steps.agent-restart.outputs.service-invocation-id }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        PROVIDER_INITIAL_GENERATION: ${{ steps.provider.outputs.endpoint-generation }}
+        PROVIDER_INITIAL_INVOCATION: ${{ steps.provider.outputs.service-invocation-id }}
+        PROVIDER_REPLACEMENT_GENERATION: ${{ steps.conflict.outputs.endpoint-generation }}
+        PROVIDER_REPLACEMENT_INVOCATION: ${{ steps.conflict.outputs.service-invocation-id }}
+      run: |
+        set -euo pipefail
+        if [[ "${AGENT_INITIAL_INVOCATION}" == "${AGENT_RESTART_INVOCATION}" \
+          || "${PROVIDER_INITIAL_INVOCATION}" == "${PROVIDER_REPLACEMENT_INVOCATION}" ]]; then
+          echo "Restarted processes retained stale systemd invocations" >&2
+          exit 1
+        fi
+        printf '%s\n' \
+          "agent-initial-invocation=${AGENT_INITIAL_INVOCATION}" \
+          "agent-restart-invocation=${AGENT_RESTART_INVOCATION}" \
+          "provider-initial-invocation=${PROVIDER_INITIAL_INVOCATION}" \
+          "provider-initial-generation=${PROVIDER_INITIAL_GENERATION}" \
+          "provider-replacement-invocation=${PROVIDER_REPLACEMENT_INVOCATION}" \
+          "provider-replacement-generation=${PROVIDER_REPLACEMENT_GENERATION}" \
+          > "${EVIDENCE_DIRECTORY}/invocation-fences.txt"
+
+    - name: Confirm conflicting content receives terminal rejection
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.conflict.outputs.event-log }}
+      run: |
+        set -euo pipefail
+        publication_id=22222222-2222-4222-8222-222222222222
+        expected="trigger-ack-observed:${publication_id}:rejected:idempotency_conflict:false"
+        deadline=$((SECONDS + 60))
+        while (( SECONDS < deadline )); do
+          if docker exec "${CONTAINER_NAME}" grep -Fxq "${expected}" "${EVENT_LOG}"; then
+            break
+          fi
+          sleep 1
+        done
+        docker exec "${CONTAINER_NAME}" grep -Fx "${expected}" "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/conflicting-content.txt"
+
+    - name: Assert conflict created no extra durable publication
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.conflict.outputs.provider-instance-id }}
+        expected-triggers: >-
+          stateforge.test/runtime.started@1
+          stateforge.test/runtime.refreshed@1
+          stateforge.test/runtime.refreshed@1
+        evidence-name: after-conflict
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Attempt publication from the superseded Provider session
+      id: stale-publication
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        before="$(docker exec "${CONTAINER_NAME}" \
+          grep -Ec '^trigger-queued:[0-9a-f-]+$' "${EVENT_LOG}" || true)"
+        docker exec "${CONTAINER_NAME}" \
+          systemctl kill --kill-whom=main --signal=SIGALRM "${UNIT_NAME}"
+        expected=$((before + 1))
+        deadline=$((SECONDS + 60))
+        after=0
+        while (( SECONDS < deadline )); do
+          after="$(docker exec "${CONTAINER_NAME}" \
+            grep -Ec '^trigger-queued:[0-9a-f-]+$' "${EVENT_LOG}" || true)"
+          [[ "${after}" == "${expected}" ]] && break
+          sleep 1
+        done
+        if [[ "${after}" != "${expected}" ]]; then
+          echo "Superseded Provider did not queue the stale publication" >&2
+          exit 1
+        fi
+        line="$(docker exec "${CONTAINER_NAME}" \
+          grep -E '^trigger-queued:[0-9a-f-]+$' "${EVENT_LOG}" | tail -n 1)"
+        publication_id="${line#trigger-queued:}"
+        printf '%s\n' "${line}" \
+          > "${EVIDENCE_DIRECTORY}/superseded-publication.txt"
+        echo "publication-id=${publication_id}" >> "${GITHUB_OUTPUT}"
+        sleep 3
+        if docker exec "${CONTAINER_NAME}" \
+          grep -Eq "^trigger-(ack-(observed|dropped)|outcome):${publication_id}:" \
+            "${EVENT_LOG}"; then
+          echo "Superseded Provider publication received an acknowledgement" >&2
+          exit 1
+        fi
+
+    - name: Assert superseded publication was not accepted
+      uses: ./.github/actions/agent/assert-trigger-publication
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        expected-triggers: >-
+          stateforge.test/runtime.started@1
+          stateforge.test/runtime.refreshed@1
+          stateforge.test/runtime.refreshed@1
+        evidence-name: after-stale-publication
+        timeout-seconds: "5"
+        evidence-directory: ${{ inputs.evidence-directory }}/trigger
+
+    - name: Compare durable state across stale publication
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/trigger
+        PUBLICATION_ID: ${{ steps.stale-publication.outputs.publication-id }}
+      run: |
+        set -euo pipefail
+        jq -e --arg publication_id "${PUBLICATION_ID}" --slurp \
+          '.[0].publication_count == .[1].publication_count
+           and .[0].publications == .[1].publications
+           and all(.[1].publications[]; .publication_id != $publication_id)' \
+          "${EVIDENCE_DIRECTORY}/after-conflict.json" \
+          "${EVIDENCE_DIRECTORY}/after-stale-publication.json" >/dev/null
+
+    - name: Stop superseded Provider without withdrawing current descriptor
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        CURRENT_DESCRIPTOR: ${{ steps.conflict.outputs.descriptor-path }}
+        CURRENT_GENERATION: ${{ steps.conflict.outputs.endpoint-generation }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/provider
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+        SOCKET_PATH: ${{ steps.provider.outputs.socket-path }}
+        STALE_PUBLICATION_ID: ${{ steps.stale-publication.outputs.publication-id }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        docker exec "${CONTAINER_NAME}" systemctl stop "${UNIT_NAME}"
+        deadline=$((SECONDS + 30))
+        state=""
+        while (( SECONDS < deadline )); do
+          state="$(docker exec "${CONTAINER_NAME}" \
+            systemctl is-active "${UNIT_NAME}" 2>/dev/null || true)"
+          [[ "${state}" == "inactive" || "${state}" == "failed" ]] && break
+          sleep 1
+        done
+        if [[ "${state}" != "inactive" && "${state}" != "failed" ]]; then
+          echo "Superseded Provider did not stop" >&2
+          exit 1
+        fi
+        docker exec "${CONTAINER_NAME}" test ! -e "${SOCKET_PATH}"
+        docker exec "${CONTAINER_NAME}" jq -e \
+          --argjson generation "${CURRENT_GENERATION}" \
+          '.endpoint_generation == $generation' "${CURRENT_DESCRIPTOR}" \
+          > "${EVIDENCE_DIRECTORY}/current-descriptor-after-old-stop.json"
+        docker exec "${CONTAINER_NAME}" grep -Fxq startup "${EVENT_LOG}"
+        docker exec "${CONTAINER_NAME}" grep -Fxq shutdown "${EVENT_LOG}"
+        if docker exec "${CONTAINER_NAME}" \
+          grep -Eq "^trigger-(ack-(observed|dropped)|outcome):${STALE_PUBLICATION_ID}:" \
+            "${EVENT_LOG}"; then
+          echo "Superseded publication resolved during Provider shutdown" >&2
+          exit 1
+        fi
+        docker exec "${CONTAINER_NAME}" cat "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/lifecycle-events.txt"
+        docker exec "${CONTAINER_NAME}" \
+          journalctl -u "${UNIT_NAME}" --no-pager \
+          > "${EVIDENCE_DIRECTORY}/provider-journal.txt"
+
+    - name: Stop replacement Provider cleanly
+      uses: ./.github/actions/provider/stop
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.conflict.outputs.unit-name }}
+        descriptor-path: ${{ steps.conflict.outputs.descriptor-path }}
+        socket-path: ${{ steps.conflict.outputs.socket-path }}
+        event-log: ${{ steps.conflict.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider-conflict
+
+    - name: Preserve bounded evidence and clean up
+      if: ${{ always() }}
+      uses: ./.github/actions/evidence/collect
+      with:
+        stage: trigger-publication-agent
+        container-name: ${{ steps.system.outputs.container-name }}
+        runtime-directory: ${{ inputs.runtime-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}
