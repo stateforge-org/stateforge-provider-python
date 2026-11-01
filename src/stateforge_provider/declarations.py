@@ -108,13 +108,15 @@ def operation(
     """Declare an async method's versioned input/result contract.
 
     Annotate ``request`` and the return value with ProviderModel subclasses.
-    This milestone discovers metadata only; it does not dispatch the method.
+    The runtime derives the manifest schemas from those annotations and invokes
+    the method only after canonical Operation Admission succeeds.
     ``implements`` contains versioned semantic/compliance profile claims. Each
     claim says the operation conforms to that profile's required schemas and
     behavior. Claims are not permissions or Control Plane contract identifiers
     and are never inferred from a method or model name.
     ``requires`` contains stable IDs declared by :func:`requirement_check`.
-    The runtime evaluates each distinct check at most once per assessment.
+    The runtime evaluates each distinct check once per assessment or admission
+    attempt.
     Inherited methods follow Python's MRO; overriding requires redeclaration.
     """
 
