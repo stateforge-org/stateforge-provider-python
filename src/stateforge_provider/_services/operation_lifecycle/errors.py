@@ -3,18 +3,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from uuid import UUID
 
 import grpc
 from google.protobuf.any_pb2 import Any
 from google.rpc import status_pb2  # type: ignore[import-untyped]
 from grpc_status import rpc_status
+from stateforge_protocol.sfp import primitives
 from stateforge_protocol.sfp.operation_lifecycle.v1 import (
     operation_lifecycle_pb2,
     validation,
 )
-
-_UUID_VERSION = 4
 
 
 @dataclass(frozen=True, slots=True)
@@ -46,10 +44,4 @@ class LifecycleFailureError(Exception):
 
 def _valid_operation_id(value: str) -> str:
     """Return only a canonical UUIDv4 suitable for an error detail."""
-    try:
-        identifier = UUID(value)
-    except (ValueError, AttributeError):
-        return ""
-    if identifier.version != _UUID_VERSION or str(identifier) != value:
-        return ""
-    return value
+    return value if primitives.is_canonical_uuid4(value) else ""
