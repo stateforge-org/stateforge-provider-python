@@ -110,8 +110,9 @@ class OperationAdmissionRuntime:
             return existing
         if self._closed:
             raise AdmissionRegistryError(AdmissionRegistryFailure.STOPPING)
+        retained_identities = len(self._records) + len(self._tombstones)
         if (
-            len(self._records) >= self._maximum_records
+            retained_identities >= self._maximum_records
             or len(self._tasks) >= self._maximum_dispatches
         ):
             raise AdmissionRegistryError(AdmissionRegistryFailure.CAPACITY)

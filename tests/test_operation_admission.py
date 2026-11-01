@@ -631,7 +631,7 @@ async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
         maximum_records=1,
         maximum_dispatches=1,
         record_retention_seconds=0.01,
-        tombstone_retention_seconds=1,
+        tombstone_retention_seconds=0.01,
     )
     first = runtime.admit(
         operation_id=str(uuid4()),
@@ -648,6 +648,9 @@ async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
         )
     assert capacity.value.failure is AdmissionRegistryFailure.CAPACITY
 
+    first_release.set()
+    await asyncio.sleep(0)
+    await asyncio.sleep(0)
     await asyncio.sleep(0.02)
     with pytest.raises(AdmissionRegistryError) as expired:
         runtime.lookup(
@@ -655,6 +658,28 @@ async def test_runtime_retains_expiry_tombstone_and_bounds_capacity() -> None:
             first.record.request_fingerprint,
         )
     assert expired.value.failure is AdmissionRegistryFailure.EXPIRED
+
+    second_operation_id = str(uuid4())
+    second_fingerprint = "sha256:" + ("2" * 64)
+    with pytest.raises(AdmissionRegistryError) as tombstone_capacity:
+        runtime.admit(
+            operation_id=second_operation_id,
+            fingerprint=second_fingerprint,
+            endpoint_generation=1,
+            dispatch=blocked,
+        )
+    assert (
+        tombstone_capacity.value.failure is AdmissionRegistryFailure.CAPACITY
+    )
+
+    await asyncio.sleep(0.02)
+    admitted = runtime.admit(
+        operation_id=second_operation_id,
+        fingerprint=second_fingerprint,
+        endpoint_generation=1,
+        dispatch=blocked,
+    )
+    assert admitted.accepted_new
     await runtime.close()
 
 

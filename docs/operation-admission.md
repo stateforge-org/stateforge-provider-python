@@ -121,6 +121,10 @@ Capacity and retention are bounded by Provider configuration:
 | `operation_record_retention_seconds` | 86,400 |
 | `operation_tombstone_retention_seconds` | 86,400 |
 
+The admission-record limit covers live records and retained expiry tombstones
+together. Tombstones are never discarded early to make room because doing so
+would turn a known expired identity into an ambiguous absent identity.
+
 Callers must treat `RESOURCE_EXHAUSTED` and shutdown-related `UNAVAILABLE` as
 retryable only under their own bounded policy. Retrying the same immutable
 request is safe because admission resolves by ID and fingerprint.
