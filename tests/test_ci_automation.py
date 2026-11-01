@@ -625,7 +625,7 @@ def test_package_matrix_is_separate_from_unix_runtime() -> None:
     runtime = read(WORKFLOWS / "provider-runtime-scenarios.yml")
 
     assert "windows-2022" in installed
-    assert "macos-14" in installed
+    assert "macos-15" in installed
     assert installed.count('          - "3.1') == SUPPORTED_PYTHON_COUNT
     assert "windows-" not in runtime
     assert "macos-" not in runtime
