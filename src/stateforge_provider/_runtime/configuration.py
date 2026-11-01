@@ -23,6 +23,8 @@ class ProviderRuntimeLimits:
     health_watch_queue_capacity: int = 16
     max_pending_trigger_publications: int = 1_024
     max_trigger_in_flight_publications: int = 128
+    max_operation_admission_records: int = 1_024
+    max_operation_dispatches: int = 128
 
     def __post_init__(self) -> None:
         """Reject unusable operational limits."""
@@ -34,6 +36,8 @@ class ProviderRuntimeLimits:
             "health_watch_queue_capacity",
             "max_pending_trigger_publications",
             "max_trigger_in_flight_publications",
+            "max_operation_admission_records",
+            "max_operation_dispatches",
         ):
             value = getattr(self, name)
             if (
@@ -73,6 +77,8 @@ class ProviderRuntimeConfiguration:
     health_watch_delivery_timeout_seconds: float = 1.0
     trigger_retry_base_seconds: float = 0.25
     trigger_retry_max_seconds: float = 30.0
+    operation_record_retention_seconds: float = 86_400.0
+    operation_tombstone_retention_seconds: float = 86_400.0
     limits: ProviderRuntimeLimits = field(
         default_factory=ProviderRuntimeLimits
     )
@@ -110,6 +116,8 @@ class ProviderRuntimeConfiguration:
             "health_watch_delivery_timeout_seconds",
             "trigger_retry_base_seconds",
             "trigger_retry_max_seconds",
+            "operation_record_retention_seconds",
+            "operation_tombstone_retention_seconds",
         ):
             timeout = getattr(self, name)
             if (

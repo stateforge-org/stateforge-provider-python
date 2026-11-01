@@ -20,3 +20,16 @@ It executes each distinct referenced check at most once per request, honors
 RPC cancellation and deadlines, then revalidates the session and readiness
 before returning a canonically validated response. Assessment is point-in-time
 evidence only: it neither executes nor authorizes an operation.
+
+## Operation Admission ownership
+
+`Provider` also registers the private P4 Operation Admission service. The
+runtime validates the exact endpoint, session, accepted manifest, operation
+declaration, payload schema, requested implementation roles, current Health,
+execution deadline, and fresh requirement-check results. It atomically records
+the canonical request fingerprint before scheduling author code, so concurrent
+identical retries dispatch exactly once and changed content is rejected.
+
+Authors implement only the typed operation method. See
+[Operation admission](../operation-admission.md) for the public handler and
+idempotency contract.

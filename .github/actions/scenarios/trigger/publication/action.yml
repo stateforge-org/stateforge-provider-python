@@ -37,8 +37,9 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "${EVIDENCE_DIRECTORY}"
+        evidence_directory="$(cd "${EVIDENCE_DIRECTORY}" && pwd -P)"
         cd "${RUNNER_TEMP}"
         unset PYTHONPATH PYTHONHOME
         "${ISOLATED_PYTHON}" -I "${ACTION_PATH}/verify.py" \
           --runtime-directory "${RUNTIME_DIRECTORY}" \
-          --output "${EVIDENCE_DIRECTORY}/trigger-publication.json"
+          --output "${evidence_directory}/trigger-publication.json"

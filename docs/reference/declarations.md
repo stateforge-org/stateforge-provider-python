@@ -12,3 +12,9 @@ Requirement-check methods must be asynchronous instance methods with exactly
 Startup rejects malformed or duplicate IDs, missing or repeated references,
 invalid signatures, unresolved annotations, and metadata outside canonical
 Protocol bounds.
+
+Operation methods are asynchronous instance methods with either
+`(self, request)` or `(self, request, context)`. The request and return
+annotations must be `ProviderModel` subclasses. The optional third parameter
+must be annotated as the public `OperationContext`; it exposes only the
+operation ID, execution deadline, and recursively immutable execution context.

@@ -32,6 +32,15 @@ from stateforge_provider._services.manifest.declaration import (
 from stateforge_provider._services.manifest.service import (
     registration as manifest_registration,
 )
+from stateforge_provider._services.operation_admission.declaration import (
+    BoundOperationRegistry,
+)
+from stateforge_provider._services.operation_admission.runtime import (
+    OperationAdmissionRuntime,
+)
+from stateforge_provider._services.operation_admission.service import (
+    registration as operation_admission_registration,
+)
 from stateforge_provider._services.trigger_publication.runtime import (
     TriggerPublicationRuntime,
 )
@@ -107,6 +116,7 @@ class Provider:
         self._health_service: ProviderHealthService | None = None
         self._health_refresh_lock = asyncio.Lock()
         self._trigger_runtime: TriggerPublicationRuntime | None = None
+        self._operation_runtime: OperationAdmissionRuntime | None = None
 
     async def on_startup(self) -> None:
         """Override to initialize Provider resources before publication."""
@@ -191,7 +201,7 @@ class Provider:
         asyncio.run(run_with_signals())
 
     @final
-    async def serve(self) -> None:  # noqa: PLR0915
+    async def serve(self) -> None:  # noqa: PLR0912, PLR0915
         """Validate declarations and serve on the caller's event loop.
 
         The caller retains signal-handler ownership and may initiate shutdown
@@ -211,6 +221,26 @@ class Provider:
             ),
         )
         bound_requirements = requirement_registry.bind(self)
+        bound_operations = BoundOperationRegistry.bind(
+            self,
+            declaration.operation_declarations,
+            declaration.operation_schemas,
+        )
+        operation_runtime = OperationAdmissionRuntime(
+            maximum_records=(
+                self._configuration.limits.max_operation_admission_records
+            ),
+            maximum_dispatches=(
+                self._configuration.limits.max_operation_dispatches
+            ),
+            record_retention_seconds=(
+                self._configuration.operation_record_retention_seconds
+            ),
+            tombstone_retention_seconds=(
+                self._configuration.operation_tombstone_retention_seconds
+            ),
+        )
+        self._operation_runtime = operation_runtime
         trigger_runtime = TriggerPublicationRuntime(
             declaration,
             queue_capacity=(
@@ -257,6 +287,15 @@ class Provider:
                     health=health_service,
                     requirements=bound_requirements,
                 ),
+                operation_admission_registration(
+                    endpoint=identity,
+                    snapshot=snapshot,
+                    sessions=sessions,
+                    health=health_service,
+                    requirements=bound_requirements,
+                    operations=bound_operations,
+                    runtime=operation_runtime,
+                ),
                 trigger_publication_registration(
                     endpoint=identity,
                     snapshot=snapshot,
@@ -285,6 +324,7 @@ class Provider:
             await self._shutdown_requested.wait()
         finally:
             health_service.begin_shutdown()
+            operation_runtime.begin_shutdown()
             trigger_failure: BaseException | None = None
             try:
                 await trigger_runtime.close()
@@ -294,6 +334,14 @@ class Provider:
                     await trigger_runtime.stop_sources()
             except BaseException as error:
                 trigger_failure = error
+            operation_failure: BaseException | None = None
+            try:
+                async with asyncio.timeout(
+                    self._configuration.shutdown_timeout_seconds
+                ):
+                    await operation_runtime.close()
+            except BaseException as error:
+                operation_failure = error
             shutdown_called = False
 
             async def shutdown_author_resources() -> None:
@@ -323,6 +371,7 @@ class Provider:
 
             self._health_service = None
             self._trigger_runtime = None
+            self._operation_runtime = None
             if endpoint_failure is not None:
                 if trigger_failure is not None:
                     endpoint_failure.add_note(
@@ -334,6 +383,11 @@ class Provider:
                         "Provider author-resource shutdown also failed: "
                         f"{shutdown_failure}"
                     )
+                if operation_failure is not None:
+                    endpoint_failure.add_note(
+                        "Provider operation-runtime shutdown also failed: "
+                        f"{operation_failure}"
+                    )
                 raise endpoint_failure
             if trigger_failure is not None:
                 if shutdown_failure is not None:
@@ -341,7 +395,19 @@ class Provider:
                         "Provider author-resource shutdown also failed: "
                         f"{shutdown_failure}"
                     )
+                if operation_failure is not None:
+                    trigger_failure.add_note(
+                        "Provider operation-runtime shutdown also failed: "
+                        f"{operation_failure}"
+                    )
                 raise trigger_failure
+            if operation_failure is not None:
+                if shutdown_failure is not None:
+                    operation_failure.add_note(
+                        "Provider author-resource shutdown also failed: "
+                        f"{shutdown_failure}"
+                    )
+                raise operation_failure
             if shutdown_failure is not None:
                 raise shutdown_failure
 
@@ -351,6 +417,9 @@ class Provider:
         health_service = self._health_service
         if health_service is not None:
             health_service.begin_shutdown()
+        operation_runtime = self._operation_runtime
+        if operation_runtime is not None:
+            operation_runtime.begin_shutdown()
         self._shutdown_requested.set()
 
     async def _refresh_health(

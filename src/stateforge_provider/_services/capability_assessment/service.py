@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass
 from uuid import uuid4
 
 import grpc
@@ -21,14 +20,16 @@ from stateforge_provider._runtime.identity import ProviderEndpointIdentity
 from stateforge_provider._runtime.sessions import Session, SessionRegistry
 from stateforge_provider._services.capability_assessment.declaration import (
     BoundRequirementRegistry,
-    RequirementDeclaration,
+)
+from stateforge_provider._services.capability_assessment.evaluation import (
+    EvaluatedRequirement,
+    RequirementEvaluationError,
+    evaluate_requirements,
+    required_checks,
 )
 from stateforge_provider._services.health.service import ProviderHealthService
 from stateforge_provider._services.manifest.declaration import ManifestSnapshot
-from stateforge_provider.requirements import (
-    RequirementCheckOutcome,
-    RequirementCheckResult,
-)
+from stateforge_provider.requirements import RequirementCheckOutcome
 from stateforge_provider.version import ProtocolVersion
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,18 +40,6 @@ _SUPPORTED_WITH_REQUIREMENTS = (
 _UNSATISFIED_EXPLANATION = "A runtime requirement is not satisfied"
 _INCOMPATIBLE_EXPLANATION = "A runtime requirement is incompatible"
 _UNKNOWN_EXPLANATION = "Runtime requirement evidence is unavailable"
-
-
-@dataclass(frozen=True, slots=True)
-class _EvaluatedRequirement:
-    """Pair validated declaration metadata with one author result."""
-
-    declaration: RequirementDeclaration
-    result: RequirementCheckResult
-
-
-class _CheckError(Exception):
-    """Hide author failure details from the remote RPC boundary."""
 
 
 class CapabilityAssessmentService(
@@ -105,9 +94,15 @@ class CapabilityAssessmentService(
             )
 
         try:
-            requirement_ids = self._required_checks(request)
-            results = await self._execute_checks(requirement_ids)
-        except _CheckError:
+            requirement_ids = required_checks(
+                self._requirements,
+                tuple(request.operation_identifiers),
+            )
+            results = await evaluate_requirements(
+                self._requirements,
+                requirement_ids,
+            )
+        except RequirementEvaluationError:
             await context.abort(
                 grpc.StatusCode.INTERNAL,
                 "Provider requirement check failed",
@@ -214,71 +209,10 @@ class CapabilityAssessmentService(
             )
         return session
 
-    def _required_checks(
-        self,
-        request: capability_assessment_pb2.AssessCapabilitiesRequest,
-    ) -> tuple[str, ...]:
-        """Collect unique checks in stable first-reference order."""
-        identifiers: list[str] = []
-        seen: set[str] = set()
-        for operation in request.operation_identifiers:
-            for identifier in self._requirements.operation_requirements[
-                operation
-            ]:
-                if identifier not in seen:
-                    seen.add(identifier)
-                    identifiers.append(identifier)
-        return tuple(identifiers)
-
-    async def _execute_checks(
-        self,
-        identifiers: tuple[str, ...],
-    ) -> dict[str, _EvaluatedRequirement]:
-        """Run each distinct author check once and cancel peers on failure."""
-        tasks = {
-            identifier: asyncio.create_task(self._invoke_check(identifier))
-            for identifier in identifiers
-        }
-        try:
-            values = await asyncio.gather(*tasks.values())
-        except BaseException:
-            for task in tasks.values():
-                task.cancel()
-            await asyncio.gather(*tasks.values(), return_exceptions=True)
-            raise
-        return dict(zip(tasks, values, strict=True))
-
-    async def _invoke_check(
-        self,
-        identifier: str,
-    ) -> _EvaluatedRequirement:
-        """Normalize one author check without leaking its failure remotely."""
-        check = self._requirements.checks[identifier]
-        try:
-            result: object = await check()
-        except asyncio.CancelledError:
-            raise
-        except Exception:
-            _LOGGER.exception(
-                "Provider requirement check failed",
-                extra={"requirement_id": identifier},
-            )
-            raise _CheckError from None
-        if not isinstance(result, RequirementCheckResult):
-            _LOGGER.error(
-                "Provider requirement check returned an invalid result",
-                extra={"requirement_id": identifier},
-            )
-            raise _CheckError
-        return _EvaluatedRequirement(
-            self._requirements.declarations[identifier],
-            result,
-        )
-
     def _response(
         self,
         request: capability_assessment_pb2.AssessCapabilitiesRequest,
-        results: dict[str, _EvaluatedRequirement],
+        results: dict[str, EvaluatedRequirement],
     ) -> capability_assessment_pb2.AssessCapabilitiesResponse:
         """Build one deterministic request-correlated response."""
         timestamp = Timestamp()
@@ -300,7 +234,7 @@ class CapabilityAssessmentService(
     def _finding(
         self,
         operation: str,
-        results: dict[str, _EvaluatedRequirement],
+        results: dict[str, EvaluatedRequirement],
     ) -> capability_assessment_pb2.CapabilityFinding:
         """Aggregate one operation using the locked precedence rules."""
         evaluated = tuple(
@@ -352,7 +286,7 @@ class CapabilityAssessmentService(
 
 
 def _requirement_finding(
-    evaluated: _EvaluatedRequirement,
+    evaluated: EvaluatedRequirement,
 ) -> capability_assessment_pb2.RequirementFinding:
     """Adapt one typed author result to a bounded P2 finding."""
     state = {
@@ -379,7 +313,7 @@ def _requirement_finding(
 
 
 def _explanation(
-    evaluated: tuple[_EvaluatedRequirement, ...],
+    evaluated: tuple[EvaluatedRequirement, ...],
     outcome: RequirementCheckOutcome,
 ) -> str:
     """Select a bounded nonempty explanation for a normalized reason."""

@@ -151,12 +151,17 @@ The runtime suite currently covers:
   including callback and decorated sources, a bounded receive window,
   retryable rejection with immutable replay, accepted duplicate disposition,
   terminal rejection, stale-fence rejection, stream loss, and replay under a
-  fresh fenced session; and
+  fresh fenced session;
+- installed-wheel Operation Admission through an independent Protocol peer,
+  including exact fences, role and requirement rejection, 20 concurrent
+  identical requests converging on one dispatch, typed idempotency conflict,
+  immutable author context, secret-safe evidence, and clean endpoint removal;
+  and
 - end-to-end Trigger Publication through the exact installed Agent RPM and
   exact Provider and Protocol wheels, including durable `accepted_new`, a lost
   acknowledgement, Agent crash and restart, immutable replay with
   `accepted_duplicate`, callback publication, retry across journal write
-failure with an explicitly correlated retryable rejection,
+  failure with an explicitly correlated retryable rejection,
 conflicting-content rejection, a newer Provider endpoint generation,
 rejection of publication from the superseded session, and clean shutdown.
 
