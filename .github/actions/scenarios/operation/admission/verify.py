@@ -404,6 +404,7 @@ async def _verify_expiry_and_restart(  # noqa: PLR0912, PLR0915
         provider.release.set()
         await asyncio.wait_for(provider.completed.wait(), timeout=2)
         reuse_dispatches = provider.dispatches
+        provider.started.clear()
         await asyncio.sleep(_RECORD_RETENTION_SECONDS + _PRUNE_GRACE_SECONDS)
         expired_status = await _expect_error(
             admission,
@@ -423,6 +424,7 @@ async def _verify_expiry_and_restart(  # noqa: PLR0912, PLR0915
         validation.validate_admission_exchange(request, reused)
         if reused.disposition != _ACCEPTED_NEW:
             raise RuntimeError("expiry identity reuse did not re-admit")
+        await asyncio.wait_for(provider.started.wait(), timeout=2)
         if provider.dispatches != reuse_dispatches + 1:
             raise RuntimeError("expiry identity reuse dispatched unexpectedly")
         provider.request_shutdown()
