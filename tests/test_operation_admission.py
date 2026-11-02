@@ -276,7 +276,9 @@ def _detail(error: grpc.aio.AioRpcError):
     packed = status.details[0]
     detail = operation_admission_pb2.OperationAdmissionErrorDetail()
     assert packed.Unpack(detail)
-    admission_validation.validate_admission_error_detail(detail)
+    admission_validation.validate_admission_rejection(
+        detail, grpc_status=error.code().name
+    )
     return detail
 
 

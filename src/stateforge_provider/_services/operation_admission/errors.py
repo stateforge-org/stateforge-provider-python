@@ -10,6 +10,7 @@ from google.rpc import status_pb2  # type: ignore[import-untyped]
 from grpc_status import rpc_status
 from stateforge_protocol.sfp import primitives
 from stateforge_protocol.sfp.operation_admission.v1 import (
+    contract,
     operation_admission_pb2,
     validation,
 )
@@ -23,17 +24,19 @@ class AdmissionFailureError(Exception):
     reason: operation_admission_pb2.AdmissionErrorReason.ValueType
     explanation: str
     operation_id: str = ""
-    retryable: bool = False
 
     def status(self) -> grpc.Status:
         """Build a validated rich status with one versioned detail."""
+        semantics = contract.ADMISSION_ERROR_CONTRACTS[self.reason]
         detail = operation_admission_pb2.OperationAdmissionErrorDetail(
             operation_id=_valid_operation_id(self.operation_id),
             reason=self.reason,
-            retryable=self.retryable,
+            retryable=semantics.retryable,
             explanation=self.explanation,
         )
-        validation.validate_admission_error_detail(detail)
+        validation.validate_admission_rejection(
+            detail, grpc_status=self.code.name
+        )
         packed = Any()
         packed.Pack(detail)
         status = status_pb2.Status(

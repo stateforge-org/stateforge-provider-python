@@ -165,6 +165,42 @@ jobs:
           if-no-files-found: warn
           retention-days: ${{ inputs.retention-days }}
 
+  operation-admission-agent:
+    name: Operation Admission / installed Agent RPM
+    if: ${{ inputs.scenario-tier == 'full' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out scenario automation
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download exact runtime bundle
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: ${{ runner.temp }}/stateforge-provider-bundle
+
+      - name: Run installed-Agent Operation Admission scenario
+        uses: ./.github/actions/scenarios/operation/installed-agent
+        with:
+          agent-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent
+          agent-test-image-directory: ${{ runner.temp }}/stateforge-provider-bundle/agent/test-image
+          provider-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/provider
+          protocol-artifact-directory: ${{ runner.temp }}/stateforge-provider-bundle/protocol
+          runtime-directory: ${{ runner.temp }}/sfp-operation-agent
+          evidence-directory: evidence/runtime/operation-admission-agent
+
+      - name: Upload runtime evidence
+        if: ${{ always() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ inputs.evidence-prefix }}-operation-admission-agent
+          path: evidence/runtime/operation-admission-agent
+          if-no-files-found: warn
+          retention-days: ${{ inputs.retention-days }}
+
   operation-lifecycle:
     name: Operation Lifecycle / direct Protocol peer
     if: ${{ inputs.scenario-tier == 'full' }}

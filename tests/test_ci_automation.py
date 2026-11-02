@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 12
+SCENARIO_COUNT = 13
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -43,6 +43,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/lifecycle/concurrent-providers",
         "scenarios/lifecycle/same-instance-replacement",
         "scenarios/operation/admission",
+        "scenarios/operation/installed-agent",
         "scenarios/operation/lifecycle",
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
@@ -226,9 +227,10 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
     assert len(scenarios) == SCENARIO_COUNT
     for scenario in scenarios:
         content = read(scenario)
-        if "scenarios/trigger/publication" in str(
-            scenario
-        ) or "scenarios/operation/" in str(scenario):
+        if "scenarios/trigger/publication" in str(scenario) or any(
+            f"scenarios/operation/{name}" in str(scenario)
+            for name in ("admission", "lifecycle")
+        ):
             assert "./.github/actions/environment/install" in content
             assert "./.github/actions/agent/" not in content
             assert '"${ISOLATED_PYTHON}" -I' in content
@@ -238,6 +240,13 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
             assert (
                 "./.github/actions/agent/assert-trigger-publication" in content
             )
+            assert "./.github/actions/provider/start" in content
+            assert "./.github/actions/provider/stop" in content
+            assert "./.github/actions/evidence/collect" in content
+            assert "if: ${{ always() }}" in content
+        elif "scenarios/operation/installed-agent" in str(scenario):
+            assert "./.github/actions/agent/install" in content
+            assert "./.github/actions/agent/start" in content
             assert "./.github/actions/provider/start" in content
             assert "./.github/actions/provider/stop" in content
             assert "./.github/actions/evidence/collect" in content
@@ -265,6 +274,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "trigger-publication-agent",
         "capability-assessment",
         "operation-admission",
+        "operation-admission-agent",
         "operation-lifecycle",
     }
     for scenario in scenarios:
@@ -370,6 +380,36 @@ def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
         assert evidence_field in verifier
     assert "Operation Admission / direct Protocol peer" in workflow
     assert "${{ runner.temp }}/sfp-r5" in workflow
+
+
+def test_operation_admission_exercises_installed_agent_requester() -> None:
+    """R19 must run the exact RPM and Provider wheel in separate processes."""
+    scenario = read(
+        ACTIONS / "scenarios" / "operation" / "installed-agent" / "action.yml"
+    )
+    fixture = read(
+        ACTIONS / "scenarios" / "operation" / "installed-agent" / "fixture.py"
+    )
+    assertion = read(
+        ACTIONS / "scenarios" / "operation" / "installed-agent" / "assert.py"
+    )
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+    assert "./.github/actions/agent/install" in scenario
+    assert "./.github/actions/agent/assert-session" in scenario
+    assert "operation-admission-agent" in workflow
+    assert "Operation Admission / installed Agent RPM" in workflow
+    assert "OperationAdmissionCoordinator" in assertion
+    assert "OperationAdmissionClient" in assertion
+    assert "OperationAdmissionService.StartOperation" in fixture
+    assert "drop-next-operation-response" in fixture
+    assert "operation-admission-attempt:" in fixture
+    assert "operation:inspect:{context.operation_id}" in fixture
+    assert "--prepare-uncertain" in assertion
+    assert "stale_generation_rejected" in assertion
+    assert "stale_session_rejected" in assertion
+    assert "stale_manifest_rejected" in assertion
+    assert "dispatch_operation_ids" in assertion
+    assert "stateforge-r19-secret-never-in-evidence" in scenario
 
 
 def test_operation_lifecycle_keeps_the_focused_protocol_peer() -> None:

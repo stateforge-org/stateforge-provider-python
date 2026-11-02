@@ -1,0 +1,170 @@
+name: Verify Operation Admission with the installed Agent
+description: Exercise the exact Provider and Protocol wheels through the Agent RPM.
+
+inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-test-image-directory:
+    description: Bundled exact Agent Fedora test-image definition.
+    required: true
+  provider-artifact-directory:
+    description: Directory containing the exact Provider wheel.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol wheel.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact runtime artifacts
+      id: system
+      uses: ./.github/actions/agent/install
+      with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-test-image-directory: ${{ inputs.agent-test-image-directory }}
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Stage operation Provider fixture
+      id: fixture
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}
+      run: |
+        set -euo pipefail
+        root="${RUNTIME_DIRECTORY}/admission-provider"
+        mkdir -p "${root}"
+        install -m 0644 "${ACTION_PATH}/fixture.py" "${root}/provider.py"
+        {
+          echo "fixture-path=${root}/provider.py"
+          echo "instance-name=admission-provider"
+          echo "state-name=admission-provider"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Start real Provider fixture
+      id: provider
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
+        identity: stateforge.test.operation_admission
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Assert Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
+
+    - name: Exercise admission through installed Agent requester code
+      id: assertion
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/admission
+        PROVIDER_INSTANCE_ID: ${{ steps.provider.outputs.provider-instance-id }}
+        STATE_DIRECTORY: ${{ steps.provider.outputs.state-directory }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier=/opt/stateforge-provider-tests/admission-assert.py
+        docker cp "${ACTION_PATH}/assert.py" "${CONTAINER_NAME}:${verifier}"
+        docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \
+          --provider-instance-id "${PROVIDER_INSTANCE_ID}" \
+          --state-directory "${STATE_DIRECTORY}" \
+          --unit-name "${UNIT_NAME}" \
+          > "${EVIDENCE_DIRECTORY}/operation-admission.json"
+        jq -e '.dispatches == 6 and (.dispatch_operation_ids | length) == 6
+          and .uncertain_requester_pid != .resolving_requester_pid
+          and .lost_response_attempts == 2
+          and .replacement_endpoint_generation > .initial_endpoint_generation
+          and .concurrent_requests == 20 and .concurrent_accepted_new == 1
+          and .schema_rejected and .deadline_rejected
+          and .readiness_rejected_and_recovered
+          and .requester_rebuild_resolved == "resolved_existing"
+          and .provider_restart_indeterminate and .expired_record_rejected
+          and .stale_generation_rejected and .stale_session_rejected
+          and .stale_manifest_rejected and .changed_content_rejected
+          and .agent_service_restarted and .target_unchanged' \
+          "${EVIDENCE_DIRECTORY}/operation-admission.json" >/dev/null
+        socket="$(jq -r '.final_socket_path' \
+          "${EVIDENCE_DIRECTORY}/operation-admission.json")"
+        echo "final-socket-path=${socket}" >> "${GITHUB_OUTPUT}"
+
+    - name: Verify Provider shutdown cleanup
+      uses: ./.github/actions/provider/stop
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        socket-path: ${{ steps.assertion.outputs.final-socket-path }}
+        event-log: ${{ steps.provider.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Preserve admission correlation evidence
+      if: ${{ always() }}
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/admission
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+        STATE_DIRECTORY: ${{ steps.provider.outputs.state-directory }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        if [[ -z "${CONTAINER_NAME}" ]]; then
+          exit 0
+        fi
+        docker exec "${CONTAINER_NAME}" cat "${EVENT_LOG}" \
+          > "${EVIDENCE_DIRECTORY}/operation-events.txt" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" cat \
+          "${STATE_DIRECTORY}/identity.json" \
+          > "${EVIDENCE_DIRECTORY}/provider-identity.json" 2>&1 || true
+        docker exec "${CONTAINER_NAME}" systemctl show "${UNIT_NAME}" \
+          --property InvocationID,MainPID,ActiveState \
+          > "${EVIDENCE_DIRECTORY}/provider-process.txt" 2>&1 || true
+
+    - name: Preserve bounded evidence and clean up
+      if: ${{ always() }}
+      uses: ./.github/actions/evidence/collect
+      with:
+        stage: operation-admission-agent
+        container-name: ${{ steps.system.outputs.container-name }}
+        runtime-directory: ${{ inputs.runtime-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}
+
+    - name: Reject sensitive operation evidence
+      if: ${{ always() }}
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+      run: |
+        set -euo pipefail
+        if grep --recursive --fixed-strings --line-number \
+          'stateforge-r19-secret-never-in-evidence' \
+          "${EVIDENCE_DIRECTORY}"; then
+          echo 'Sensitive operation content reached evidence' >&2
+          exit 1
+        fi

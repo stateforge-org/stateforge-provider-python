@@ -155,7 +155,14 @@ The runtime suite currently covers:
 - installed-wheel Operation Admission through an independent Protocol peer,
   including exact fences, role and requirement rejection, 20 concurrent
   identical requests converging on one dispatch, typed idempotency conflict,
-  immutable author context, secret-safe evidence, and clean endpoint removal;
+  immutable author context, lost-response replay, deadline and schema
+  rejection, record expiry, restart, secret-safe evidence, and clean endpoint
+  removal;
+- end-to-end Operation Admission through the exact installed Agent RPM and
+  exact Provider and Protocol wheels, including Agent-normalized admission,
+  identical concurrent requests, a discarded post-admission response and
+  immutable retry, changed-content conflict, replacement-generation fencing,
+  exactly-once dispatch, and bounded evidence;
 - installed-wheel Operation Lifecycle through an independent Protocol peer,
   including determinate progress, typed terminal results, coalesced state,
   immutable terminal replay, requested and repeated cancellation, confirmed
@@ -167,17 +174,18 @@ The runtime suite currently covers:
   acknowledgement, Agent crash and restart, immutable replay with
   `accepted_duplicate`, callback publication, retry across journal write
   failure with an explicitly correlated retryable rejection,
-conflicting-content rejection, a newer Provider endpoint generation,
-rejection of publication from the superseded session, and clean shutdown.
+  conflicting-content rejection, a newer Provider endpoint generation,
+  rejection of publication from the superseded session, and clean shutdown.
 
 Runtime fixtures exercise Provider behavior through the public
 `stateforge_provider` API. The R18 fixture uses narrowly scoped private hooks
 only to discard one acknowledgement and assign one deterministic publication
 ID for fault injection; its publications still originate from the public
-decorator and callback APIs. Each runtime scenario installs the exact Agent
-RPM into an isolated Fedora system, starts
-the packaged `stateforge-agent.service`, installs the exact Provider and
-Protocol wheels beside it, and observes acceptance or rejection through the
+decorator and callback APIs. R19 similarly discards one Operation Admission
+response only after the real Provider has admitted it. Installed-Agent
+scenarios install the exact Agent RPM into an isolated Fedora system, start
+the packaged `stateforge-agent.service`, install the exact Provider and
+Protocol wheels beside it, and observe acceptance or rejection through the
 real Agent journal. Runtime scenarios run on Linux because the current endpoint
 contract uses Unix-domain sockets and the Agent is packaged as a Linux service.
 Package identity and import checks remain independent and run on Linux, macOS,
@@ -235,6 +243,22 @@ releases capacity. The installed Agent scenario keeps the first Provider alive
 while accepting a newer endpoint generation, then proves a publication queued
 by the superseded Provider is never acknowledged or added to durable Agent
 state.
+
+R19 keeps the independent Protocol peer for deterministic Provider registry
+checks and adds a separate installed-Agent scenario. The latter imports the
+requester from the installed RPM in a standalone verifier process, uses the real
+systemd-managed Provider on its Unix socket, and correlates Agent dispositions
+with operation-ID-specific Provider dispatch events and serialized-request
+digests. It also checks generation, session, and manifest fences independently
+and resolves an uncertain admission from a new requester process using the same
+durable Agent journal. The Agent daemon runs and monitors the Provider, but it
+does not originate these admission calls: it has no operation-submission ingress
+yet. This is installed Agent requester-code integration, not daemon-level
+admission. A response-loss marker is confined to the CI fixture; no production
+author API or wire contract changes for this test.
+The retained evidence includes exact artifact checksums, Agent and Provider
+process identities, endpoint generations, journal excerpts, dispositions,
+dispatch counts, and final cleanup state.
 
 ## Evidence and security
 

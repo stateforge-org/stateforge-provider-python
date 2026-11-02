@@ -422,14 +422,12 @@ class OperationAdmissionService(
                 operation_admission_pb2.ADMISSION_ERROR_REASON_PROVIDER_CAPACITY_EXHAUSTED,
                 "Provider admission capacity is exhausted",
                 operation_id,
-                True,
             ),
             AdmissionRegistryFailure.STOPPING: AdmissionFailureError(
                 grpc.StatusCode.UNAVAILABLE,
                 operation_admission_pb2.ADMISSION_ERROR_REASON_PROVIDER_UNAVAILABLE,
                 "Provider operation runtime is stopping",
                 operation_id,
-                True,
             ),
         }[error.failure]
         await self._reject(context, failure)
