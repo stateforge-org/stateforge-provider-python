@@ -6,8 +6,10 @@ import argparse
 import asyncio
 import hashlib
 import json
+import os
 import sys
 import time
+from collections import Counter
 from datetime import UTC, datetime, timedelta
 from importlib.metadata import version
 from pathlib import Path
@@ -57,6 +59,7 @@ def _arguments() -> argparse.Namespace:
     parser.add_argument("--provider-instance-id", type=UUID, required=True)
     parser.add_argument("--state-directory", type=Path, required=True)
     parser.add_argument("--unit-name", required=True)
+    parser.add_argument("--prepare-uncertain", action="store_true")
     return parser.parse_args()
 
 
@@ -74,10 +77,18 @@ def _events(path: Path) -> tuple[str, ...]:
         return ()
 
 
+def _dispatch_ids(path: Path) -> tuple[UUID, ...]:
+    return tuple(
+        UUID(event.removeprefix("operation:inspect:"))
+        for event in _events(path)
+        if event.startswith("operation:inspect:")
+    )
+
+
 def _wait_for_dispatches_sync(path: Path, expected: int) -> None:
     deadline = time.monotonic() + 15
     while time.monotonic() < deadline:
-        if _events(path).count("operation:inspect") == expected:
+        if len(_dispatch_ids(path)) == expected:
             return
         time.sleep(0.05)
     raise AssertionError(f"Expected exactly {expected} Provider dispatches")
@@ -238,6 +249,77 @@ async def _uncertain_admission(
     return operation_id
 
 
+async def _prepare_uncertain_process(
+    arguments: argparse.Namespace,
+) -> dict[str, str | int]:
+    """Leave one unresolved intent in the installed Agent journal."""
+    journal = SqliteJournal(_JOURNAL)
+    await journal.open()
+    manager, coordinator = await _manager(journal, attempts=1)
+    try:
+        provider_id = arguments.provider_instance_id
+        await manager.establish(_descriptor(provider_id))
+        await _wait_for_availability(
+            manager, provider_id, ProviderAvailabilityState.AVAILABLE
+        )
+        operation_id = await _uncertain_admission(
+            manager,
+            coordinator,
+            provider_id,
+            arguments.state_directory,
+            "requester-rebuild",
+        )
+        return {
+            "operation_id": str(operation_id),
+            "requester_pid": os.getpid(),
+        }
+    finally:
+        await manager.close()
+        await journal.close()
+
+
+async def _spawn_uncertain_requester(
+    arguments: argparse.Namespace,
+) -> tuple[UUID, int]:
+    """Run the unresolved admission in a distinct installed-RPM process."""
+    process = await asyncio.create_subprocess_exec(
+        sys.executable,
+        "-I",
+        str(Path(__file__)),
+        "--provider-instance-id",
+        str(arguments.provider_instance_id),
+        "--state-directory",
+        str(arguments.state_directory),
+        "--unit-name",
+        arguments.unit_name,
+        "--prepare-uncertain",
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    try:
+        output, error = await asyncio.wait_for(
+            process.communicate(), timeout=30
+        )
+    except TimeoutError as timeout_error:
+        process.kill()
+        await process.wait()
+        raise AssertionError(
+            "Uncertain requester did not exit"
+        ) from timeout_error
+    if process.returncode != 0:
+        raise AssertionError(
+            "Uncertain requester failed: "
+            + error.decode("utf-8", errors="replace")[-2000:]
+        )
+    checkpoint = json.loads(output)
+    requester_pid = checkpoint["requester_pid"]
+    if requester_pid != process.pid or requester_pid == os.getpid():
+        raise AssertionError(
+            "Uncertain request did not cross a process boundary"
+        )
+    return UUID(checkpoint["operation_id"]), requester_pid
+
+
 async def _replacement(
     provider_id: UUID, previous_generation: int
 ) -> ProviderEndpointDescriptor:
@@ -270,7 +352,8 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
         await _wait_for_availability(
             manager, provider_id, ProviderAvailabilityState.AVAILABLE
         )
-        initial_count = _events(event_log).count("operation:inspect")
+        initial_dispatches = _dispatch_ids(event_log)
+        initial_count = len(initial_dispatches)
         accepted = await manager.admit_operation(
             _request(provider_id, "first")
         )
@@ -308,7 +391,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
         ):
             raise AssertionError("Concurrent admission had multiple winners")
         await _wait_for_dispatches(event_log, initial_count + 2)
-        if _events(event_log).count("operation:inspect") != initial_count + 2:
+        if len(_dispatch_ids(event_log)) != initial_count + 2:
             raise AssertionError("Concurrent admission dispatched twice")
         replay = await client.start(lease.channel, wire)
         if (
@@ -331,7 +414,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
         else:
             raise AssertionError("Changed content was accepted")
 
-        before_rejections = _events(event_log).count("operation:inspect")
+        before_rejections = len(_dispatch_ids(event_log))
         malformed = admission_pb2.StartOperationRequest()
         malformed.CopyFrom(wire)
         malformed.invocation.operation_id = str(uuid4())
@@ -389,7 +472,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
         await _wait_for_availability(
             manager, provider_id, ProviderAvailabilityState.AVAILABLE
         )
-        if _events(event_log).count("operation:inspect") != before_rejections:
+        if len(_dispatch_ids(event_log)) != before_rejections:
             raise AssertionError("Rejected work reached the author operation")
 
         before_retry = tuple(
@@ -427,16 +510,13 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             raise AssertionError("Fault hook did not discard a response")
 
         await manager.close()
-        manager, coordinator = await _manager(journal, attempts=1)
-        await manager.establish(initial)
-        await _wait_for_availability(
-            manager, provider_id, ProviderAvailabilityState.AVAILABLE
-        )
-        rebuilt_id = await _uncertain_admission(
-            manager, coordinator, provider_id, state, "requester-rebuild"
+        await journal.close()
+        rebuilt_id, uncertain_requester_pid = await _spawn_uncertain_requester(
+            arguments
         )
         await _wait_for_dispatches(event_log, initial_count + 4)
-        await manager.close()
+        journal = SqliteJournal(_JOURNAL)
+        await journal.open()
         manager, coordinator = await _manager(journal)
         await manager.establish(initial)
         await _wait_for_availability(
@@ -450,7 +530,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             raise AssertionError(
                 "Rebuilt Agent did not resolve Provider record"
             )
-        if _events(event_log).count("operation:inspect") != initial_count + 4:
+        if len(_dispatch_ids(event_log)) != initial_count + 4:
             raise AssertionError("Requester rebuild re-dispatched work")
 
         await manager.close()
@@ -484,21 +564,56 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             raise AssertionError(
                 "Provider restart blindly re-admitted old work"
             )
-        if _events(event_log).count("operation:inspect") != initial_count + 5:
+        if len(_dispatch_ids(event_log)) != initial_count + 5:
             raise AssertionError("Indeterminate resolution re-dispatched work")
-        old_fence = admission_pb2.StartOperationRequest()
-        old_fence.CopyFrom(wire)
-        old_fence.invocation.operation_id = str(uuid4())
-        try:
-            new_lease = await manager._operation_admission_lease(provider_id)
-            await client.start(new_lease.channel, old_fence)
-        except SfpOperationAdmissionRejectedError as error:
-            if "OPERATION_PRECONDITION_FAILED" not in error.rejection.reason:
-                raise AssertionError(
-                    "Stale fence had the wrong reason"
-                ) from error
-        else:
-            raise AssertionError("Superseded generation was accepted")
+        new_lease = await manager._operation_admission_lease(provider_id)
+        old_revision = new_lease.manifest_revision
+        stale_revision = old_revision[:-1] + (
+            "0" if old_revision[-1] != "0" else "1"
+        )
+        for name, generation, session_id, revision in (
+            (
+                "generation",
+                initial.endpoint_generation,
+                new_lease.session_id,
+                new_lease.manifest_revision,
+            ),
+            (
+                "session",
+                replacement.endpoint_generation,
+                wire.session_binding.expected_session_id,
+                new_lease.manifest_revision,
+            ),
+            (
+                "manifest",
+                replacement.endpoint_generation,
+                new_lease.session_id,
+                stale_revision,
+            ),
+        ):
+            stale_request = _wire_request(
+                provider_id=provider_id,
+                generation=generation,
+                session_id=session_id,
+                manifest_revision=revision,
+                operation_id=uuid4(),
+            )
+            try:
+                await client.start(new_lease.channel, stale_request)
+            except SfpOperationAdmissionRejectedError as error:
+                if (
+                    "OPERATION_PRECONDITION_FAILED"
+                    not in error.rejection.reason
+                ):
+                    raise AssertionError(
+                        f"Stale {name} had the wrong reason"
+                    ) from error
+            else:
+                raise AssertionError(f"Stale {name} was accepted")
+        if len(_dispatch_ids(event_log)) != initial_count + 5:
+            raise AssertionError(
+                "Stale fence request reached author operation"
+            )
         fresh = await manager.admit_operation(
             _request(provider_id, "replacement")
         )
@@ -514,11 +629,15 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             )
         await asyncio.sleep(1)
         expired = admission_pb2.StartOperationRequest()
-        expired.CopyFrom(old_fence)
-        expired.session_binding.expected_endpoint_generation = (
-            replacement.endpoint_generation
+        expired.CopyFrom(
+            _wire_request(
+                provider_id=provider_id,
+                generation=replacement.endpoint_generation,
+                session_id=new_lease.session_id,
+                manifest_revision=new_lease.manifest_revision,
+                operation_id=fresh.operation_id,
+            )
         )
-        expired.session_binding.expected_session_id = new_lease.session_id
         expired.invocation.CopyFrom(fresh_attempt.invocation)
         expired.admission_mode = admission_pb2.ADMISSION_MODE_RESOLVE_ONLY
         try:
@@ -530,8 +649,23 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
                 ) from error
         else:
             raise AssertionError("Expired Provider record was resolved")
-        if _events(event_log).count("operation:inspect") != initial_count + 6:
+        if len(_dispatch_ids(event_log)) != initial_count + 6:
             raise AssertionError("Expired identity re-dispatched work")
+        expected_dispatches = (
+            accepted.operation_id,
+            UUID(wire.invocation.operation_id),
+            recovered.operation_id,
+            rebuilt_id,
+            lost_id,
+            fresh.operation_id,
+        )
+        observed_dispatches = _dispatch_ids(event_log)[initial_count:]
+        if len(set(expected_dispatches)) != len(expected_dispatches):
+            raise AssertionError("Scenario reused an operation identity")
+        if Counter(observed_dispatches) != Counter(expected_dispatches):
+            raise AssertionError(
+                "Dispatches did not match admitted identities"
+            )
         await _restart("stateforge-agent.service")
         agent_state = await asyncio.create_subprocess_exec(
             "/usr/bin/systemctl",
@@ -562,16 +696,22 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             "lost_response_recovered": recovered.disposition.value,
             "lost_response_attempts": retry_attempt.attempt_count,
             "requester_rebuild_resolved": rebuilt.disposition.value,
+            "uncertain_requester_pid": uncertain_requester_pid,
+            "resolving_requester_pid": os.getpid(),
             "provider_restart_indeterminate": True,
             "expired_record_rejected": True,
             "schema_rejected": True,
             "deadline_rejected": True,
             "readiness_rejected_and_recovered": True,
             "agent_service_restarted": True,
-            "stale_fence_rejected": True,
+            "stale_generation_rejected": True,
+            "stale_session_rejected": True,
+            "stale_manifest_rejected": True,
             "changed_content_rejected": True,
-            "dispatches": _events(event_log).count("operation:inspect")
-            - initial_count,
+            "dispatches": len(observed_dispatches),
+            "dispatch_operation_ids": [
+                str(operation_id) for operation_id in observed_dispatches
+            ],
             "target_unchanged": True,
         }
         if _SECRET in json.dumps(evidence):
@@ -584,8 +724,17 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
 
 def main() -> None:
     """Emit only bounded, secret-safe JSON evidence to stdout."""
+    arguments = _arguments()
     sys.stdout.write(
-        json.dumps(asyncio.run(_run(_arguments())), indent=2, sort_keys=True)
+        json.dumps(
+            asyncio.run(
+                _prepare_uncertain_process(arguments)
+                if arguments.prepare_uncertain
+                else _run(arguments)
+            ),
+            indent=2,
+            sort_keys=True,
+        )
         + "\n"
     )
 

@@ -403,6 +403,12 @@ def test_operation_admission_exercises_installed_agent_requester() -> None:
     assert "OperationAdmissionService.StartOperation" in fixture
     assert "drop-next-operation-response" in fixture
     assert "operation-admission-attempt:" in fixture
+    assert "operation:inspect:{context.operation_id}" in fixture
+    assert "--prepare-uncertain" in assertion
+    assert "stale_generation_rejected" in assertion
+    assert "stale_session_rejected" in assertion
+    assert "stale_manifest_rejected" in assertion
+    assert "dispatch_operation_ids" in assertion
     assert "stateforge-r19-secret-never-in-evidence" in scenario
 
 

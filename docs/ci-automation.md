@@ -246,10 +246,16 @@ state.
 
 R19 keeps the independent Protocol peer for deterministic Provider registry
 checks and adds a separate installed-Agent scenario. The latter imports the
-requester from the installed RPM, uses the real Provider process on its Unix
-socket, and correlates Agent dispositions with Provider dispatch events and
-serialized-request digests. A response-loss marker is confined to the CI
-fixture; no production author API or wire contract changes for this test.
+requester from the installed RPM in a standalone verifier process, uses the real
+systemd-managed Provider on its Unix socket, and correlates Agent dispositions
+with operation-ID-specific Provider dispatch events and serialized-request
+digests. It also checks generation, session, and manifest fences independently
+and resolves an uncertain admission from a new requester process using the same
+durable Agent journal. The Agent daemon runs and monitors the Provider, but it
+does not originate these admission calls: it has no operation-submission ingress
+yet. This is installed Agent requester-code integration, not daemon-level
+admission. A response-loss marker is confined to the CI fixture; no production
+author API or wire contract changes for this test.
 The retained evidence includes exact artifact checksums, Agent and Provider
 process identities, endpoint generations, journal excerpts, dispositions,
 dispatch counts, and final cleanup state.

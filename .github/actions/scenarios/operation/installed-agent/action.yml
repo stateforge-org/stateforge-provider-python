@@ -75,7 +75,7 @@ runs:
         endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
         evidence-directory: ${{ inputs.evidence-directory }}/agent
 
-    - name: Exercise admission through the installed Agent package
+    - name: Exercise admission through installed Agent requester code
       id: assertion
       shell: bash
       env:
@@ -95,14 +95,17 @@ runs:
           --state-directory "${STATE_DIRECTORY}" \
           --unit-name "${UNIT_NAME}" \
           > "${EVIDENCE_DIRECTORY}/operation-admission.json"
-        jq -e '.dispatches == 6 and .lost_response_attempts == 2
+        jq -e '.dispatches == 6 and (.dispatch_operation_ids | length) == 6
+          and .uncertain_requester_pid != .resolving_requester_pid
+          and .lost_response_attempts == 2
           and .replacement_endpoint_generation > .initial_endpoint_generation
           and .concurrent_requests == 20 and .concurrent_accepted_new == 1
           and .schema_rejected and .deadline_rejected
           and .readiness_rejected_and_recovered
           and .requester_rebuild_resolved == "resolved_existing"
           and .provider_restart_indeterminate and .expired_record_rejected
-          and .stale_fence_rejected and .changed_content_rejected
+          and .stale_generation_rejected and .stale_session_rejected
+          and .stale_manifest_rejected and .changed_content_rejected
           and .agent_service_restarted and .target_unchanged' \
           "${EVIDENCE_DIRECTORY}/operation-admission.json" >/dev/null
         socket="$(jq -r '.final_socket_path' \

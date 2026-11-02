@@ -17,6 +17,7 @@ from stateforge_protocol.sfp.operation_admission.v1 import (
 
 from stateforge_provider import (
     HealthStatus,
+    OperationContext,
     Platform,
     Provider,
     ProviderModel,
@@ -91,9 +92,11 @@ class AdmissionFixture(Provider):
         return self._health
 
     @operation("stateforge.test/inspect@1")
-    async def inspect(self, request: Input) -> Result:
+    async def inspect(
+        self, request: Input, context: OperationContext
+    ) -> Result:
         """Perform one read-only operation and record its dispatch."""
-        self._record("operation:inspect")
+        self._record(f"operation:inspect:{context.operation_id}")
         return Result(value=request.value)
 
     def _record(self, event: str) -> None:
