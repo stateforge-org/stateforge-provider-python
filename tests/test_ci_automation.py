@@ -325,6 +325,7 @@ def test_trigger_publication_keeps_the_focused_protocol_peer() -> None:
     assert "publish_trigger(" in verifier
     assert "compute_publication_content_fingerprint" in verifier
     assert "source_replayed_after_reconnect" in verifier
+    assert "_verify_unprovable_trigger_state" in verifier
     for evidence_field in (
         "installed_artifacts",
         "initial_session_id",
@@ -336,6 +337,9 @@ def test_trigger_publication_keeps_the_focused_protocol_peer() -> None:
         "source_acknowledgement_observed",
         "sentinel_publication_id",
         "sentinel_outcome",
+        "unacknowledged_publication_id",
+        "endpoint_generation_increased",
+        "lost_publication_recreated",
         "final_process_state",
         "descriptor_removed",
         "socket_removed",
@@ -369,6 +373,8 @@ def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
     assert "@operation(" in verifier
     assert "OperationContext" in verifier
     assert "StartOperation" in verifier
+    assert '"reconnect_session_changed"' in verifier
+    assert '"reconnected_lifecycle_terminal_state"' in verifier
     for evidence_field in (
         "installed_artifacts",
         "concurrent_requests",

@@ -35,6 +35,7 @@ from stateforge_provider import (
     ProviderModel,
     Trigger,
     TriggerPublicationDisposition,
+    TriggerPublicationUnavailableError,
     trigger,
 )
 
@@ -262,6 +263,164 @@ async def _prepare_runtime(runtime_directory: Path) -> None:
         (runtime_directory / "discovery").mkdir,
         parents=True,
     )
+
+
+async def _verify_unprovable_trigger_state(
+    runtime_directory: Path,
+) -> dict[str, object]:
+    """Do not recreate an unacknowledged publication after runtime loss."""
+    await _prepare_runtime(runtime_directory)
+    descriptor, publication_id = await _publish_then_stop(runtime_directory)
+    return await _assert_runtime_replacement_does_not_replay(
+        runtime_directory,
+        descriptor,
+        publication_id,
+    )
+
+
+async def _publish_then_stop(
+    runtime_directory: Path,
+) -> tuple[dict[str, object], str]:
+    """Stop one runtime after delivery but before the trigger ACK."""
+    first_provider = TriggerProvider(runtime_directory)
+    first_task = asyncio.create_task(first_provider.serve())
+    first_channel: grpc.aio.Channel | None = None
+    first_call: (
+        grpc.aio.StreamStreamCall[
+            trigger_publication_pb2.StreamTriggersRequest,
+            trigger_publication_pb2.StreamTriggersResponse,
+        ]
+        | None
+    ) = None
+    first_receipt = None
+    try:
+        descriptor = await _descriptor(
+            runtime_directory / "discovery",
+            first_task,
+        )
+        first_channel = grpc.aio.insecure_channel(
+            f"unix:{descriptor['transport']['socket_path']}"
+        )
+        await asyncio.wait_for(first_channel.channel_ready(), timeout=3)
+        handshake, snapshot = await _session(
+            bootstrap_pb2_grpc.BootstrapServiceStub(first_channel),
+            manifest_pb2_grpc.ManifestServiceStub(first_channel),
+            descriptor,
+        )
+        first_call = await _stream(
+            trigger_publication_pb2_grpc.TriggerPublicationServiceStub(
+                first_channel
+            ),
+            handshake,
+            snapshot,
+        )
+        first_receipt = await first_provider.publish_trigger(
+            DEPLOYMENT_COMPLETED,
+            DeploymentCompleted(
+                environment="recovery",
+                revision="unacknowledged",
+            ),
+        )
+        publication = (await first_call.read()).publication
+        _require(
+            publication.publication_id == str(first_receipt.publication_id),
+            "unacknowledged publication identity",
+        )
+        publication_id = publication.publication_id
+        first_call.cancel()
+        await first_channel.close()
+        first_provider.request_shutdown()
+        await asyncio.wait_for(first_task, timeout=5)
+        try:
+            await first_receipt.outcome()
+        except TriggerPublicationUnavailableError:
+            receipt_closed = True
+        else:
+            receipt_closed = False
+        _require(receipt_closed, "lost runtime reports unresolved receipt")
+        return descriptor, publication_id
+    finally:
+        if first_call is not None:
+            first_call.cancel()
+        if first_channel is not None:
+            await first_channel.close()
+        if not first_task.done():
+            first_provider.request_shutdown()
+            await asyncio.wait_for(first_task, timeout=5)
+
+
+async def _assert_runtime_replacement_does_not_replay(
+    runtime_directory: Path,
+    previous_descriptor: dict[str, object],
+    publication_id: str,
+) -> dict[str, object]:
+    """Require a new runtime to leave unprovable trigger state absent."""
+    provider = TriggerProvider(runtime_directory)
+    task = asyncio.create_task(provider.serve())
+    channel: grpc.aio.Channel | None = None
+    call: (
+        grpc.aio.StreamStreamCall[
+            trigger_publication_pb2.StreamTriggersRequest,
+            trigger_publication_pb2.StreamTriggersResponse,
+        ]
+        | None
+    ) = None
+    try:
+        descriptor = await _descriptor(
+            runtime_directory / "discovery",
+            task,
+        )
+        _require(
+            descriptor["provider_instance_id"]
+            == previous_descriptor["provider_instance_id"],
+            "same installation identity after runtime replacement",
+        )
+        _require(
+            int(descriptor["endpoint_generation"])
+            > int(previous_descriptor["endpoint_generation"]),
+            "new endpoint generation after runtime replacement",
+        )
+        channel = grpc.aio.insecure_channel(
+            f"unix:{descriptor['transport']['socket_path']}"
+        )
+        await asyncio.wait_for(channel.channel_ready(), timeout=3)
+        handshake, snapshot = await _session(
+            bootstrap_pb2_grpc.BootstrapServiceStub(channel),
+            manifest_pb2_grpc.ManifestServiceStub(channel),
+            descriptor,
+        )
+        call = await _stream(
+            trigger_publication_pb2_grpc.TriggerPublicationServiceStub(
+                channel
+            ),
+            handshake,
+            snapshot,
+        )
+        try:
+            async with asyncio.timeout(0.2):
+                await call.read()
+        except TimeoutError:
+            publication_not_fabricated = True
+        else:
+            publication_not_fabricated = False
+        _require(
+            publication_not_fabricated,
+            "unprovable publication is not reconstructed",
+        )
+        return {
+            "unacknowledged_publication_id": publication_id,
+            "provider_instance_preserved": True,
+            "endpoint_generation_increased": True,
+            "lost_publication_recreated": False,
+        }
+    finally:
+        if call is not None:
+            call.cancel()
+        provider.request_shutdown()
+        if not task.done():
+            await asyncio.wait_for(task, timeout=5)
+        if channel is not None:
+            await channel.close()
 
 
 async def _prove_source_acknowledgement(
@@ -591,6 +750,11 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
     )
     evidence["socket_removed"] = (
         socket_path is not None and not socket_path.exists()
+    )
+    evidence.update(
+        await _verify_unprovable_trigger_state(
+            runtime_directory / "unprovable-trigger-state"
+        )
     )
     return evidence
 
