@@ -1,0 +1,166 @@
+name: Verify Operation Lifecycle with the installed Agent
+description: Exercise installed Agent lifecycle code against the real Provider endpoint.
+
+inputs:
+  agent-artifact-directory:
+    description: Directory containing the exact Agent RPM build.
+    required: true
+  agent-test-image-directory:
+    description: Bundled Agent Fedora runtime-test image definition.
+    required: true
+  provider-artifact-directory:
+    description: Directory containing the exact Provider wheel.
+    required: true
+  protocol-artifact-directory:
+    description: Directory containing the exact Protocol wheel.
+    required: true
+  runtime-directory:
+    description: Scenario-owned directory under the runner temp directory.
+    required: true
+  evidence-directory:
+    description: Directory receiving bounded scenario evidence.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install exact runtime artifacts
+      id: system
+      uses: ./.github/actions/agent/install
+      with:
+        agent-artifact-directory: ${{ inputs.agent-artifact-directory }}
+        agent-test-image-directory: ${{ inputs.agent-test-image-directory }}
+        provider-artifact-directory: ${{ inputs.provider-artifact-directory }}
+        protocol-artifact-directory: ${{ inputs.protocol-artifact-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}/installation
+
+    - name: Start installed Agent service
+      uses: ./.github/actions/agent/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+
+    - name: Stage lifecycle Provider fixture
+      id: fixture
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        RUNTIME_DIRECTORY: ${{ inputs.runtime-directory }}
+      run: |
+        set -euo pipefail
+        root="${RUNTIME_DIRECTORY}/lifecycle-provider"
+        mkdir -p "${root}"
+        install -m 0644 "${ACTION_PATH}/fixture.py" "${root}/provider.py"
+        {
+          echo "fixture-path=${root}/provider.py"
+          echo "instance-name=lifecycle-provider"
+          echo "state-name=lifecycle-provider"
+        } >> "${GITHUB_OUTPUT}"
+
+    - name: Start real lifecycle Provider fixture
+      id: provider
+      uses: ./.github/actions/provider/start
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        fixture-path: ${{ steps.fixture.outputs.fixture-path }}
+        instance-name: ${{ steps.fixture.outputs.instance-name }}
+        state-name: ${{ steps.fixture.outputs.state-name }}
+        identity: stateforge.test.operation_lifecycle
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Assert Agent-accepted session
+      uses: ./.github/actions/agent/assert-session
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        provider-instance-id: ${{ steps.provider.outputs.provider-instance-id }}
+        endpoint-generation: ${{ steps.provider.outputs.endpoint-generation }}
+        evidence-directory: ${{ inputs.evidence-directory }}/agent
+
+    - name: Exercise installed Agent Operation Lifecycle requester
+      id: assertion
+      shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}/lifecycle
+        EVENT_LOG: ${{ steps.provider.outputs.event-log }}
+        JOURNAL_PATH: /var/lib/stateforge-agent/journal/operation-lifecycle-r20.db
+        PROVIDER_INSTANCE_ID: ${{ steps.provider.outputs.provider-instance-id }}
+        STATE_DIRECTORY: ${{ steps.provider.outputs.state-directory }}
+        UNIT_NAME: ${{ steps.provider.outputs.unit-name }}
+      run: |
+        set -euo pipefail
+        mkdir -p "${EVIDENCE_DIRECTORY}"
+        verifier=/opt/stateforge-provider-tests/lifecycle-assert.py
+        docker cp "${ACTION_PATH}/assert.py" "${CONTAINER_NAME}:${verifier}"
+        docker exec "${CONTAINER_NAME}" /usr/bin/python3 "${verifier}" \
+          --provider-instance-id "${PROVIDER_INSTANCE_ID}" \
+          --journal-path "${JOURNAL_PATH}" \
+          --state-directory "${STATE_DIRECTORY}" \
+          --event-log "${EVENT_LOG}" \
+          --unit-name "${UNIT_NAME}" \
+          > "${EVIDENCE_DIRECTORY}/operation-lifecycle.json"
+        jq -e '.late_replay and ((.progress_sequences | length) >= 2)
+          and .cursor_gap_replayed
+          and .success_result and .expected_failure and .sanitized_failure
+          and .invalid_result and .cancellation_completed and .cancellation_effects
+          and .cancellation_race_resolved
+          and .watch_retry_injected and .watch_retry_recovered
+          and .requester_restarted and .stale_session_rejected
+          and .provider_restarted and .endpoint_generation_increased
+          and .no_redispatch
+          and .restarted_terminal_state == "OPERATION_STATE_SUCCEEDED"
+          and .restarted_session_id != .session_id
+          and .dispatches == 6' \
+          "${EVIDENCE_DIRECTORY}/operation-lifecycle.json" >/dev/null
+
+    - name: Capture final Provider endpoint for cleanup
+      id: final-provider
+      if: ${{ always() }}
+      shell: bash
+      env:
+        CONTAINER_NAME: ${{ steps.system.outputs.container-name }}
+        DESCRIPTOR_PATH: ${{ steps.provider.outputs.descriptor-path }}
+        FALLBACK_SOCKET_PATH: ${{ steps.provider.outputs.socket-path }}
+      run: |
+        set -euo pipefail
+        socket_path="${FALLBACK_SOCKET_PATH}"
+        if [[ -n "${DESCRIPTOR_PATH}" ]] && docker exec \
+          "${CONTAINER_NAME}" test -f "${DESCRIPTOR_PATH}"; then
+          socket_path="$(docker exec "${CONTAINER_NAME}" \
+            jq -r .transport.socket_path "${DESCRIPTOR_PATH}")"
+        fi
+        echo "socket-path=${socket_path}" >> "${GITHUB_OUTPUT}"
+
+    - name: Stop real lifecycle Provider fixture
+      if: ${{ always() }}
+      uses: ./.github/actions/provider/stop
+      with:
+        container-name: ${{ steps.system.outputs.container-name }}
+        unit-name: ${{ steps.provider.outputs.unit-name }}
+        descriptor-path: ${{ steps.provider.outputs.descriptor-path }}
+        socket-path: ${{ steps.final-provider.outputs.socket-path }}
+        event-log: ${{ steps.provider.outputs.event-log }}
+        evidence-directory: ${{ inputs.evidence-directory }}/provider
+
+    - name: Preserve bounded evidence and clean up
+      if: ${{ always() }}
+      uses: ./.github/actions/evidence/collect
+      with:
+        stage: operation-lifecycle-agent
+        container-name: ${{ steps.system.outputs.container-name }}
+        runtime-directory: ${{ inputs.runtime-directory }}
+        evidence-directory: ${{ inputs.evidence-directory }}
+
+    - name: Reject sensitive lifecycle evidence
+      if: ${{ always() }}
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.evidence-directory }}
+      run: |
+        set -euo pipefail
+        if grep --recursive --fixed-strings --line-number \
+          'stateforge-r20-secret-never-in-evidence' \
+          "${EVIDENCE_DIRECTORY}"; then
+          echo 'Sensitive operation content reached evidence' >&2
+          exit 1
+        fi

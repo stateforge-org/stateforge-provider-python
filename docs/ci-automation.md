@@ -168,7 +168,14 @@ The runtime suite currently covers:
   immutable terminal replay, requested and repeated cancellation, confirmed
   cancellation effects, unsupported cancellation, invalid-progress
   normalization, stale-session rejection, canonical request limits, and clean
-  endpoint removal; and
+  endpoint removal;
+- end-to-end Operation Lifecycle through the exact installed Agent RPM and
+  exact Provider and Protocol wheels, including Agent-observed progress,
+  terminal replay, cursor-gap indication, Watch retry after a deterministic
+  transport interruption without redispatch, typed failure and invalid-result
+  normalization, cooperative cancellation and a completion/cancellation
+  race, durable terminal state across a separate installed-Agent requester
+  process, and rejection of its superseded session; and
 - end-to-end Trigger Publication through the exact installed Agent RPM and
   exact Provider and Protocol wheels, including durable `accepted_new`, a lost
   acknowledgement, Agent crash and restart, immutable replay with
@@ -259,6 +266,19 @@ author API or wire contract changes for this test.
 The retained evidence includes exact artifact checksums, Agent and Provider
 process identities, endpoint generations, journal excerpts, dispositions,
 dispatch counts, and final cleanup state.
+
+R20 adds an installed-Agent Operation Lifecycle scenario beside the direct
+Protocol-peer scenario. It runs the Agent RPM's session manager, admission and
+lifecycle coordinators, journal, and lifecycle client in a standalone
+requester process against the real Provider's generation-specific Unix socket.
+The systemd Agent service is installed and started, but it is not an operation
+ingress path; this verifies installed requester-to-Provider behavior, not
+daemon-level submission. A second installed-RPM requester process reopens the
+same isolated journal after a systemd-managed Provider restart, establishes a
+fresh session on the incremented endpoint generation, confirms retained
+terminal state, and proves a Watch using the superseded session and generation
+is rejected. Slow-observer and observer-capacity behavior remains covered by
+the independent Protocol-peer scenario.
 
 ## Evidence and security
 
