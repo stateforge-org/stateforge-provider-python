@@ -31,6 +31,13 @@ from stateforge_protocol.sfp.operation_admission.v1 import (
     operation_admission_pb2_grpc,
     validation,
 )
+from stateforge_protocol.sfp.operation_lifecycle.v1 import (
+    operation_lifecycle_pb2,
+    operation_lifecycle_pb2_grpc,
+)
+from stateforge_protocol.sfp.operation_lifecycle.v1 import (
+    validation as lifecycle_validation,
+)
 
 from stateforge_provider import (
     OperationContext,
@@ -255,10 +262,10 @@ async def _verify_canonical_rejections(
     return statuses
 
 
-async def _verify_lost_response_replay(  # noqa: PLR0915
+async def _verify_lost_response_replay(  # noqa: PLR0912, PLR0915
     base_directory: Path,
 ) -> dict[str, object]:
-    """Lose one admitted response and prove identical replay resolves."""
+    """Reconnect after a lost admission response and resume retained work."""
     original = OperationAdmissionService.StartOperation
     attempts: list[bytes] = []
     drop_once = True
@@ -301,7 +308,8 @@ async def _verify_lost_response_replay(  # noqa: PLR0915
         admission = operation_admission_pb2_grpc.OperationAdmissionServiceStub(
             channel
         ).StartOperation
-        request = _request(handshake, manifest, operation_id=str(uuid4()))
+        operation_id = str(uuid4())
+        request = _request(handshake, manifest, operation_id=operation_id)
         try:
             await admission(request, timeout=3)
         except grpc.aio.AioRpcError as error:
@@ -310,18 +318,94 @@ async def _verify_lost_response_replay(  # noqa: PLR0915
         else:
             raise RuntimeError("first response was not lost")
         await asyncio.wait_for(provider.started.wait(), timeout=2)
+        await channel.close()
+        (
+            channel,
+            admission,
+            reconnect,
+            reconnect_manifest,
+            reconnect_descriptor,
+        ) = await _connect_provider(
+            base_directory / "discovery",
+            provider_task,
+        )
+        if (
+            reconnect.provider_instance_id != handshake.provider_instance_id
+            or reconnect.endpoint_generation != handshake.endpoint_generation
+            or reconnect.session_id == handshake.session_id
+            or reconnect_manifest.manifest_revision
+            != manifest.manifest_revision
+            or reconnect_descriptor["endpoint_generation"]
+            != descriptor["endpoint_generation"]
+        ):
+            raise RuntimeError("same-process reconnect identity changed")
+        replay_request = operation_admission_pb2.StartOperationRequest()
+        replay_request.CopyFrom(request)
+        replay_request.session_binding.CopyFrom(
+            operation_admission_pb2.OperationSessionBinding(
+                expected_provider_instance_id=reconnect.provider_instance_id,
+                expected_endpoint_generation=reconnect.endpoint_generation,
+                expected_session_id=reconnect.session_id,
+            )
+        )
         before = provider.dispatches
-        replayed = await admission(request, timeout=3)
-        validation.validate_admission_exchange(request, replayed)
+        replayed = await admission(replay_request, timeout=3)
+        validation.validate_admission_exchange(replay_request, replayed)
         if replayed.disposition != _RESOLVED_EXISTING:
             raise RuntimeError("lost-response replay did not resolve existing")
         if (
             len(attempts) != _EXPECTED_LOST_RESPONSE_ATTEMPTS
-            or attempts[0] != attempts[1]
+            or operation_admission_pb2.StartOperationRequest.FromString(
+                attempts[0]
+            ).invocation
+            != operation_admission_pb2.StartOperationRequest.FromString(
+                attempts[1]
+            ).invocation
+            or operation_admission_pb2.StartOperationRequest.FromString(
+                attempts[1]
+            )
+            != replay_request
+            or request.invocation != replay_request.invocation
         ):
-            raise RuntimeError("lost-response replay changed request bytes")
+            raise RuntimeError("reconnect replay changed invocation content")
         if provider.dispatches != before:
             raise RuntimeError("lost-response replay dispatched again")
+        lifecycle = operation_lifecycle_pb2_grpc.OperationLifecycleServiceStub(
+            channel
+        )
+        fingerprint = validation.compute_request_fingerprint(
+            replay_request.invocation
+        )
+        watch_request = operation_lifecycle_pb2.WatchOperationRequest(
+            session_binding=replay_request.session_binding,
+            operation_id=operation_id,
+            expected_request_fingerprint=fingerprint,
+            after_sequence=0,
+        )
+        watch = lifecycle.WatchOperation(watch_request, timeout=3)
+        first_snapshot = await watch.read()
+        lifecycle_validation.validate_watch_exchange(
+            watch_request,
+            first_snapshot,
+        )
+        provider.release.set()
+        terminal = first_snapshot.snapshot
+        while terminal.state not in {
+            operation_lifecycle_pb2.OPERATION_STATE_SUCCEEDED,
+            operation_lifecycle_pb2.OPERATION_STATE_FAILED,
+            operation_lifecycle_pb2.OPERATION_STATE_CANCELLED,
+        }:
+            update = await watch.read()
+            lifecycle_validation.validate_watch_exchange(
+                watch_request,
+                update,
+                previous_sequence=terminal.sequence,
+            )
+            terminal = update.snapshot
+        if provider.dispatches != 1:
+            raise RuntimeError(
+                "reconnected operation dispatched more than once"
+            )
         return {
             "request_fingerprint": replayed.record.request_fingerprint,
             "lost_response_attempts": len(attempts),
@@ -331,6 +415,14 @@ async def _verify_lost_response_replay(  # noqa: PLR0915
                 )
             ),
             "lost_response_replay_dispatches": provider.dispatches,
+            "reconnect_session_changed": reconnect.session_id
+            != handshake.session_id,
+            "reconnect_generation_unchanged": reconnect.endpoint_generation
+            == handshake.endpoint_generation,
+            "reconnected_lifecycle_terminal_state": (
+                operation_lifecycle_pb2.OperationState.Name(terminal.state)
+            ),
+            "reconnected_lifecycle_sequence": terminal.sequence,
         }
     finally:
         OperationAdmissionService.StartOperation = original

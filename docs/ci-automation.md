@@ -151,13 +151,17 @@ The runtime suite currently covers:
   including callback and decorated sources, a bounded receive window,
   retryable rejection with immutable replay, accepted duplicate disposition,
   terminal rejection, stale-fence rejection, stream loss, and replay under a
-  fresh fenced session;
+  fresh fenced session; runtime replacement with an unacknowledged event also
+  proves that lost in-memory publication state is reported unresolved and is
+  not fabricated or assigned a new publication identity;
 - installed-wheel Operation Admission through an independent Protocol peer,
   including exact fences, role and requirement rejection, 20 concurrent
   identical requests converging on one dispatch, typed idempotency conflict,
-  immutable author context, lost-response replay, deadline and schema
-  rejection, record expiry, restart, secret-safe evidence, and clean endpoint
-  removal;
+  immutable author context, a lost reply resolved after a fresh session on the
+  same Provider generation, lifecycle observation resumed from retained
+  state, deadline and schema rejection, record expiry, restart with explicit
+  unavailable state and no redispatch, secret-safe evidence, and clean
+  endpoint removal;
 - end-to-end Operation Admission through the exact installed Agent RPM and
   exact Provider and Protocol wheels, including Agent-normalized admission,
   identical concurrent requests, a discarded post-admission response and
