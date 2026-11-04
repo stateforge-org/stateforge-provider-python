@@ -217,12 +217,12 @@ async def _uncertain_admission(
         (_OPERATION,),
         execution_context=request.execution_context,
     )
-    lease = await manager._operation_admission_lease(provider_id)
+    lease = await manager._leases._operation_admission_lease(provider_id)
     operation_id = await coordinator.prepare(
         lease,
         request,
         assessment,
-        assert_current=manager._assert_operation_admission_is_current,
+        assert_current=manager._leases._assert_operation_admission_is_current,
     )
     (state / "drop-next-operation-response").touch()
     try:
@@ -230,7 +230,7 @@ async def _uncertain_admission(
             lease,
             operation_id,
             assessment,
-            assert_current=manager._assert_operation_admission_is_current,
+            assert_current=manager._leases._assert_operation_admission_is_current,
         )
     except OperationAdmissionUnresolvedError as error:
         if error.operation_id != operation_id:
@@ -370,7 +370,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             raise AssertionError("Agent did not retain its admission result")
 
         # The installed Agent client, not a substitute peer, sends these calls.
-        lease = await manager._operation_admission_lease(provider_id)
+        lease = await manager._leases._operation_admission_lease(provider_id)
         client = OperationAdmissionClient(timeout_seconds=3)
         wire = _wire_request(
             provider_id=provider_id,
@@ -461,7 +461,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
                 "Agent admitted while Provider was not serving"
             )
         try:
-            await manager._operation_admission_lease(provider_id)
+            await manager._leases._operation_admission_lease(provider_id)
         except OperationAdmissionPreconditionError:
             pass
         else:
@@ -566,7 +566,9 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
             )
         if len(_dispatch_ids(event_log)) != initial_count + 5:
             raise AssertionError("Indeterminate resolution re-dispatched work")
-        new_lease = await manager._operation_admission_lease(provider_id)
+        new_lease = await manager._leases._operation_admission_lease(
+            provider_id
+        )
         old_revision = new_lease.manifest_revision
         stale_revision = old_revision[:-1] + (
             "0" if old_revision[-1] != "0" else "1"

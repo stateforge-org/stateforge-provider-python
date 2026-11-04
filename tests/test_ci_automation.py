@@ -407,6 +407,10 @@ def test_operation_admission_exercises_installed_agent_requester() -> None:
     assert "Operation Admission / installed Agent RPM" in workflow
     assert "OperationAdmissionCoordinator" in assertion
     assert "OperationAdmissionClient" in assertion
+    assert "manager._leases._operation_admission_lease" in assertion
+    assert (
+        "manager._leases._assert_operation_admission_is_current" in assertion
+    )
     assert "OperationAdmissionService.StartOperation" in fixture
     assert "drop-next-operation-response" in fixture
     assert "operation-admission-attempt:" in fixture
@@ -507,6 +511,7 @@ def test_r20_installed_agent_lifecycle_is_wired() -> None:
     assert "OperationAdmissionCoordinator" in assertion
     assert "OperationLifecycleCoordinator" in assertion
     assert "OperationLifecycleClient" in assertion
+    assert "manager._leases._operation_lifecycle_lease" in assertion
     assert '"restart"' in assertion
     assert "_descriptor_generation" in assertion
     assert "--previous-generation" in assertion

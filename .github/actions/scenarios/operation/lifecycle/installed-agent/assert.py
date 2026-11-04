@@ -189,7 +189,7 @@ async def _watch_to_terminal(
     first_response: asyncio.Event,
     half_progress: asyncio.Event,
 ) -> list[operation_lifecycle_pb2.WatchOperationResponse]:
-    lease = await manager._operation_lifecycle_lease(provider_id)
+    lease = await manager._leases._operation_lifecycle_lease(provider_id)
     attempt = await admission.attempt(provider_id, operation_id)
     if attempt is None:
         raise AssertionError("Agent lost the durable operation identity")
@@ -250,7 +250,7 @@ async def _restarted_requester(
         attempt = await admission.attempt(provider_id, operation_id)
         if attempt is None:
             raise AssertionError("Restarted requester lost admission identity")
-        lease = await manager._operation_lifecycle_lease(provider_id)
+        lease = await manager._leases._operation_lifecycle_lease(provider_id)
         stale = operation_lifecycle_pb2.WatchOperationRequest(
             session_binding=operation_admission_pb2.OperationSessionBinding(
                 expected_provider_instance_id=str(provider_id),
@@ -437,7 +437,7 @@ async def _run(arguments: argparse.Namespace) -> dict[str, object]:  # noqa: PLR
 
         # A new Agent observer against the retained operation receives the
         # terminal snapshot; a nonzero cursor reports coalesced gaps.
-        lease = await manager._operation_lifecycle_lease(provider_id)
+        lease = await manager._leases._operation_lifecycle_lease(provider_id)
         attempt = await admission.attempt(provider_id, success_id)
         if attempt is None:
             raise AssertionError("Agent lost the durable operation identity")
