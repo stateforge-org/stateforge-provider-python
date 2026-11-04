@@ -8,7 +8,7 @@ ACTIONS = ROOT / ".github" / "actions"
 SERVICES = ROOT / "src" / "stateforge_provider" / "_services"
 SHA_LENGTH = 40
 SUPPORTED_PYTHON_COUNT = 3
-SCENARIO_COUNT = 13
+SCENARIO_COUNT = 14
 DOWNSTREAM_BUNDLE_CONSUMER_COUNT = 3
 DEPENDENCY_CHECKOUT_COUNT = 2
 
@@ -45,6 +45,7 @@ def test_action_library_has_focused_domain_boundaries() -> None:
         "scenarios/operation/admission",
         "scenarios/operation/installed-agent",
         "scenarios/operation/lifecycle",
+        "scenarios/operation/lifecycle/installed-agent",
         "scenarios/resilience/crash-restart",
         "scenarios/smoke/normal-lifecycle",
         "scenarios/trigger/publication",
@@ -227,14 +228,16 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
     assert len(scenarios) == SCENARIO_COUNT
     for scenario in scenarios:
         content = read(scenario)
-        if "scenarios/trigger/publication" in str(scenario) or any(
-            f"scenarios/operation/{name}" in str(scenario)
-            for name in ("admission", "lifecycle")
-        ):
+        relative_path = str(scenario.parent.relative_to(ACTIONS))
+        if relative_path in {
+            "scenarios/trigger/publication",
+            "scenarios/operation/admission",
+            "scenarios/operation/lifecycle",
+        }:
             assert "./.github/actions/environment/install" in content
             assert "./.github/actions/agent/" not in content
             assert '"${ISOLATED_PYTHON}" -I' in content
-        elif "scenarios/trigger/installed-agent" in str(scenario):
+        elif relative_path == "scenarios/trigger/installed-agent":
             assert "./.github/actions/agent/install" in content
             assert "./.github/actions/agent/start" in content
             assert (
@@ -244,7 +247,10 @@ def test_each_runtime_scenario_is_an_independent_action() -> None:
             assert "./.github/actions/provider/stop" in content
             assert "./.github/actions/evidence/collect" in content
             assert "if: ${{ always() }}" in content
-        elif "scenarios/operation/installed-agent" in str(scenario):
+        elif relative_path in {
+            "scenarios/operation/installed-agent",
+            "scenarios/operation/lifecycle/installed-agent",
+        }:
             assert "./.github/actions/agent/install" in content
             assert "./.github/actions/agent/start" in content
             assert "./.github/actions/provider/start" in content
@@ -276,6 +282,7 @@ def test_runtime_catalog_covers_required_behavior() -> None:
         "operation-admission",
         "operation-admission-agent",
         "operation-lifecycle",
+        "operation-lifecycle-agent",
     }
     for scenario in scenarios:
         assert scenario in workflow
@@ -400,6 +407,10 @@ def test_operation_admission_exercises_installed_agent_requester() -> None:
     assert "Operation Admission / installed Agent RPM" in workflow
     assert "OperationAdmissionCoordinator" in assertion
     assert "OperationAdmissionClient" in assertion
+    assert "manager._leases._operation_admission_lease" in assertion
+    assert (
+        "manager._leases._assert_operation_admission_is_current" in assertion
+    )
     assert "OperationAdmissionService.StartOperation" in fixture
     assert "drop-next-operation-response" in fixture
     assert "operation-admission-attempt:" in fixture
@@ -460,6 +471,57 @@ def test_operation_lifecycle_keeps_the_focused_protocol_peer() -> None:
         assert evidence_field in verifier
     assert "Operation Lifecycle / direct Protocol peer" in workflow
     assert "${{ runner.temp }}/sfp-r6" in workflow
+
+
+def test_r20_installed_agent_lifecycle_is_wired() -> None:
+    """Cover R20 requester behavior with exact installed runtime artifacts."""
+    scenario = read(
+        ACTIONS
+        / "scenarios"
+        / "operation"
+        / "lifecycle"
+        / "installed-agent"
+        / "action.yml"
+    )
+    fixture = read(
+        ACTIONS
+        / "scenarios"
+        / "operation"
+        / "lifecycle"
+        / "installed-agent"
+        / "fixture.py"
+    )
+    assertion = read(
+        ACTIONS
+        / "scenarios"
+        / "operation"
+        / "lifecycle"
+        / "installed-agent"
+        / "assert.py"
+    )
+    workflow = read(WORKFLOWS / "provider-runtime-scenarios.yml")
+
+    assert "./.github/actions/agent/install" in scenario
+    assert "./.github/actions/provider/start" in scenario
+    assert "./.github/actions/provider/stop" in scenario
+    assert "operation-lifecycle-r20.db" in scenario
+    assert "operation-lifecycle-agent" in workflow
+    assert "Operation Lifecycle / installed Agent RPM" in workflow
+    assert "ProviderSessionManager" in assertion
+    assert "OperationAdmissionCoordinator" in assertion
+    assert "OperationLifecycleCoordinator" in assertion
+    assert "OperationLifecycleClient" in assertion
+    assert "manager._leases._operation_lifecycle_lease" in assertion
+    assert '"restart"' in assertion
+    assert "_descriptor_generation" in assertion
+    assert "--previous-generation" in assertion
+    assert "stale_session_rejected" in assertion
+    assert "endpoint_generation_increased" in assertion
+    assert "late_replay" in assertion
+    assert "updates_skipped" in assertion
+    assert "OperationCancelledError" in fixture
+    assert "stateforge-r20-secret-never-in-evidence" in fixture
+    assert "watch:injected-unavailable" in fixture
 
 
 def test_trigger_publication_uses_exact_installed_agent_runtime() -> None:
