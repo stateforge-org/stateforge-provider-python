@@ -752,9 +752,7 @@ async def _verify(runtime_directory: Path) -> dict[str, object]:
         socket_path is not None and not socket_path.exists()
     )
     evidence.update(
-        await _verify_unprovable_trigger_state(
-            runtime_directory / "unprovable-trigger-state"
-        )
+        await _verify_unprovable_trigger_state(runtime_directory / "lost")
     )
     return evidence
 
