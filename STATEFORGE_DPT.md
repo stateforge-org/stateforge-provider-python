@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "7d83433a705a492d337586da696bddfe37824b7810b84e230e56ae75cf0122b9",
+  "fingerprint": "d001f67a6873001b7544a228cc10f32c3080cf1d0408b20b1401c3ee14d7c75e",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 40,
+      "revision": 41,
       "slug": "stateforge"
     },
     "repositories": [
@@ -8359,7 +8359,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 40
+**Revision:** 41
 
 ## Repositories
 
@@ -9628,11 +9628,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "5233695e9a5e6504d1eccfd4dc946ea71ed580902386d1bbc1b7d866e3571013",
+  "fingerprint": "3d0f74018682383defb28f9611e51f66f3069aae02a61437ce7df3ffed3144b5",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-11-05T09:13:22+00:00",
-  "plan_fingerprint": "7d83433a705a492d337586da696bddfe37824b7810b84e230e56ae75cf0122b9",
+  "generated_at": "2026-11-05T09:15:57+00:00",
+  "plan_fingerprint": "d001f67a6873001b7544a228cc10f32c3080cf1d0408b20b1401c3ee14d7c75e",
   "repositories": [
     {
       "alias": "agent",
@@ -9640,7 +9640,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "c37e6ddf914bfd4283e4f355087bb0cada5bf20b1c4f9450423542f3b4d62b87",
+        "digest": "4967b08514f8622b45887bcd7de74c7be45a86a89e3391a5a4035119700c7755",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -9648,8 +9648,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-01T15:26:02+00:00",
-      "observed_commit_sha": "caada44d4d1ff48b239f21af0cfa7087d332bc38",
+      "generated_at": "2026-11-04T12:25:12+00:00",
+      "observed_commit_sha": "f8359a34942d1369d152da8e2e0ad5db0af31493",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -19786,7 +19786,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3De4d67e8fd7abbb077e09c41664e6f2945760037e%23e4d67e8fd7abbb077e09c41664e6f2945760037e",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D9504be252d9cd15ac53fe479bfb09a3007a16aca%239504be252d9cd15ac53fe479bfb09a3007a16aca",
               "type": "library",
               "version": "0.1.0"
             },
@@ -21040,7 +21040,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "46b22ce5fd7ba93d1ce9f0261fb3555120c8ac046338b0d9aa1e14a2f3cba850",
+        "sha256": "ec7cc9914028cd5c965c4a6091fd17b7aa4b489f57da2f1134bc27f364ddcf5a",
         "spec_version": "1.5"
       }
     },
@@ -21050,7 +21050,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "e2f0642b150e87c5e2d6b540b1673df5912ce8118c96910efd4e7bcea1bbbccc",
+        "digest": "c538da8c131f3b5b78ecb1ebd3a2cfeabaf0f1b1f12aafd2cb94500410bbf5fe",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -21058,12 +21058,12 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-10-24T13:49:51+00:00",
-      "observed_commit_sha": "34562a42b7bb18ae3d7703043f6f754e3c2f0aa8",
+      "generated_at": "2026-10-27T10:20:39+00:00",
+      "observed_commit_sha": "d9b07087df94e85d062ce1168b8fe8b4e37cb895",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
-        "component_count": 64,
+        "component_count": 66,
         "document": {
           "bomFormat": "CycloneDX",
           "components": [
@@ -31678,7 +31678,20 @@ this generated file manually.
               "version": "1.17.0"
             },
             {
-              "bom-ref": "types-grpcio-58@1.84.0.20261021",
+              "bom-ref": "stateforge-docs-theme-58@0.1.0",
+              "name": "stateforge-docs-theme",
+              "properties": [
+                {
+                  "name": "uv:package:marker",
+                  "value": "python_full_version == '3.13.*'"
+                }
+              ],
+              "purl": "pkg:pypi/stateforge-docs-theme@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-docs.git%3Frev%3D0a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5%230a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5",
+              "type": "library",
+              "version": "0.1.0"
+            },
+            {
+              "bom-ref": "types-grpcio-59@1.84.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31713,7 +31726,7 @@ this generated file manually.
               "version": "1.84.0.20261021"
             },
             {
-              "bom-ref": "types-grpcio-health-checking-59@1.0.0.20261021",
+              "bom-ref": "types-grpcio-health-checking-60@1.0.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31748,7 +31761,7 @@ this generated file manually.
               "version": "1.0.0.20261021"
             },
             {
-              "bom-ref": "types-jsonschema-60@4.26.0.20261006",
+              "bom-ref": "types-jsonschema-61@4.26.0.20261006",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31783,7 +31796,7 @@ this generated file manually.
               "version": "4.26.0.20261006"
             },
             {
-              "bom-ref": "types-protobuf-61@7.35.1.20260906",
+              "bom-ref": "types-protobuf-62@7.35.1.20260906",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31818,7 +31831,42 @@ this generated file manually.
               "version": "7.35.1.20260906"
             },
             {
-              "bom-ref": "typing-extensions-62@4.16.0",
+              "bom-ref": "types-pyyaml-63@6.0.12.20260906",
+              "externalReferences": [
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz"
+                },
+                {
+                  "hashes": [
+                    {
+                      "alg": "SHA-256",
+                      "content": "bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b"
+                    }
+                  ],
+                  "type": "distribution",
+                  "url": "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl"
+                }
+              ],
+              "name": "types-pyyaml",
+              "properties": [
+                {
+                  "name": "uv:package:marker",
+                  "value": "python_full_version == '3.13.*'"
+                }
+              ],
+              "purl": "pkg:pypi/types-pyyaml@6.0.12.20260906",
+              "type": "library",
+              "version": "6.0.12.20260906"
+            },
+            {
+              "bom-ref": "typing-extensions-64@4.16.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31853,7 +31901,7 @@ this generated file manually.
               "version": "4.16.0"
             },
             {
-              "bom-ref": "tzdata-63@2026.5",
+              "bom-ref": "tzdata-65@2026.5",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31888,7 +31936,7 @@ this generated file manually.
               "version": "2026.5"
             },
             {
-              "bom-ref": "urllib3-64@2.8.0",
+              "bom-ref": "urllib3-66@2.8.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31923,7 +31971,7 @@ this generated file manually.
               "version": "2.8.0"
             },
             {
-              "bom-ref": "watchdog-65@6.0.0",
+              "bom-ref": "watchdog-67@6.0.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -32185,7 +32233,7 @@ this generated file manually.
             },
             {
               "dependsOn": [
-                "typing-extensions-62@4.16.0"
+                "typing-extensions-64@4.16.0"
               ],
               "ref": "grpcio-14@1.84.0"
             },
@@ -32257,7 +32305,7 @@ this generated file manually.
                 "pathspec-38@1.1.1",
                 "pyyaml-49@6.0.3",
                 "pyyaml-env-tag-50@1.1",
-                "watchdog-65@6.0.0"
+                "watchdog-67@6.0.0"
               ],
               "ref": "mkdocs-26@1.6.1"
             },
@@ -32322,7 +32370,7 @@ this generated file manually.
                 "librt-22@0.16.0",
                 "mypy-extensions-34@1.1.0",
                 "pathspec-38@1.1.1",
-                "typing-extensions-62@4.16.0"
+                "typing-extensions-64@4.16.0"
               ],
               "ref": "mypy-33@2.4.0"
             },
@@ -32332,7 +32380,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "protobuf-41@7.36.2",
-                "types-protobuf-61@7.35.1.20260906"
+                "types-protobuf-62@7.35.1.20260906"
               ],
               "ref": "mypy-protobuf-35@5.1.0"
             },
@@ -32394,7 +32442,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "six-57@1.17.0",
-                "tzdata-63@2026.5"
+                "tzdata-65@2026.5"
               ],
               "ref": "python-dateutil-48@3.0.0"
             },
@@ -32419,7 +32467,7 @@ this generated file manually.
                 "certifi-7@2026.10.19",
                 "charset-normalizer-8@3.5.2",
                 "idna-17@3.20",
-                "urllib3-64@2.8.0"
+                "urllib3-66@2.8.0"
               ],
               "ref": "requests-52@2.34.2"
             },
@@ -32440,13 +32488,19 @@ this generated file manually.
             },
             {
               "dependsOn": [
+                "mkdocs-26@1.6.1",
+                "mkdocs-material-29@9.7.7",
+                "pyyaml-49@6.0.3"
+              ],
+              "ref": "stateforge-docs-theme-58@0.1.0"
+            },
+            {
+              "dependsOn": [
                 "build-6@1.6.1",
                 "grpcio-14@1.84.0",
                 "grpcio-health-checking-15@1.84.0",
                 "grpcio-tools-16@1.84.0",
                 "jsonschema-20@4.26.0",
-                "mkdocs-26@1.6.1",
-                "mkdocs-material-29@9.7.7",
                 "mkdocstrings-31@0.30.1",
                 "mypy-33@2.4.0",
                 "mypy-protobuf-35@5.1.0",
@@ -32454,46 +32508,52 @@ this generated file manually.
                 "pytest-45@9.1.1",
                 "pytest-asyncio-46@1.4.0",
                 "pytest-cov-47@7.1.0",
+                "pyyaml-49@6.0.3",
                 "referencing-51@0.37.0",
                 "rfc8785-53@0.1.4",
                 "ruff-55@0.17.1",
-                "types-grpcio-58@1.84.0.20261021",
-                "types-grpcio-health-checking-59@1.0.0.20261021",
-                "types-jsonschema-60@4.26.0.20261006",
-                "types-protobuf-61@7.35.1.20260906"
+                "stateforge-docs-theme-58@0.1.0",
+                "types-grpcio-59@1.84.0.20261021",
+                "types-grpcio-health-checking-60@1.0.0.20261021",
+                "types-jsonschema-61@4.26.0.20261006",
+                "types-protobuf-62@7.35.1.20260906",
+                "types-pyyaml-63@6.0.12.20260906"
               ],
               "ref": "stateforge-protocol-1@0.1.0"
             },
             {
-              "ref": "types-grpcio-58@1.84.0.20261021"
+              "ref": "types-grpcio-59@1.84.0.20261021"
             },
             {
               "dependsOn": [
-                "types-grpcio-58@1.84.0.20261021",
-                "types-protobuf-61@7.35.1.20260906"
+                "types-grpcio-59@1.84.0.20261021",
+                "types-protobuf-62@7.35.1.20260906"
               ],
-              "ref": "types-grpcio-health-checking-59@1.0.0.20261021"
+              "ref": "types-grpcio-health-checking-60@1.0.0.20261021"
             },
             {
               "dependsOn": [
                 "referencing-51@0.37.0"
               ],
-              "ref": "types-jsonschema-60@4.26.0.20261006"
+              "ref": "types-jsonschema-61@4.26.0.20261006"
             },
             {
-              "ref": "types-protobuf-61@7.35.1.20260906"
+              "ref": "types-protobuf-62@7.35.1.20260906"
             },
             {
-              "ref": "typing-extensions-62@4.16.0"
+              "ref": "types-pyyaml-63@6.0.12.20260906"
             },
             {
-              "ref": "tzdata-63@2026.5"
+              "ref": "typing-extensions-64@4.16.0"
             },
             {
-              "ref": "urllib3-64@2.8.0"
+              "ref": "tzdata-65@2026.5"
             },
             {
-              "ref": "watchdog-65@6.0.0"
+              "ref": "urllib3-66@2.8.0"
+            },
+            {
+              "ref": "watchdog-67@6.0.0"
             }
           ],
           "metadata": {
@@ -32521,7 +32581,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "98cdcd24a901fd2d4c9fa09ccc3124c223af661e8e24e8176326c81aa9e7a7d2",
+        "sha256": "65e64717b168633d74f6f3f6805ec1fe9ba5ed00792ffe4bbbb4d9d6ea60c1e8",
         "spec_version": "1.5"
       }
     },
@@ -32531,7 +32591,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "0d0f47279794e6ccdcb62097126d91707306eede4a84fcc80b634721952a56f0",
+        "digest": "b9256e6cefe95e8457e7eac8fde48c1e41b9aecc88b0b676699fc78103158172",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -32539,8 +32599,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-01T12:21:42+00:00",
-      "observed_commit_sha": "5e2189a4cdbcc26a1593bd7d2f2cbf37905acac4",
+      "generated_at": "2026-11-02T13:18:39+00:00",
+      "observed_commit_sha": "c87e1f8cabb2a5ad9c0901d381e3abf4b83fad30",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
@@ -43957,7 +44017,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3Dcb4e9af352fc89204585d1f0b16d2870a990c560%23cb4e9af352fc89204585d1f0b16d2870a990c560",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D64514b35dabfe88d49aabfb63d756e98a97fe5dc%2364514b35dabfe88d49aabfb63d756e98a97fe5dc",
               "type": "library",
               "version": "0.1.0"
             },
@@ -44912,7 +44972,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "b2f7e2da6814eb733b332b9e7bd1d1b7940341465bcb388e112f557bf7f0c6c1",
+        "sha256": "300f380f4113d6b45320c2e2fd491d610b84da410ac30211e33fa04dbdd87d73",
         "spec_version": "1.5"
       }
     }
