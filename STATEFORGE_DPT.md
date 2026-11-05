@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "d001f67a6873001b7544a228cc10f32c3080cf1d0408b20b1401c3ee14d7c75e",
+  "fingerprint": "6e844b45cc551a189448e288212dac2d9371f3fb40402cbeec85955dfec4cb1f",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 41,
+      "revision": 42,
       "slug": "stateforge"
     },
     "repositories": [
@@ -8359,7 +8359,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 41
+**Revision:** 42
 
 ## Repositories
 
@@ -9628,11 +9628,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "3d0f74018682383defb28f9611e51f66f3069aae02a61437ce7df3ffed3144b5",
+  "fingerprint": "6c6c0cc48c9d2b8f363f1356fa3eaa6b096690be8c6261dc6268a92fa3315ce1",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-11-05T09:15:57+00:00",
-  "plan_fingerprint": "d001f67a6873001b7544a228cc10f32c3080cf1d0408b20b1401c3ee14d7c75e",
+  "generated_at": "2026-11-05T09:23:33+00:00",
+  "plan_fingerprint": "6e844b45cc551a189448e288212dac2d9371f3fb40402cbeec85955dfec4cb1f",
   "repositories": [
     {
       "alias": "agent",
@@ -9649,7 +9649,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-11-04T12:25:12+00:00",
-      "observed_commit_sha": "f8359a34942d1369d152da8e2e0ad5db0af31493",
+      "observed_commit_sha": "b1506b36344c09bb83ba083041362abd6791a108",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -21059,7 +21059,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "d9b07087df94e85d062ce1168b8fe8b4e37cb895",
+      "observed_commit_sha": "7db20224a40ce25ecec55dde3e784d9aec425df4",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
@@ -32600,7 +32600,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-11-02T13:18:39+00:00",
-      "observed_commit_sha": "c87e1f8cabb2a5ad9c0901d381e3abf4b83fad30",
+      "observed_commit_sha": "f7650d382a0e13f5b64bcdbb9e584db28a01676b",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
