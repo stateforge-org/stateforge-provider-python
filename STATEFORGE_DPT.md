@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "00d20ef1e44d2b01cad2347b5c0e54eea10ee1ab3d80f92d2b64077dfdd9e444",
+  "fingerprint": "7d83433a705a492d337586da696bddfe37824b7810b84e230e56ae75cf0122b9",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 38,
+      "revision": 40,
       "slug": "stateforge"
     },
     "repositories": [
@@ -6552,7 +6552,92 @@
       },
       {
         "branch_name": "mvp/sfp-reconciliation",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "a11-skill",
+            "explanation": "Follow milestone workflow and human-owned delivery.",
+            "path": ".agents/skills/stateforge-dpt-milestone/SKILL.md",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a11-runtime",
+            "explanation": "Compose Agent SFP session recovery and reconciliation behavior.",
+            "path": "src/stateforge_agent/_sfp/_runtime",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a11-journal",
+            "explanation": "Recover durable operation and trigger evidence after Agent restart.",
+            "path": "src/stateforge_agent/_journal",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a11-tests",
+            "explanation": "Test recovery outcomes, stale fencing, expiry, and no blind redispatch.",
+            "path": "tests",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 3
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a11-ci",
+            "explanation": "Add deterministic installed-Agent recovery scenarios to reusable CI actions.",
+            "path": ".github/actions",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "expected_to_change",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 4
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a11-protocol",
+            "explanation": "Preserve authoritative SFP recovery semantics.",
+            "path": "docs/procedures/disconnection-recovery.md",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_preserve",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 5
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "a11-provider",
+            "explanation": "Verify Provider recovery interoperability without changing Provider behavior.",
+            "path": "src/stateforge_provider/_services",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 6
+          }
+        ],
         "depends_on": [
           "A13",
           "A4",
@@ -6567,7 +6652,44 @@
         "sort_order": 33,
         "step_id": "A11",
         "title": "[TASK][MVP] Complete SFP Disconnection and Recovery",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Preserve original operation/publication identities, fence stale sessions and cursors, and report lost/expired evidence as indeterminate.",
+            "kind": "test",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 0,
+            "target": "Focused recovery/session/journal tests",
+            "verification_id": "a11-tests"
+          },
+          {
+            "explanation": "Cover channel loss, lost replies/acks, Agent/Provider restart, generation/installation replacement, retained/lost state, stale responses, expiry, and no redispatch.",
+            "kind": "integration",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 1,
+            "target": "Exact Protocol wheel + Provider wheel + Agent RPM in separate real processes over Unix socket",
+            "verification_id": "a11-integration"
+          },
+          {
+            "explanation": "Pass complete configured Agent quality gates.",
+            "kind": "command",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 2,
+            "target": "python -m pytest -q; ruff format/check; mypy src; mkdocs build \u002d\u002dstrict",
+            "verification_id": "a11-quality"
+          },
+          {
+            "explanation": "Confirm recovery composes existing contracts and does not add SF-AOP or Provider scope.",
+            "kind": "human",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 3,
+            "target": "Review recovery scenario-to-contract matrix and diff",
+            "verification_id": "a11-review"
+          }
+        ]
       },
       {
         "branch_name": "mvp/local-runtime-integration",
@@ -7683,7 +7805,20 @@
       },
       {
         "branch_name": "mvp/provider-views-catalog-generator",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-61b9bae9-39e0-4502-b152-c7b1ff97ee57",
+            "explanation": "Provider Views",
+            "path": "provider_views",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          }
+        ],
         "depends_on": [
           "C1"
         ],
@@ -8224,7 +8359,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 38
+**Revision:** 40
 
 ## Repositories
 
@@ -8299,7 +8434,7 @@ _No cross-repository relationships are registered yet._
 | `R17` | `provider` | **[TASK][MVP] Verify Provider Capability Assessment Against the Installed Agent**<br>## Outcome After A3 lands, import its real Capability Assessment behavior into Provider CI.  Run the exact Protocol wheel, Provider wheel, and built Agent RPM as separate processes over the Unix socket. Cover every support state, unmet and unknown requirements, readiness, session/generation/manifest fences, transient retry, environment change, reassessment, malformed responses, and recovery. Prove assessment is read-only and the public requirement-check API exposes no transport internals. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A3`, `P2`, `R11`, `R3` | `COMPLETED` | [Issue #34](https://github.com/stateforge-org/stateforge-provider-python/issues/34) · [Pull Request #35](https://github.com/stateforge-org/stateforge-provider-python/pull/35) |
 | `C2` | `control-plane` | **[SUPERSEDED][MVP] Move Provider Views Generation to stateforge-provider-views**<br>This Control Plane milestone is superseded. The catalog generator, generated documentation, CI verification, and generated-library publication are owned by the new stateforge-provider-views milestones PV1, PV2, and PV3. The Control Plane remains the canonical owner of the catalog through C1. No generator implementation is delivered by this milestone. The linked Control Plane issue was closed with a comment explaining the ownership move. | `C1` | `READY` | [Issue #3](https://github.com/stateforge-org/stateforge-control-plane/issues/3) |
 | `R18` | `provider` | **[TASK][MVP] Verify Provider Trigger Publication Against the Installed Agent**<br>## Outcome After A4 lands, import its real Trigger Publication behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, accepted-duplicate, lost acknowledgement, replay, conflicting content, retryable and terminal rejection, pressure, reconnect, Agent restart, stale fencing, and shutdown. Preserve trigger identity and payload across retries. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A4`, `P3`, `R11`, `R4` | `COMPLETED` | [Issue #37](https://github.com/stateforge-org/stateforge-provider-python/issues/37) · [Pull Request #39](https://github.com/stateforge-org/stateforge-provider-python/pull/39) · [Issue #36](https://github.com/stateforge-org/stateforge-provider-python/issues/36) |
-| `PV1` | `provider-views` | **[TASK][MVP] Build the Versioned Provider Views Generator and Documentation**<br>## Outcome and ownership Build the catalog renderer/generator in stateforge-provider-views. The Control Plane remains the source of truth for the versioned Provider Views catalog; this repository consumes immutable catalog snapshots and generates language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.  ## Required behavior - Consume a pinned, versioned Control Plane catalog snapshot and record its catalog version, Control Plane major, and content digest in outputs. - Deterministically generate the Python authoring library from that snapshot; provider authors use the generated component APIs rather than hand-maintaining catalog identifiers and schemas. - Generate the library reference documentation from the same catalog snapshot and expose a reproducible documentation build. - Preserve older catalog inputs and generated releases; incompatible component contract changes use a new component identifier version. - Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.  ## Non-goals No Control Plane component catalog authoring, SFP wire-contract changes, provider-specific views, renderer implementation, or runtime network fetch. | `C1` | `READY` | — |
+| `PV1` | `provider-views` | **[TASK][MVP] Build the Versioned Provider Views Generator and Documentation**<br>## Outcome and ownership Build the catalog renderer/generator in stateforge-provider-views. The Control Plane remains the source of truth for the versioned Provider Views catalog; this repository consumes immutable catalog snapshots and generates language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.  ## Required behavior - Consume a pinned, versioned Control Plane catalog snapshot and record its catalog version, Control Plane major, and content digest in outputs. - Deterministically generate the Python authoring library from that snapshot; provider authors use the generated component APIs rather than hand-maintaining catalog identifiers and schemas. - Generate the library reference documentation from the same catalog snapshot and expose a reproducible documentation build. - Preserve older catalog inputs and generated releases; incompatible component contract changes use a new component identifier version. - Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.  ## Non-goals No Control Plane component catalog authoring, SFP wire-contract changes, provider-specific views, renderer implementation, or runtime network fetch. | `C1` | `PENDING` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-views/issues/1) |
 | `R19` | `provider` | **[TASK][MVP] Verify Provider Operation Admission Against the Installed Agent**<br>## Outcome After A5 lands, import its real Operation Admission behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, resolved-existing, lost response, identical concurrency, changed-content conflict, schema and readiness rejection, deadlines, expiry, stale fencing, restart, and exactly one dispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A5`, `P4`, `R11`, `R5` | `COMPLETED` | [Issue #45](https://github.com/stateforge-org/stateforge-provider-python/issues/45) · [Pull Request #47](https://github.com/stateforge-org/stateforge-provider-python/pull/47) |
 | `PV2` | `provider-views` | **[TASK][MVP] Add CI/CD Verification for Provider Views Generation**<br>## Outcome Make pull-request and protected-branch CI validate the generator, catalog compatibility, generated Python library, and generated documentation.  ## Required behavior - Resolve and pin the Control Plane catalog input once per workflow run; use the same resolved revision for generation, validation, and fixtures. - Validate the catalog snapshot, generate all configured outputs, and fail if committed generated artifacts or docs are stale. - Build and test the generated Python distribution, including a clean-environment install/import smoke test. - Build generated docs strictly and enforce repository workflow-security conventions. - Keep CI read-only with respect to package publishing; publishing belongs to PV3. | `PV1` | `BLOCKED` | — |
 | `R20` | `provider` | **[TASK][MVP] Verify Provider Operation Lifecycle Against the Installed Agent**<br>## Outcome After A6 lands, import its real operation lifecycle behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover initial and late Watch replay, progress sequences, cursor gaps, slow observers, terminal results, invalid results, sanitized failures, cancellation completion and races, Agent restart, stale fencing, shutdown, and no redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A6`, `P5`, `R11`, `R19`, `R6` | `COMPLETED` | [Issue #48](https://github.com/stateforge-org/stateforge-provider-python/issues/48) · [Pull Request #49](https://github.com/stateforge-org/stateforge-provider-python/pull/49) |
@@ -9122,11 +9257,24 @@ _No verification evidence has been declared yet._
 
 ### `A11` — [TASK][MVP] Complete SFP Disconnection and Recovery
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `agent/.agents/skills/stateforge-dpt-milestone/SKILL.md` | `must_understand` | `canonical` | Yes | Follow milestone workflow and human-owned delivery. |
+| `agent/src/stateforge_agent/_sfp/_runtime` | `expected_to_change` | `canonical` | Yes | Compose Agent SFP session recovery and reconciliation behavior. |
+| `agent/src/stateforge_agent/_journal` | `expected_to_change` | `canonical` | Yes | Recover durable operation and trigger evidence after Agent restart. |
+| `agent/tests` | `expected_to_change` | `canonical` | Yes | Test recovery outcomes, stale fencing, expiry, and no blind redispatch. |
+| `agent/.github/actions` | `expected_to_change` | `canonical` | Yes | Add deterministic installed-Agent recovery scenarios to reusable CI actions. |
+| `protocol/docs/procedures/disconnection-recovery.md` | `must_preserve` | `canonical` | Yes | Preserve authoritative SFP recovery semantics. |
+| `provider/src/stateforge_provider/_services` | `must_verify` | `compatibility` | Yes | Verify Provider recovery interoperability without changing Provider behavior. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **test** · `agent` · `Focused recovery/session/journal tests` — Preserve original operation/publication identities, fence stale sessions and cursors, and report lost/expired evidence as indeterminate.
+- **integration** · `agent` · `Exact Protocol wheel + Provider wheel + Agent RPM in separate real processes over Unix socket` — Cover channel loss, lost replies/acks, Agent/Provider restart, generation/installation replacement, retained/lost state, stale responses, expiry, and no redispatch.
+- **command** · `agent` · `python -m pytest -q; ruff format/check; mypy src; mkdocs build --strict` — Pass complete configured Agent quality gates.
+- **human** · `agent` · `Review recovery scenario-to-contract matrix and diff` — Confirm recovery composes existing contracts and does not add SF-AOP or Provider scope.
 
 ### `A12` — [TASK][MVP] Verify the Complete Local Agent and Provider Runtime
 
@@ -9364,7 +9512,11 @@ _No verification evidence has been declared yet._
 
 ### `PV1` — [TASK][MVP] Build the Versioned Provider Views Generator and Documentation
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/provider_views` | `must_understand` | `canonical` | Yes | Provider Views |
 
 #### Verification contract
 
@@ -9476,11 +9628,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "42adeb83ae25b04921f0bb363b1a297ec1f3aede5a39a455f636f5d7923b95c3",
+  "fingerprint": "5233695e9a5e6504d1eccfd4dc946ea71ed580902386d1bbc1b7d866e3571013",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-11-05T08:45:29+00:00",
-  "plan_fingerprint": "00d20ef1e44d2b01cad2347b5c0e54eea10ee1ab3d80f92d2b64077dfdd9e444",
+  "generated_at": "2026-11-05T09:13:22+00:00",
+  "plan_fingerprint": "7d83433a705a492d337586da696bddfe37824b7810b84e230e56ae75cf0122b9",
   "repositories": [
     {
       "alias": "agent",
@@ -9488,7 +9640,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "4967b08514f8622b45887bcd7de74c7be45a86a89e3391a5a4035119700c7755",
+        "digest": "c37e6ddf914bfd4283e4f355087bb0cada5bf20b1c4f9450423542f3b4d62b87",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -9496,8 +9648,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-04T12:25:12+00:00",
-      "observed_commit_sha": "3b4f30ed824766cf57df6523b71544e17df93ad4",
+      "generated_at": "2026-11-01T15:26:02+00:00",
+      "observed_commit_sha": "caada44d4d1ff48b239f21af0cfa7087d332bc38",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -19634,7 +19786,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D9504be252d9cd15ac53fe479bfb09a3007a16aca%239504be252d9cd15ac53fe479bfb09a3007a16aca",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3De4d67e8fd7abbb077e09c41664e6f2945760037e%23e4d67e8fd7abbb077e09c41664e6f2945760037e",
               "type": "library",
               "version": "0.1.0"
             },
@@ -20888,7 +21040,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "ec7cc9914028cd5c965c4a6091fd17b7aa4b489f57da2f1134bc27f364ddcf5a",
+        "sha256": "46b22ce5fd7ba93d1ce9f0261fb3555120c8ac046338b0d9aa1e14a2f3cba850",
         "spec_version": "1.5"
       }
     },
@@ -20898,7 +21050,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "c538da8c131f3b5b78ecb1ebd3a2cfeabaf0f1b1f12aafd2cb94500410bbf5fe",
+        "digest": "e2f0642b150e87c5e2d6b540b1673df5912ce8118c96910efd4e7bcea1bbbccc",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -20906,12 +21058,12 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "c5d91ded683d465c2f75c071f7ce51c20c7e559e",
+      "generated_at": "2026-10-24T13:49:51+00:00",
+      "observed_commit_sha": "34562a42b7bb18ae3d7703043f6f754e3c2f0aa8",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
-        "component_count": 66,
+        "component_count": 64,
         "document": {
           "bomFormat": "CycloneDX",
           "components": [
@@ -31526,20 +31678,7 @@ this generated file manually.
               "version": "1.17.0"
             },
             {
-              "bom-ref": "stateforge-docs-theme-58@0.1.0",
-              "name": "stateforge-docs-theme",
-              "properties": [
-                {
-                  "name": "uv:package:marker",
-                  "value": "python_full_version == '3.13.*'"
-                }
-              ],
-              "purl": "pkg:pypi/stateforge-docs-theme@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-docs.git%3Frev%3D0a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5%230a1a0048acdc3a6683c6bb2a9bbbe1923b7e99c5",
-              "type": "library",
-              "version": "0.1.0"
-            },
-            {
-              "bom-ref": "types-grpcio-59@1.84.0.20261021",
+              "bom-ref": "types-grpcio-58@1.84.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31574,7 +31713,7 @@ this generated file manually.
               "version": "1.84.0.20261021"
             },
             {
-              "bom-ref": "types-grpcio-health-checking-60@1.0.0.20261021",
+              "bom-ref": "types-grpcio-health-checking-59@1.0.0.20261021",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31609,7 +31748,7 @@ this generated file manually.
               "version": "1.0.0.20261021"
             },
             {
-              "bom-ref": "types-jsonschema-61@4.26.0.20261006",
+              "bom-ref": "types-jsonschema-60@4.26.0.20261006",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31644,7 +31783,7 @@ this generated file manually.
               "version": "4.26.0.20261006"
             },
             {
-              "bom-ref": "types-protobuf-62@7.35.1.20260906",
+              "bom-ref": "types-protobuf-61@7.35.1.20260906",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31679,42 +31818,7 @@ this generated file manually.
               "version": "7.35.1.20260906"
             },
             {
-              "bom-ref": "types-pyyaml-63@6.0.12.20260906",
-              "externalReferences": [
-                {
-                  "hashes": [
-                    {
-                      "alg": "SHA-256",
-                      "content": "f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212"
-                    }
-                  ],
-                  "type": "distribution",
-                  "url": "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz"
-                },
-                {
-                  "hashes": [
-                    {
-                      "alg": "SHA-256",
-                      "content": "bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b"
-                    }
-                  ],
-                  "type": "distribution",
-                  "url": "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl"
-                }
-              ],
-              "name": "types-pyyaml",
-              "properties": [
-                {
-                  "name": "uv:package:marker",
-                  "value": "python_full_version == '3.13.*'"
-                }
-              ],
-              "purl": "pkg:pypi/types-pyyaml@6.0.12.20260906",
-              "type": "library",
-              "version": "6.0.12.20260906"
-            },
-            {
-              "bom-ref": "typing-extensions-64@4.16.0",
+              "bom-ref": "typing-extensions-62@4.16.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31749,7 +31853,7 @@ this generated file manually.
               "version": "4.16.0"
             },
             {
-              "bom-ref": "tzdata-65@2026.5",
+              "bom-ref": "tzdata-63@2026.5",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31784,7 +31888,7 @@ this generated file manually.
               "version": "2026.5"
             },
             {
-              "bom-ref": "urllib3-66@2.8.0",
+              "bom-ref": "urllib3-64@2.8.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -31819,7 +31923,7 @@ this generated file manually.
               "version": "2.8.0"
             },
             {
-              "bom-ref": "watchdog-67@6.0.0",
+              "bom-ref": "watchdog-65@6.0.0",
               "externalReferences": [
                 {
                   "hashes": [
@@ -32081,7 +32185,7 @@ this generated file manually.
             },
             {
               "dependsOn": [
-                "typing-extensions-64@4.16.0"
+                "typing-extensions-62@4.16.0"
               ],
               "ref": "grpcio-14@1.84.0"
             },
@@ -32153,7 +32257,7 @@ this generated file manually.
                 "pathspec-38@1.1.1",
                 "pyyaml-49@6.0.3",
                 "pyyaml-env-tag-50@1.1",
-                "watchdog-67@6.0.0"
+                "watchdog-65@6.0.0"
               ],
               "ref": "mkdocs-26@1.6.1"
             },
@@ -32218,7 +32322,7 @@ this generated file manually.
                 "librt-22@0.16.0",
                 "mypy-extensions-34@1.1.0",
                 "pathspec-38@1.1.1",
-                "typing-extensions-64@4.16.0"
+                "typing-extensions-62@4.16.0"
               ],
               "ref": "mypy-33@2.4.0"
             },
@@ -32228,7 +32332,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "protobuf-41@7.36.2",
-                "types-protobuf-62@7.35.1.20260906"
+                "types-protobuf-61@7.35.1.20260906"
               ],
               "ref": "mypy-protobuf-35@5.1.0"
             },
@@ -32290,7 +32394,7 @@ this generated file manually.
             {
               "dependsOn": [
                 "six-57@1.17.0",
-                "tzdata-65@2026.5"
+                "tzdata-63@2026.5"
               ],
               "ref": "python-dateutil-48@3.0.0"
             },
@@ -32315,7 +32419,7 @@ this generated file manually.
                 "certifi-7@2026.10.19",
                 "charset-normalizer-8@3.5.2",
                 "idna-17@3.20",
-                "urllib3-66@2.8.0"
+                "urllib3-64@2.8.0"
               ],
               "ref": "requests-52@2.34.2"
             },
@@ -32336,19 +32440,13 @@ this generated file manually.
             },
             {
               "dependsOn": [
-                "mkdocs-26@1.6.1",
-                "mkdocs-material-29@9.7.7",
-                "pyyaml-49@6.0.3"
-              ],
-              "ref": "stateforge-docs-theme-58@0.1.0"
-            },
-            {
-              "dependsOn": [
                 "build-6@1.6.1",
                 "grpcio-14@1.84.0",
                 "grpcio-health-checking-15@1.84.0",
                 "grpcio-tools-16@1.84.0",
                 "jsonschema-20@4.26.0",
+                "mkdocs-26@1.6.1",
+                "mkdocs-material-29@9.7.7",
                 "mkdocstrings-31@0.30.1",
                 "mypy-33@2.4.0",
                 "mypy-protobuf-35@5.1.0",
@@ -32356,52 +32454,46 @@ this generated file manually.
                 "pytest-45@9.1.1",
                 "pytest-asyncio-46@1.4.0",
                 "pytest-cov-47@7.1.0",
-                "pyyaml-49@6.0.3",
                 "referencing-51@0.37.0",
                 "rfc8785-53@0.1.4",
                 "ruff-55@0.17.1",
-                "stateforge-docs-theme-58@0.1.0",
-                "types-grpcio-59@1.84.0.20261021",
-                "types-grpcio-health-checking-60@1.0.0.20261021",
-                "types-jsonschema-61@4.26.0.20261006",
-                "types-protobuf-62@7.35.1.20260906",
-                "types-pyyaml-63@6.0.12.20260906"
+                "types-grpcio-58@1.84.0.20261021",
+                "types-grpcio-health-checking-59@1.0.0.20261021",
+                "types-jsonschema-60@4.26.0.20261006",
+                "types-protobuf-61@7.35.1.20260906"
               ],
               "ref": "stateforge-protocol-1@0.1.0"
             },
             {
-              "ref": "types-grpcio-59@1.84.0.20261021"
+              "ref": "types-grpcio-58@1.84.0.20261021"
             },
             {
               "dependsOn": [
-                "types-grpcio-59@1.84.0.20261021",
-                "types-protobuf-62@7.35.1.20260906"
+                "types-grpcio-58@1.84.0.20261021",
+                "types-protobuf-61@7.35.1.20260906"
               ],
-              "ref": "types-grpcio-health-checking-60@1.0.0.20261021"
+              "ref": "types-grpcio-health-checking-59@1.0.0.20261021"
             },
             {
               "dependsOn": [
                 "referencing-51@0.37.0"
               ],
-              "ref": "types-jsonschema-61@4.26.0.20261006"
+              "ref": "types-jsonschema-60@4.26.0.20261006"
             },
             {
-              "ref": "types-protobuf-62@7.35.1.20260906"
+              "ref": "types-protobuf-61@7.35.1.20260906"
             },
             {
-              "ref": "types-pyyaml-63@6.0.12.20260906"
+              "ref": "typing-extensions-62@4.16.0"
             },
             {
-              "ref": "typing-extensions-64@4.16.0"
+              "ref": "tzdata-63@2026.5"
             },
             {
-              "ref": "tzdata-65@2026.5"
+              "ref": "urllib3-64@2.8.0"
             },
             {
-              "ref": "urllib3-66@2.8.0"
-            },
-            {
-              "ref": "watchdog-67@6.0.0"
+              "ref": "watchdog-65@6.0.0"
             }
           ],
           "metadata": {
@@ -32429,7 +32521,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "65e64717b168633d74f6f3f6805ec1fe9ba5ed00792ffe4bbbb4d9d6ea60c1e8",
+        "sha256": "98cdcd24a901fd2d4c9fa09ccc3124c223af661e8e24e8176326c81aa9e7a7d2",
         "spec_version": "1.5"
       }
     },
@@ -32439,7 +32531,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "b9256e6cefe95e8457e7eac8fde48c1e41b9aecc88b0b676699fc78103158172",
+        "digest": "0d0f47279794e6ccdcb62097126d91707306eede4a84fcc80b634721952a56f0",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -32447,8 +32539,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-02T13:18:39+00:00",
-      "observed_commit_sha": "def80f04d32153efde8e08bf802659a4046d9a7d",
+      "generated_at": "2026-11-01T12:21:42+00:00",
+      "observed_commit_sha": "5e2189a4cdbcc26a1593bd7d2f2cbf37905acac4",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
@@ -43865,7 +43957,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D64514b35dabfe88d49aabfb63d756e98a97fe5dc%2364514b35dabfe88d49aabfb63d756e98a97fe5dc",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3Dcb4e9af352fc89204585d1f0b16d2870a990c560%23cb4e9af352fc89204585d1f0b16d2870a990c560",
               "type": "library",
               "version": "0.1.0"
             },
@@ -44820,7 +44912,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "300f380f4113d6b45320c2e2fd491d610b84da410ac30211e33fa04dbdd87d73",
+        "sha256": "b2f7e2da6814eb733b332b9e7bd1d1b7940341465bcb388e112f557bf7f0c6c1",
         "spec_version": "1.5"
       }
     }
