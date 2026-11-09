@@ -114,7 +114,6 @@ class OperationAdmissionService(
                 ),
             )
         try:
-            self._validate_contract(invocation, operation)
             payload = self._validate_payload(invocation, operation)
         except AdmissionFailureError as failure:
             await self._reject(context, failure)
@@ -276,23 +275,6 @@ class OperationAdmissionService(
                 "Operation Admission session or manifest is stale",
             )
         return session
-
-    def _validate_contract(
-        self,
-        invocation: operation_admission_pb2.OperationInvocation,
-        operation: BoundOperation,
-    ) -> None:
-        """Validate requested profile claims against the accepted manifest."""
-        if any(
-            role not in operation.declaration.implements
-            for role in invocation.contract.required_implementation_roles
-        ):
-            raise AdmissionFailureError(
-                grpc.StatusCode.FAILED_PRECONDITION,
-                operation_admission_pb2.ADMISSION_ERROR_REASON_OPERATION_INCOMPATIBLE,
-                "Operation requires an undeclared implementation role",
-                invocation.operation_id,
-            )
 
     def _validate_payload(
         self,

@@ -382,7 +382,6 @@ def test_operation_admission_keeps_the_focused_protocol_peer() -> None:
         "resolved_existing",
         "author_dispatches",
         "stale_fence_status",
-        "missing_role_status",
         "requirement_status",
         "idempotency_conflict_status",
         "immutable_context",

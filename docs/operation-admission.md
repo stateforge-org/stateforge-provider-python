@@ -50,7 +50,6 @@ class ServiceProvider(Provider):
     @operation(
         "example.systemd/restart@1",
         requires=("runtime.systemd.control",),
-        implements=("example.service.v1.restart",),
         cancellable=True,
         progress=OperationProgressPolicy.determinate(),
     )

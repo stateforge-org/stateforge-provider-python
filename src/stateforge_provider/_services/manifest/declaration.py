@@ -55,7 +55,6 @@ class OperationDeclaration:
     method_name: str
     request_model: type[ProviderModel]
     result_model: type[ProviderModel]
-    implements: tuple[str, ...]
     requires: tuple[str, ...]
     accepts_context: bool
     cancellable: bool
@@ -100,7 +99,7 @@ def _sequence(owner: type, name: str, limit: int) -> tuple[Any, ...]:
 
 
 # Keep discovery and its rejection rules adjacent.
-def _operations(  # noqa: PLR0912
+def _operations(
     owner: type,
     limits: ProviderRuntimeLimits,
 ) -> tuple[dict[str, Any], tuple[OperationDeclaration, ...]]:
@@ -171,16 +170,6 @@ def _operations(  # noqa: PLR0912
                 f"{path}: cancellation and progress policies require "
                 "OperationContext"
             )
-        roles = metadata.implements
-        if (
-            not isinstance(roles, tuple)
-            or len(roles) > manifest_contract.MAX_PROFILE_CLAIMS_PER_OPERATION
-        ):
-            raise ManifestError(f"{path}.implements: must be a bounded tuple")
-        for role in roles:
-            validate_structure(role, "dottedIdentifier", f"{path}.implements")
-        if len(set(roles)) != len(roles):
-            raise ManifestError(f"{path}.implements: duplicate role")
         input_schema = _model_schema(
             request_model,
             f"{path}.input",
@@ -196,7 +185,6 @@ def _operations(  # noqa: PLR0912
         declarations[metadata.identifier] = {
             "inputSchema": input_schema,
             "resultSchema": result_schema,
-            "implements": sorted(roles),
         }
         runtime_declarations.append(
             OperationDeclaration(
@@ -204,7 +192,6 @@ def _operations(  # noqa: PLR0912
                 method_name=method_name,
                 request_model=request_model,
                 result_model=result_model,
-                implements=tuple(sorted(roles)),
                 requires=metadata.requires,
                 accepts_context=accepts_context,
                 cancellable=metadata.cancellable,

@@ -70,7 +70,7 @@ environments = ["python_version == '3.13'"]
 
 
 [tool.uv.sources]
-stateforge-protocol = { git = "https://github.com/stateforge-org/stateforge-protocol.git", rev = "64514b35dabfe88d49aabfb63d756e98a97fe5dc" }
+stateforge-protocol = { git = "https://github.com/stateforge-org/stateforge-protocol.git", rev = "0dab0576d884ae10f3bef0135b641168234b18b6" }
 
 
 [tool.hatch.build.targets.wheel]

@@ -1613,7 +1613,7 @@ wheels = [
 [[package]]
 name = "stateforge-protocol"
 version = "0.1.0"
-source = { git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=64514b35dabfe88d49aabfb63d756e98a97fe5dc#64514b35dabfe88d49aabfb63d756e98a97fe5dc" }
+source = { git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=0dab0576d884ae10f3bef0135b641168234b18b6#0dab0576d884ae10f3bef0135b641168234b18b6" }
 dependencies = [
     { name = "grpcio" },
     { name = "grpcio-health-checking" },
@@ -1664,7 +1664,7 @@ requires-dist = [
     { name = "grpcio-status", specifier = ">=1.83" },
     { name = "jsonschema", specifier = ">=4.25,<5" },
     { name = "pydantic", specifier = ">=2.12,<3" },
-    { name = "stateforge-protocol", git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=64514b35dabfe88d49aabfb63d756e98a97fe5dc" },
+    { name = "stateforge-protocol", git = "https://github.com/stateforge-org/stateforge-protocol.git?rev=0dab0576d884ae10f3bef0135b641168234b18b6" },
 ]
 
 [package.metadata.requires-dev]

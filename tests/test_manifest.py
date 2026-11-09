@@ -10,6 +10,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from google.protobuf.json_format import MessageToDict
+from jsonschema import Draft202012Validator
 from pydantic import ConfigDict, Field, SecretStr
 from stateforge_protocol.sfp.manifest.v1 import contract as manifest_contract
 from stateforge_protocol.sfp.manifest.v1.validation import (
@@ -49,6 +50,10 @@ class _Result(ProviderModel):
     resolved: str
 
 
+class _Nested(ProviderModel):
+    items: list[_Result]
+
+
 class _Configuration(ProviderModel):
     token: SecretStr
     endpoint: str
@@ -72,20 +77,11 @@ class _Representative(_Minimal):
     async def resolve(self, request: _Input) -> _Result:
         raise AssertionError("Manifest discovery must not invoke operations")
 
-    @operation(
-        "example.reference/prepare@1",
-        implements=(
-            "stateforge.backup.v1.prepare",
-            "example.reference.custom",
-        ),
-    )
+    @operation("example.reference/prepare@1")
     async def prepare(self, request: _Input) -> _Result:
-        raise AssertionError("No profile execution in R1")
+        raise AssertionError("Manifest discovery must not invoke operations")
 
-    @operation(
-        "example.reference/reconstruct@1",
-        implements=("stateforge.disaster_recovery.v1.reconstruct",),
-    )
+    @operation("example.reference/reconstruct@1")
     async def reconstruct(self, request: _Input) -> _Result:
         raise AssertionError("No DR execution in R1")
 
@@ -124,17 +120,15 @@ def test_minimal_and_representative_provider_authoring():
         ]["type"]
         == "object"
     )
-    assert set(declaration["operations"]["example.reference/prepare@1"]) == {
-        "inputSchema",
-        "resultSchema",
-        "implements",
-    }
-    assert not declaration["operations"]["example.reference/resolve@1"][
-        "implements"
-    ]
     assert all(
-        set(operation) == {"inputSchema", "resultSchema", "implements"}
+        set(operation) == {"inputSchema", "resultSchema"}
         for operation in declaration["operations"].values()
+    )
+    assert all(
+        not hasattr(item, "implements")
+        for item in ManifestDeclaration.discover(
+            _Representative
+        ).operation_declarations
     )
 
 
@@ -258,29 +252,27 @@ def test_rejects_invalid_static_metadata(field, value):
 
 
 @pytest.mark.parametrize(
-    ("identifier", "roles"),
-    [
-        ("wrong", ()),
-        ("example.reference/resolve@0", ()),
-        ("example.reference/resolve@01", ()),
-        ("example.reference/resolve@1", ("wrong",)),
-        ("example.reference/resolve@1", ("example.role.claim",) * 2),
-        (
-            "example.reference/resolve@1",
-            ("example.role.claim",)
-            * (manifest_contract.MAX_PROFILE_CLAIMS_PER_OPERATION + 1),
-        ),
-        ("example.reference/resolve@1", "example.role.claim"),
-    ],
+    "identifier",
+    ["wrong", "example.reference/resolve@0", "example.reference/resolve@01"],
 )
-def test_rejects_invalid_operations_and_roles(identifier, roles):
+def test_rejects_invalid_operation_identifiers(identifier):
     class Invalid(_Minimal):
-        @operation(identifier, implements=roles)
+        @operation(identifier)
         async def resolve(self, request: _Input) -> _Result:
             return _Result(resolved=request.reference)
 
     with pytest.raises(ManifestError):
         _response(Invalid)
+
+
+def test_removed_profile_claim_keyword_fails_clearly():
+    with pytest.raises(
+        TypeError, match="unexpected keyword argument 'implements'"
+    ):
+        operation(
+            "example.reference/resolve@1",
+            implements=("example.reference.custom",),
+        )
 
 
 def test_operation_inheritance_duplicates_and_overrides():
@@ -548,7 +540,7 @@ def test_matches_unmodified_p1_cross_language_revision_vector():
         == (_FIXTURES / "revision-preimage.json").read_bytes()
     )
     assert response.manifest_revision == (
-        "sha256:6bfdf3aedc2d4e45d77d4787cc0e744a488208b2510d81788291f51d24a623e8"
+        "sha256:aa27f0fddaa13df211bd3e4e4e4230cdda42d9188d4b480d196c2e0de2d20cdb"
     )
 
 
@@ -768,3 +760,24 @@ def test_documented_reference_example_builds_a_valid_manifest():
     response = _response(example["ReferenceProvider"])
     assert "example.reference/normalize@1" in response.manifest.operations
     assert "example.reference/changed@1" in response.manifest.triggers
+
+
+@pytest.mark.parametrize("schema_kind", ["input", "result", "event"])
+def test_nested_concrete_schemas_preserve_value_validation(schema_kind):
+    class NestedProvider(_Minimal):
+        triggers = (Trigger("example.reference/nested@1", _Nested),)
+
+        @operation("example.reference/nested@1")
+        async def nested(self, request: _Nested) -> _Nested:
+            return request
+
+    declaration = ManifestDeclaration.discover(NestedProvider)
+    if schema_kind == "event":
+        schema = declaration.trigger_schemas["example.reference/nested@1"]
+    else:
+        schemas = declaration.operation_schemas["example.reference/nested@1"]
+        schema = schemas[0 if schema_kind == "input" else 1]
+    validator = Draft202012Validator(schema)
+    assert validator.is_valid({"items": [{"resolved": "concrete"}]})
+    assert not validator.is_valid({"items": [{"resolved": 123}]})
+    assert not validator.is_valid({"items": [{}]})

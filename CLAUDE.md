@@ -90,9 +90,9 @@ construction, dispatch, and error translation belong to the runtime. Do not
 make authors pass or manipulate those internal values through the normal
 public API.
 
-Backup and disaster-recovery support remains an explicit compliance claim over
-generic decorated operations. Never infer compliance from method names and
-never move BackupEngine behavior into a Provider.
+Provider authors expose concrete operation and trigger schemas. The Control
+Plane owns schema-based Profile matching and fulfillment; Providers publish
+no Profile claims. Never infer compliance from method names.
 
 ## Provider runtime invariants
 

@@ -119,7 +119,6 @@ class AdmissionProvider(Provider):
     @operation(
         "stateforge.test/execute@1",
         requires=("runtime.ready",),
-        implements=("stateforge.test.v1.audited",),
     )
     async def execute(
         self,
@@ -149,7 +148,6 @@ def _request(
     value: int = 1,
     secret: str | None = None,
     generation: int | None = None,
-    roles: tuple[str, ...] = ("stateforge.test.v1.audited",),
     payload_fields: dict[str, str | int | bool | None] | None = None,
     mode: operation_admission_pb2.AdmissionMode.ValueType = (
         operation_admission_pb2.ADMISSION_MODE_ADMIT_OR_RESOLVE
@@ -189,7 +187,6 @@ def _request(
             ),
             contract=operation_admission_pb2.OperationContractContext(
                 manifest_revision=manifest.manifest_revision,
-                required_implementation_roles=roles,
             ),
             execution_context=execution_context,
         ),
@@ -703,17 +700,6 @@ async def _run(  # noqa: PLR0912, PLR0915
             grpc.StatusCode.FAILED_PRECONDITION,
             operation_admission_pb2.ADMISSION_ERROR_REASON_OPERATION_PRECONDITION_FAILED,
         )
-        role_status = await _expect_error(
-            admission,
-            _request(
-                handshake,
-                manifest,
-                operation_id=str(uuid4()),
-                roles=("stateforge.test.v1.missing",),
-            ),
-            grpc.StatusCode.FAILED_PRECONDITION,
-            operation_admission_pb2.ADMISSION_ERROR_REASON_OPERATION_INCOMPATIBLE,
-        )
         provider.requirement_satisfied = False
         requirement_status = await _expect_error(
             admission,
@@ -814,7 +800,6 @@ async def _run(  # noqa: PLR0912, PLR0915
             "resolved_existing": len(responses) - accepted_new,
             "author_dispatches": provider.dispatches,
             "stale_fence_status": stale_status,
-            "missing_role_status": role_status,
             "requirement_status": requirement_status,
             "idempotency_conflict_status": conflict_status,
             "immutable_context": True,
