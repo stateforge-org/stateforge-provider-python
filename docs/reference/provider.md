@@ -25,7 +25,7 @@ evidence only: it neither executes nor authorizes an operation.
 
 `Provider` also registers the private P4 Operation Admission service. The
 runtime validates the exact endpoint, session, accepted manifest, operation
-declaration, payload schema, requested implementation roles, current Health,
+declaration, payload schema, current Health,
 execution deadline, and fresh requirement-check results. It atomically records
 the canonical request fingerprint before scheduling author code, so concurrent
 identical retries dispatch exactly once and changed content is rejected.

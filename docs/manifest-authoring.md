@@ -120,7 +120,7 @@ at module scope or declared on the Provider class.
 Operation and trigger identifiers use `namespace/name@major`, with at
 least two lowercase dotted namespace segments and a positive major version.
 An incompatible input/result contract requires a new identifier version.
-Use tuples for platforms, requirements, triggers, and roles.
+Use tuples for platforms, requirements, and triggers.
 Plain `runtime_requirements` declarations are descriptive. Requirements
 declared by `@requirement_check` add an author-owned, dynamic inspection while
 publishing the same static metadata through the schema-1
@@ -178,29 +178,23 @@ duplicated, metadata exceeds Protocol bounds, the method is not async with an
 exact `(self)` signature and result annotation, or an operation has a missing,
 duplicate, or oversized requirement reference set.
 
-## Compliance claims
+## Profile matching ownership
 
-Supply roles explicitly on the decorated operation:
+Providers publish concrete operation input/result schemas and trigger payload
+schemas derived from their typed models. Operation declarations contain only
+`inputSchema` and `resultSchema`; Providers declare no Profile claims.
 
-```python
-@operation(
-    "example.reference/prepare@1",
-    implements=("stateforge.backup.v1.prepare",),
-)
-async def prepare(self, request: PrepareInput) -> PrepareResult: ...
-```
+The Control Plane will assess Profile compatibility from these schemas once
+SF-AOP supplies them. Matching uses types and constraints, without requiring
+property names to equal Profile names. Matching names can be mapped
+automatically; differing names can receive suggested field mappings. Extra
+inputs or outputs do not automatically disqualify an operation when the
+required Profile types are present, and partial matches remain discoverable.
+Providers do not implement matching, mappings, or Contract fulfillment.
 
-This illustrates claim syntax: `PrepareInput` and `PrepareResult` must come
-from the exact versioned profile when that profile lands. P1 transports and
-structurally validates role claims; it does not define the later P6/P7 profile
-schemas. R1 consequently cannot certify backup or DR compliance. Unknown
-dotted roles are transported as claims too. A consumer must validate known
-roles against the matching profile before using them as compliance evidence.
-
-Names, method bodies, docstrings, and schema payloads never imply compliance.
-Every operation has only input schema, result schema, and `implements` roles.
-There is no separate backup source mode, BackupEngine configuration, or
-storage routing declaration.
+Schema defaults remain annotations. They do not materialize omitted request
+values or bypass requiredness and validation of actual inputs, successful
+results, or trigger events.
 
 ## Schema safety and limits
 
@@ -222,7 +216,7 @@ numbers, and integers outside RFC 8785's exact integer range fail validation.
 
 P1 limits are 8 KiB per wire request, 2 MiB per wire response, 1 MiB per
 canonical revision preimage, 1,024 entries per operation/trigger/requirement
-map, 256 platform pairs, 64 roles per operation, and 64 containers of embedded
+map, 256 platform pairs, and 64 containers of embedded
 nesting. This runtime additionally caps JSON at 65,536
 nodes per checked document, embedded schemas at 4,096 schema nodes each, and
 combined generated schema bytes at 1 MiB. It applies these bounds before

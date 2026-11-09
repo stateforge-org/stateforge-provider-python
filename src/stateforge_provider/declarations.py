@@ -54,7 +54,6 @@ class Trigger:
 @dataclass(frozen=True, slots=True)
 class _Operation:
     identifier: str
-    implements: tuple[str, ...]
     requires: tuple[str, ...]
     cancellable: bool
     progress: OperationProgressPolicy | None
@@ -106,7 +105,6 @@ def _effective_methods(
 def operation(
     identifier: str,
     *,
-    implements: tuple[str, ...] = (),
     requires: tuple[str, ...] = (),
     cancellable: bool = False,
     progress: OperationProgressPolicy | None = None,
@@ -116,10 +114,6 @@ def operation(
     Annotate ``request`` and the return value with ProviderModel subclasses.
     The runtime derives the manifest schemas from those annotations and invokes
     the method only after canonical Operation Admission succeeds.
-    ``implements`` contains versioned semantic/compliance profile claims. Each
-    claim says the operation conforms to that profile's required schemas and
-    behavior. Claims are not permissions or Control Plane contract identifiers
-    and are never inferred from a method or model name.
     ``requires`` contains stable IDs declared by :func:`requirement_check`.
     The runtime evaluates each distinct check once per assessment or admission
     attempt.
@@ -144,7 +138,6 @@ def operation(
             "__stateforge_operation__",
             _Operation(
                 identifier,
-                implements,
                 requires,
                 cancellable,
                 progress,

@@ -49,7 +49,7 @@ if __name__ == "__main__":
 ```
 
 See [Manifest declarations](manifest-authoring.md) for typed operation models,
-triggers, configuration schemas, requirements, and explicit compliance roles.
+triggers, configuration schemas, and runtime requirements.
 See [Health and readiness](health-reporting.md) for fail-closed lifecycle
 states and event-driven health updates.
 See [Trigger publication](trigger-publication.md) for continuous decorated
@@ -57,8 +57,7 @@ sources, callback-driven events, acknowledgement receipts, and retry behavior.
 An application that already owns an event loop calls
 `await GitProvider().serve()` instead. See
 `.claude/PROVIDER_AUTHORING_VISION.md` for the complete intended author
-experience, including operation execution and compliance profiles, which land
-incrementally as their SFP procedures do.
+experience and the Control Plane’s ownership of Profile matching.
 
 See [Process lifecycle and exit behavior](process-lifecycle.md) for the
 standard `run()` process contract, graceful signal handling, embedded

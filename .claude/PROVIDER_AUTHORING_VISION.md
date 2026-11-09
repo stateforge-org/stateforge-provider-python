@@ -187,42 +187,25 @@ The runtime owns deadlines, cancellation, session and manifest fencing,
 readiness checks, deterministic result ordering, and final response
 validation.
 
-## Backup and disaster-recovery compliance
+## Profile matching ownership
 
-Backup and disaster recovery are predefined compliance profiles over generic
-operations, not special transport commands. Compliance is always explicit.
+Providers expose concrete operations and triggers with schemas derived from
+their typed models. They do not declare Profile claims or maintain a Profile
+registry. The Control Plane owns Profiles, schema-based compatibility, field
+mappings, Contracts, and fulfillment once schemas arrive through SF-AOP.
+Compatibility depends on types and constraints rather than identical property
+names. Matching names can map automatically, differing names can receive
+suggested mappings, extra fields do not automatically disqualify compatibility,
+and partial matches remain discoverable.
 
-```python
-@operation(
-    "git.create_backup_reference",
-    implements="stateforge.backup.v1.prepare",
-)
-async def create_backup_reference(...):
-    ...
-```
-
-```python
-@operation(
-    "git.reconstruct_repository",
-    implements="stateforge.disaster_recovery.v1.reconstruct",
-)
-async def reconstruct_repository(...):
-    ...
-```
-
-The runtime validates the claimed profile and publishes it in the Provider
-manifest. It must never infer compliance from a method name.
-
-BackupEngine remains an Agent-side tool. A compliant Provider prepares staged
-data or returns a supported Provider reference. During disaster recovery, the
-Agent restores stored data into an Agent-managed staging workspace and asks
-the Provider to reconstruct and verify the third-party component. The Provider
-does not receive a generic restore command.
+The Provider runtime validates actual inputs, successful results, and trigger
+events against the declared concrete schemas. Schema defaults remain
+annotations and do not materialize missing request values.
 
 ## Manifest ownership
 
 Provider authors declare metadata, operations, trigger types, model schemas,
-static or dynamically checked runtime requirements, and compliance roles
+static or dynamically checked runtime requirements
 through the public Python API. They do not construct the wire manifest
 manually. Operation-to-check associations stay private to the Provider
 runtime; schema-1 manifests publish only the existing static requirement

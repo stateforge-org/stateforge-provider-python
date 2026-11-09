@@ -16,7 +16,7 @@ from uuid import uuid4
 
 import grpc
 import pytest
-from google.protobuf.json_format import ParseDict
+from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.struct_pb2 import Struct
 from google.protobuf.timestamp_pb2 import Timestamp
 from grpc_status import rpc_status
@@ -75,6 +75,16 @@ class _Input(ProviderModel):
     secret: str = Field(json_schema_extra={"writeOnly": True})
 
 
+class _Detail(ProviderModel):
+    label: str
+    count: int = Field(json_schema_extra={"default": 1})
+
+
+class _ConcreteInput(ProviderModel):
+    details: list[_Detail]
+    provider_specific: bool
+
+
 class _Output(ProviderModel):
     accepted: bool
 
@@ -115,7 +125,6 @@ class _AdmissionProvider(Provider):
     @operation(
         "example.admission/run@1",
         requires=("runtime.ready",),
-        implements=("example.operation.v1.audited",),
     )
     async def run_operation(
         self,
@@ -240,7 +249,6 @@ def _request(
     operation_identifier: str = "example.admission/run@1",
     payload: dict[str, object] | None = None,
     deadline: datetime | None = None,
-    roles: tuple[str, ...] = ("example.operation.v1.audited",),
     mode: int = operation_admission_pb2.ADMISSION_MODE_ADMIT_OR_RESOLVE,
 ):
     payload_message = Struct()
@@ -262,7 +270,6 @@ def _request(
             ),
             contract=operation_admission_pb2.OperationContractContext(
                 manifest_revision=snapshot.manifest_revision,
-                required_implementation_roles=roles,
             ),
             execution_context=context,
         ),
@@ -467,11 +474,6 @@ async def test_stale_session_is_rejected_before_declaration_lookup(
             operation_admission_pb2.ADMISSION_ERROR_REASON_INVALID_OPERATION_REQUEST,
         ),
         (
-            "role",
-            grpc.StatusCode.FAILED_PRECONDITION,
-            operation_admission_pb2.ADMISSION_ERROR_REASON_OPERATION_INCOMPATIBLE,
-        ),
-        (
             "session",
             grpc.StatusCode.FAILED_PRECONDITION,
             operation_admission_pb2.ADMISSION_ERROR_REASON_OPERATION_PRECONDITION_FAILED,
@@ -513,10 +515,6 @@ async def test_rejects_before_creating_a_record(
             request.invocation.payload.update(
                 {"value": "wrong", "secret": "hidden"}
             )
-        elif change == "role":
-            request.invocation.contract.required_implementation_roles[:] = [
-                "example.operation.v1.missing"
-            ]
         elif change == "session":
             request.session_binding.expected_session_id = "stale-session"
         elif change == "deadline":
@@ -714,3 +712,59 @@ def test_public_context_and_legacy_handler_are_both_discoverable() -> None:
     }
     assert operations["example.admission/run@1"].accepts_context
     assert not operations["example.admission/legacy@1"].accepts_context
+
+
+@pytest.mark.asyncio
+async def test_nested_concrete_inputs_validate_without_profile_metadata(
+    endpoint_directory: Path,
+) -> None:
+    class ConcreteProvider(_AdmissionProvider):
+        @operation("example.admission/concrete@1")
+        async def concrete(self, request: _ConcreteInput) -> _Output:
+            self.calls += 1
+            self.started.set()
+            assert request.details[0].count == 1
+            return _Output(accepted=request.provider_specific)
+
+    provider = ConcreteProvider(endpoint_directory)
+    async with _running(provider) as (
+        admission,
+        bootstrap,
+        manifest,
+        descriptor,
+    ):
+        handshake, snapshot = await _session(bootstrap, manifest, descriptor)
+        declaration = snapshot.manifest.operations[
+            "example.admission/concrete@1"
+        ]
+        assert set(MessageToDict(declaration)) == {
+            "inputSchema",
+            "resultSchema",
+        }
+        for detail in ({"label": 5, "count": 1}, {"label": "ok"}):
+            request = _request(
+                handshake,
+                snapshot,
+                operation_identifier="example.admission/concrete@1",
+                payload={"details": [detail], "provider_specific": True},
+            )
+            with pytest.raises(grpc.aio.AioRpcError) as captured:
+                await admission.StartOperation(request, timeout=2)
+            assert captured.value.code() is grpc.StatusCode.INVALID_ARGUMENT
+        assert provider.calls == 0
+        request = _request(
+            handshake,
+            snapshot,
+            operation_identifier="example.admission/concrete@1",
+            payload={
+                "details": [{"label": "ok", "count": 1}],
+                "provider_specific": True,
+            },
+        )
+        response = await admission.StartOperation(request, timeout=2)
+        assert (
+            response.disposition
+            == operation_admission_pb2.ADMISSION_DISPOSITION_ACCEPTED_NEW
+        )
+        await asyncio.wait_for(provider.started.wait(), timeout=1)
+        assert provider.calls == 1
