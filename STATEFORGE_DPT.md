@@ -1,6 +1,6 @@
 <!-- STATEFORGE_DPT_MANIFEST
 {
-  "fingerprint": "6e844b45cc551a189448e288212dac2d9371f3fb40402cbeec85955dfec4cb1f",
+  "fingerprint": "5a327b961bbcb021e4ceb0bfc519c1f9ec246cdbc75bd4a23c02ad030aa529da",
   "format": "stateforge-dpt-plan",
   "format_version": 1,
   "plan": {
@@ -9,7 +9,7 @@
       "name": "StateForge",
       "plan_source_branch": "mvp/implementation",
       "release": "MVP",
-      "revision": 42,
+      "revision": 43,
       "slug": "stateforge"
     },
     "repositories": [
@@ -6617,7 +6617,7 @@
             "authority": "canonical",
             "context_id": "a11-protocol",
             "explanation": "Preserve authoritative SFP recovery semantics.",
-            "path": "docs/procedures/disconnection-recovery.md",
+            "path": "docs/v0.1.0/procedures/disconnection-recovery.md",
             "repository_alias": "protocol",
             "required": true,
             "role": "must_preserve",
@@ -6721,8 +6721,8 @@
           {
             "authority": "canonical",
             "context_id": "a12-responsibility-boundaries",
-            "explanation": "Release-wide boundary matrix reconciled against the final installed system.",
-            "path": "docs/reference/responsibility-boundaries.md",
+            "explanation": "Release-wide responsibility matrix reconciled against the installed system.",
+            "path": "docs/v0.1.0/reference/responsibility-boundaries.md",
             "repository_alias": "protocol",
             "required": true,
             "role": "must_verify",
@@ -6733,7 +6733,7 @@
           {
             "authority": "compatibility",
             "context_id": "a12-protocol-contracts",
-            "explanation": "All authoritative SFP contracts used by the complete runtime.",
+            "explanation": "Authoritative SFP contracts consumed by the complete local runtime.",
             "path": "src/stateforge_protocol/sfp",
             "repository_alias": "protocol",
             "required": true,
@@ -6741,6 +6741,18 @@
             "selector_kind": "directory",
             "selector_value": null,
             "sort_order": 3
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "a12-protocol-installed-matrix",
+            "explanation": "Protocol's installed-artifact test workflow and published wheel verification.",
+            "path": ".github/workflows/protocol-installed-test.yml",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 4
           },
           {
             "authority": "compatibility",
@@ -6752,19 +6764,31 @@
             "role": "must_verify",
             "selector_kind": "directory",
             "selector_value": null,
-            "sort_order": 4
+            "sort_order": 5
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "a12-provider-installed-matrix",
+            "explanation": "Provider's installed-artifact workflow and runtime scenario matrix.",
+            "path": ".github/workflows/provider-installed-test.yml",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 6
           },
           {
             "authority": "canonical",
-            "context_id": "a12-agent-sfp",
-            "explanation": "Complete Agent SFP consumer, availability, recovery, and session surface.",
+            "context_id": "a12-agent-runtime",
+            "explanation": "Agent-owned SFP runtime, lifecycle state, and operation behavior.",
             "path": "src/stateforge_agent/_sfp",
             "repository_alias": "agent",
             "required": true,
             "role": "must_verify",
             "selector_kind": "directory",
             "selector_value": null,
-            "sort_order": 5
+            "sort_order": 7
           },
           {
             "authority": "canonical",
@@ -6776,19 +6800,43 @@
             "role": "must_verify",
             "selector_kind": "directory",
             "selector_value": null,
-            "sort_order": 6
+            "sort_order": 8
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a12-agent-installed-matrix",
+            "explanation": "Agent's installed RPM system-test workflow and complete artifact matrix.",
+            "path": ".github/workflows/rpm-installed-test.yml",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 9
+          },
+          {
+            "authority": "canonical",
+            "context_id": "a12-agent-rpm-spec",
+            "explanation": "Installed Agent RPM contents, runtime dependencies, and systemd service packaging.",
+            "path": "packaging/rpm/SPECS/stateforge-agent.spec",
+            "repository_alias": "agent",
+            "required": true,
+            "role": "must_verify",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 10
           },
           {
             "authority": "compatibility",
             "context_id": "a12-provider-actions",
-            "explanation": "Reusable Provider fixture and runtime scenario actions used by the system matrix.",
+            "explanation": "Reusable Provider fixtures and runtime scenario actions used by the system matrix.",
             "path": ".github/actions",
             "repository_alias": "provider",
             "required": true,
             "role": "must_verify",
             "selector_kind": "directory",
             "selector_value": null,
-            "sort_order": 7
+            "sort_order": 11
           }
         ],
         "depends_on": [
@@ -6828,29 +6876,56 @@
             "verification_id": "a12-agent-quality"
           },
           {
-            "explanation": "The shipped system exercises every planned SFP procedure, backup capability, failure boundary, and supported Linux runtime.",
+            "explanation": "Proves generic SFP interoperability and real installed Agent/Provider behavior across the operation lifecycle, triggers, failure/restart/recovery boundaries, and supported Linux runtime. Any backup-oriented fixture uses ordinary Provider operations only.",
             "kind": "integration",
             "repository_alias": "agent",
             "required": true,
             "sort_order": 2,
-            "target": "Run the complete installed-artifact matrix with the exact Protocol wheel, Provider wheel, Agent RPM, BackupEngine fixture, and Restic integration in separate processes.",
+            "target": "Run the installed-artifact matrix with the exact Protocol wheel, Provider wheel, and Agent RPM in separate real processes over Unix sockets; cover every planned SFP procedure and Agent-owned runtime capability without a BackupEngine or Restic requirement.",
             "verification_id": "a12-installed-system"
           },
           {
-            "explanation": "Equivalent behavior comes from one canonical contract rather than duplicated implementations.",
+            "explanation": "The complete Protocol contract and validation suite passes for the canonical SFP behavior packaged in the tested wheel.",
+            "kind": "test",
+            "repository_alias": "protocol",
+            "required": true,
+            "sort_order": 3,
+            "target": "python -m pytest -q",
+            "verification_id": "a12-protocol-tests"
+          },
+          {
+            "explanation": "The complete Provider suite passes, including Provider runtime and fixture behavior used by the installed-artifact scenarios.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 4,
+            "target": "python -m pytest -q",
+            "verification_id": "a12-provider-tests"
+          },
+          {
+            "explanation": "CI fails if any planned SFP procedure or Agent-owned runtime capability lacks focused test coverage and an exact-artifact scenario mapping.",
+            "kind": "test",
+            "repository_alias": "agent",
+            "required": true,
+            "sort_order": 5,
+            "target": "Machine-checked coverage inventory: map every planned SFP procedure and Agent-owned runtime capability to focused tests and the complete installed-artifact matrix.",
+            "verification_id": "a12-coverage-inventory"
+          },
+          {
+            "explanation": "The final review confirms each normative rule has one authoritative owner and that installed behavior matches the Protocol responsibility matrix.",
             "kind": "integration",
             "repository_alias": null,
             "required": true,
-            "sort_order": 3,
-            "target": "Run Protocol contract tests and Agent/Provider ownership-delegation suites against the exact artifacts used by the system matrix.",
+            "sort_order": 6,
+            "target": "Reconcile Protocol contract tests, Agent/Provider ownership-delegation tests, and the exact installed-artifact matrix against the responsibility-boundary document.",
             "verification_id": "a12-ownership-tests"
           },
           {
-            "explanation": "No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed.",
+            "explanation": "No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed; future SF-AOP and Control Plane phases remain explicitly out of scope.",
             "kind": "human",
             "repository_alias": null,
             "required": true,
-            "sort_order": 4,
+            "sort_order": 7,
             "target": "Approve the final responsibility and coverage inventories for every SFP procedure and shared endpoint resource.",
             "verification_id": "a12-release-closure"
           }
@@ -7310,9 +7385,48 @@
       },
       {
         "branch_name": "mvp/provider-view-dsl",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c3000000-0000-4000-8000-000000000004",
+            "explanation": "Canonical catalog component, property, binding, surface, asset, and child contracts consumed by the DSL.",
+            "path": "provider_views/catalog/0.1.0",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "c3000000-0000-4000-8000-000000000005",
+            "explanation": "Protocol-owned generic ProviderPresentation and surface message contract.",
+            "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "canonical",
+            "context_id": "c3000000-0000-4000-8000-000000000006",
+            "explanation": "Provider Python authoring, operation/trigger declarations, schema generation, and typed API conventions.",
+            "path": "src/stateforge_provider",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          }
+        ],
         "depends_on": [
+          "C3",
           "P11",
+          "PV1",
           "R1",
           "R11",
           "R4",
@@ -7320,11 +7434,136 @@
         ],
         "release": "MVP",
         "repository_alias": "provider",
-        "required_result": "Provide typed Python authoring constructs for optional Provider-level presentation plus operation request/result and trigger payload presentation overlays. Operational JSON Schemas remain authoritative and generate a complete default UI; the DSL adds only Provider descriptions/branding, optional visual groups, schema-addressed field ordering/grouping, compatible widget/display preferences, and asset references. Groups are optional, ungrouped capabilities remain visible, and presentation cannot hide or redefine capabilities, schemas, required fields, identifiers, or execution semantics. Compile declarations directly into the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, filesystem path, or remote-resource mechanism.",
+        "required_result": "## Outcome and ownership\n\nProvide a developer-facing, typed Python API for Providers to compose custom declarative views from the Control Plane's versioned Provider Views catalog. The API covers a Provider's own overview, operation request/run/result views, and trigger policy/event views. It should feel compositional and SwiftUI-inspired while remaining a bounded catalog DSL, not an embedded web framework.\n\n## Required behavior\n\n- Let Provider authors compose catalog-defined components into view trees for the Provider and its operations and triggers, targeting only the presentation surfaces declared by the Protocol contract.\n- Support useful authored experiences such as Markdown explanations, ordered/timeline steps, status, and operation progress percentage, using catalog components and approved bindings/assets.\n- Generate a complete default presentation from the operation/trigger JSON Schemas, then allow authored views to arrange and enrich that experience. Authored presentation must not hide declared capabilities or required fields, redefine schemas or identifiers, or alter execution semantics.\n- Expose generated catalog components through an ergonomic views namespace; Provider authors should not construct protobuf messages or low-level catalog identifiers manually in ordinary use.\n- Compile declarations deterministically into the Protocol-owned generic presentation model. Validate component versions, properties, children, assets, binding slots, sources, and target surfaces against the pinned catalog and Protocol contract.\n- Preserve static typing and inherited declaration behavior; failures identify the declaration path and invalid contract element.\n- Expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, arbitrary filesystem path, or remote-resource mechanism.\n\n## Non-goals\n\nNo renderer implementation in Provider Python, no catalog ownership outside the Control Plane, no component-specific registry in SFP, no hiding/redefining operational schemas or capabilities, and no arbitrary web application runtime.",
         "sort_order": 36,
         "step_id": "R12",
         "title": "[TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Tests prove view declarations compose for Provider, operation, and trigger targets and compile to the intended presentation model.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 0,
+            "target": "R12",
+            "verification_id": "composition-api-contract"
+          },
+          {
+            "explanation": "Tests validate component identifiers, versions, properties, child relationships, assets, bindings, and surfaces against the pinned catalog.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 1,
+            "target": "R12",
+            "verification_id": "catalog-contract-validation"
+          },
+          {
+            "explanation": "Tests prove composition cannot hide capabilities or alter operation/trigger schemas, required fields, identifiers, or execution semantics.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 2,
+            "target": "R12",
+            "verification_id": "schema-semantics-preserved"
+          },
+          {
+            "explanation": "Tests verify declarations compile to the generic Protocol presentation model without adding catalog-specific concepts to SFP.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 3,
+            "target": "R12",
+            "verification_id": "generic-sfp-translation"
+          },
+          {
+            "explanation": "Tests reject arbitrary executable frontend code, filesystem paths, and remote-resource loading.",
+            "kind": "test",
+            "repository_alias": "provider",
+            "required": true,
+            "sort_order": 4,
+            "target": "R12",
+            "verification_id": "safe-declarative-boundary"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/provider-views-catalog-architecture",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c3000000-0000-4000-8000-000000000001",
+            "explanation": "Authoritative Provider Views catalog contracts and source structure.",
+            "path": "provider_views/catalog/0.1.0",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "canonical",
+            "context_id": "c3000000-0000-4000-8000-000000000002",
+            "explanation": "Generic Protocol presentation model that the Python authoring API must target.",
+            "path": "proto/stateforge_protocol/sfp/manifest/v1/manifest.proto",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 1
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c3000000-0000-4000-8000-000000000003",
+            "explanation": "Current Provider Python API and declaration conventions.",
+            "path": "src/stateforge_provider",
+            "repository_alias": "provider",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 2
+          }
+        ],
+        "depends_on": [
+          "C1"
+        ],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nDefine the architecture and cross-repository contract for the Control Plane-owned Provider Views catalog before changing catalog files, implementing renderers, or expanding the Provider Python DSL. The Control Plane catalog remains authoritative. The generated catalog API and documentation belong to stateforge-provider-views; Provider Python supplies the developer-facing Provider/operation/trigger authoring experience; SFP transports the presentation declaration generically.\n\n## Required behavior\n\n- Treat the complete Control Plane version (currently 0.1.0) as the catalog/API version. Do not create an independent catalog version or bind compatibility only to the Control Plane major.\n- Specify how a SwiftUI-inspired, declarative component tree composes Provider, operation, and trigger views from catalog-defined components, properties, bindings, assets, and children.\n- Define ownership and translation boundaries: the Control Plane owns catalog contracts and rendering; stateforge-provider-views generates versioned typed component APIs and matching docs; Provider Python exposes a clean authoring API and compiles declarations to the Protocol-owned presentation model; SFP remains generic and contains no catalog-specific component registry.\n- Preserve operational semantics: request/result JSON Schemas remain the source of truth for capability fields; views can enrich and arrange presentation but cannot redefine, hide, or change operations, triggers, required fields, or execution behavior.\n- Prohibit arbitrary HTML, CSS, JavaScript, executable frontend extensions, arbitrary filesystem paths, and remote-resource loading in Provider declarations. Custom experience comes from composition of supported catalog components and approved assets.\n- Record the frontend stack decision criteria and options. React and TypeScript may be evaluated, but the stack remains explicitly undecided until a separate decision is approved.\n- Keep the provider-views editor tool as a preview/development aid, not a new runtime entity or catalog owner.\n\n## Non-goals\n\nNo catalog expansion or file restructuring, no renderer implementation, no Provider Python DSL implementation, no generated package or docs changes, no SFP wire-contract change, and no frontend-stack selection in this architecture milestone.",
+        "sort_order": 37,
+        "step_id": "C3",
+        "title": "[TASK][MVP] Define Provider Views Catalog, Renderer, and DSL Architecture",
+        "verification_requirements": [
+          {
+            "explanation": "The architecture states that the full Control Plane product version owns the catalog/API version and does not create a separate catalog version.",
+            "kind": "human",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "C3",
+            "verification_id": "catalog-version-ownership"
+          },
+          {
+            "explanation": "The architecture assigns catalog/rendering, generated language API/docs, Provider authoring/translation, and generic SFP responsibilities to the correct repositories.",
+            "kind": "human",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "C3",
+            "verification_id": "cross-repository-ownership"
+          },
+          {
+            "explanation": "The frontend stack remains an explicit open decision with evaluation criteria; no candidate is treated as approved.",
+            "kind": "human",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "C3",
+            "verification_id": "frontend-stack-decision"
+          }
+        ]
       },
       {
         "branch_name": "mvp/provider-presentation-assets",
@@ -7509,17 +7748,40 @@
       },
       {
         "branch_name": "mvp/provider-views-catalog",
-        "context_resources": [],
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "context-01c1b38d-232e-4985-98ed-fd3d4265efc5",
+            "explanation": "Provider Views",
+            "path": "provider_views",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 0
+          }
+        ],
         "depends_on": [
           "P11"
         ],
         "release": "MVP",
         "repository_alias": "control-plane",
-        "required_result": "## Outcome and ownership\n\nEstablish the machine-readable Provider Views catalog in the Control Plane repository as the authoritative definition of the complete MVP catalog in `STATEFORGE_PROVIDER_VIEWS_MVP_CATALOG.pdf`. The Control Plane owns the catalog; SFP transports presentation data generically, and Provider Python authoring helpers are generated from the catalog rather than maintained as a competing component registry.\n\n## Required behavior\n\n- Define all 30 catalog components and their versioned identifiers; do not reduce the catalog to a subset.\n- For each component, define its applicable presentation surfaces, property schema, named binding slots and expected data shapes, asset slots, child structure, fallback guidance, and a representative example, as specified by the catalog.\n- Store component definitions separately in a machine-readable, reviewable format under the Control Plane repository, with shared definitions for surfaces, data-binding sources, and catalog-wide rules. Validate every descriptor and all cross-references.\n- Distinguish catalog membership from renderer availability: a catalog entry describes the Control Plane-owned component contract, while each Control Plane build/runtime registry decides which components and surfaces it can render or enable.\n- Generate the catalog index and human-readable reference from the machine-readable definitions. Provide a versioned machine-readable artifact suitable for Provider Python DSL helper generation; the Control Plane must not depend on Provider code.\n- Keep SFP generic: do not add component identifiers, property schemas, slots, or renderer applicability rules to Protocol.\n\n## Acceptance evidence\n\n- Automated catalog validation proves all 30 identifiers are present and unique, each component has its required contract definition, and every surface, binding source, asset slot, and fallback reference resolves.\n- Tests verify generated documentation and the Provider-consumable catalog artifact are reproducible from the catalog source.\n- Compatibility checks ensure existing component identifiers retain their meaning; incompatible component-contract changes use a new major identifier.\n- The Control Plane renderer registry can report unsupported catalog entries without making the catalog itself imply support.\n\n## Non-goals\n\nNo implementation of all 30 renderers, no Provider DSL implementation, no SFP catalog or component-specific validation, and no local-only preview renderer.",
+        "required_result": "## Outcome and ownership\n\nEstablish the machine-readable Provider Views catalog in the Control Plane repository as the authoritative definition of the complete MVP catalog in `STATEFORGE_PROVIDER_VIEWS_MVP_CATALOG.pdf`. The catalog is part of the Control Plane; it has no independent version. SFP transports presentation data generically, and Provider Python authoring helpers are generated from the catalog rather than maintained as a competing component registry.\n\n## Required behavior\n\n- Define all 30 catalog components and their identifiers; do not reduce the catalog to a subset.\n- For each component, define its applicable presentation surfaces, property schema, named binding slots and expected data shapes, asset slots, child structure, fallback guidance, and a representative example, as specified by the catalog.\n- Store component definitions separately in a machine-readable, reviewable format under the Control Plane repository, with shared definitions for surfaces, data-binding sources, and catalog-wide rules. Validate every descriptor and all cross-references.\n- Distinguish catalog membership from renderer availability: a catalog entry describes the Control Plane-owned component contract, while each Control Plane build/runtime registry decides which components and surfaces it can render or enable.\n- Generate the catalog index, human-readable reference, and Provider-consumable machine-readable artifact from the catalog source. Include provenance with the **full Control Plane version**, immutable source commit, and catalog-input SHA-256 digest. The current Control Plane version is `0.1.0`.\n- Do not assign the catalog an independent version or minimum Control Plane version. Compatibility follows the Control Plane’s versioning policy; a destructive catalog change requires a Control Plane major-version bump.\n- Keep SFP generic: do not add component identifiers, property schemas, slots, or renderer applicability rules to Protocol.\n\n## Acceptance evidence\n\n- Automated catalog validation proves all 30 identifiers are present and unique, each component has its required contract definition, and every surface, binding source, asset slot, and fallback reference resolves.\n- Tests verify the generated documentation and Provider-consumable artifact are reproducible from the catalog source and include accurate Control Plane version, source commit, and digest provenance.\n- Compatibility checks ensure existing component identifiers retain their meaning. Destructive component-contract changes require a Control Plane major-version bump.\n- The Control Plane renderer registry can report unsupported catalog entries without making the catalog itself imply support.\n\n## Non-goals\n\nNo implementation of all 30 renderers, no Provider DSL implementation, no SFP catalog or component-specific validation, and no local-only preview renderer.\n\n## Verifications\n\n- Generated provenance records control_plane_version, control_plane_commit, and catalog_sha256.\n- The version is the full version from the Control Plane source/release metadata—not inferred from the catalog or manually guessed.\n- The commit identifies the exact source revision; the digest is reproducible from the catalog input.\n- No independent catalog version or minimum Control Plane version is introduced.",
         "sort_order": 44,
         "step_id": "C1",
         "title": "[TASK][MVP] Define the Control Plane-Owned Provider Views Catalog",
-        "verification_requirements": []
+        "verification_requirements": [
+          {
+            "explanation": "Generated provenance records control_plane_version, control_plane_commit, and catalog_sha256.",
+            "kind": "test",
+            "repository_alias": "provider-views",
+            "required": true,
+            "sort_order": 0,
+            "target": "command",
+            "verification_id": "verify-4f09d2ed-f87e-4bdb-810b-09ae9315be65"
+          }
+        ]
       },
       {
         "branch_name": "mvp/verify-capability-assessment-with-agent",
@@ -7824,7 +8086,7 @@
         ],
         "release": "MVP",
         "repository_alias": "provider-views",
-        "required_result": "## Outcome and ownership\nBuild the catalog renderer/generator in stateforge-provider-views. The Control Plane remains the source of truth for the versioned Provider Views catalog; this repository consumes immutable catalog snapshots and generates language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.\n\n## Required behavior\n- Consume a pinned, versioned Control Plane catalog snapshot and record its catalog version, Control Plane major, and content digest in outputs.\n- Deterministically generate the Python authoring library from that snapshot; provider authors use the generated component APIs rather than hand-maintaining catalog identifiers and schemas.\n- Generate the library reference documentation from the same catalog snapshot and expose a reproducible documentation build.\n- Preserve older catalog inputs and generated releases; incompatible component contract changes use a new component identifier version.\n- Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.\n\n## Non-goals\nNo Control Plane component catalog authoring, SFP wire-contract changes, provider-specific views, renderer implementation, or runtime network fetch.",
+        "required_result": "## Outcome and ownership\n\nBuild the catalog generator in stateforge-provider-views. The Control Plane owns the Provider Views catalog as part of its complete product version. This repository consumes immutable catalog snapshots and generates versioned language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.\n\n## Required behavior\n\n- Consume a pinned Control Plane catalog snapshot and record its full Control Plane version, source commit, and content digest in generated outputs.\n- Use the full Control Plane version (currently 0.1.0) as the catalog/API version. Do not introduce an independent catalog version or identify compatibility by major version alone.\n- Deterministically generate the Python authoring library from that snapshot; Provider authors use generated typed components rather than hand-maintaining catalog identifiers and schemas.\n- Generate the library reference documentation from the same catalog snapshot and provide reproducible documentation builds.\n- Preserve previously released versioned outputs; a Provider author targeting an older Control Plane uses the matching versioned wheel, as with an ordinary Python library.\n- Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.\n\n## Non-goals\n\nNo Control Plane catalog authoring, SFP wire-contract changes, Provider-specific views, renderer implementation, runtime network fetch, or Python Provider DSL implementation.",
         "sort_order": 46,
         "step_id": "PV1",
         "title": "[TASK][MVP] Build the Versioned Provider Views Generator and Documentation",
@@ -8346,6 +8608,462 @@
             "verification_id": "r21-quality"
           }
         ]
+      },
+      {
+        "branch_name": "mvp/profile-definition-management",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c5-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c5-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nImplement Versioned Profile Definition and Management in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Implement validated, persisted Profile definitions with stable identities, immutable published revisions, descriptions of intended behavior, operation/trigger kind, and standardized data schemas. Operation Profiles have input and successful-result schemas; Trigger Profiles describe event payloads, not invented operation requests/results. Publish explicit revision references; editing a draft does not silently mutate a published definition.\n- Provide UI and internal interfaces to create, inspect, edit drafts, publish, and archive Profiles, including field/schema validation and readable errors. Define safe archive/delete behavior for referenced definitions. Do not require Provider implementation claims or an external Profile package.\n- Keep schema authoring bounded and safe: supported dialect, local references, no network schema retrieval, resource limits, and secret-safe examples/errors. Reuse applicable canonical schema mechanics rather than reproducing SFP operational validation.\n- Define persistence and authorization boundaries within CP: mutations must be validated server-side; browser validation alone is insufficient. Do not invent an enterprise tenant system or authentication transport.\n- Document lifecycle, version/revision semantics, and that behavioral text is user-reviewed intent rather than an automated proof.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 56,
+        "step_id": "C5",
+        "title": "[TASK][MVP] Implement Versioned Profile Definition and Management",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Profile CRUD/draft/publish/archive and persistence tests; published revisions remain immutable and referenced definitions cannot be silently removed.",
+            "verification_id": "c5-profile-lifecycle"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Schema, kind, invalid-reference, resource-limit, secret-safety and unauthorized-mutation tests, with no external schema retrieval.",
+            "verification_id": "c5-profile-safety"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Browser tests for creating and inspecting operation and trigger Profiles, validation errors, revision selection, and archive behavior.",
+            "verification_id": "c5-profile-ui"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c5-quality-docs"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/direct-policy-graph-authoring",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c6-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c6-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nImplement Direct Policy Graph Authoring with Operations and Triggers in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Implement persisted Policy drafts and revisioned saved graphs referencing concrete Provider Operations and Triggers directly. A user must be able to create a Policy without any Contract or Profile.\n- Define a typed internal accepted-declaration snapshot carrying stable Provider/declaration identity, manifest revision, operation input/result schemas and trigger payload schemas. Keep the acquisition mechanism outside this milestone; test fixtures are offline snapshot inputs, not fake Agents.\n- Build the graph editor with concrete node selection, connections, dependencies and schema-derived configuration. Distinguish trigger event outputs from operation inputs/results. Preserve provider-specific schema names, nested structures, requiredness and schema constraints.\n- Define explicit supported graph rules: entry/event sources, reachable dependencies, valid edge directions and data references, cycle handling, and no implicit iteration semantics. Reject unsupported graphs with actionable diagnostics. Evaluate only complete supported graph shapes, not a success-looking placeholder.\n- Save and reopen exact selections, paths, values and declaration revisions. Validate on the CP application boundary; avoid storing plaintext secrets in exported graphs or logs, using existing secret references if available or rejecting unsupported secret configuration clearly.\n- Provide readable configuration and graph validation in the UI. Do not implement remote execution or describe a locally validated graph as already deployed. Keep graph/data-binding primitives reusable by C7/C9.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 57,
+        "step_id": "C6",
+        "title": "[TASK][MVP] Implement Direct Policy Graph Authoring with Operations and Triggers",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Create, persist and reopen a concrete trigger-to-operation Policy without any Profile or Contract; verify identities, schemas and values round-trip.",
+            "verification_id": "c6-direct-policy"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Tests for missing/unknown nodes, invalid edges, cycles under the chosen graph rules, unavailable data paths, incompatible values, required inputs, and secret disclosure.",
+            "verification_id": "c6-graph-validation"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Browser tests for selecting implementations, connecting nodes, configuring inputs, displaying diagnostics, and revising a saved direct Policy.",
+            "verification_id": "c6-direct-editor"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c6-quality-docs"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/contract-profile-graph-templates",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c7-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c7-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [
+          "C5",
+          "C6"
+        ],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nImplement Contract Graph Templates with Virtual Profile Nodes in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Reuse the Policy graph concepts to implement persisted, versioned Contract templates whose nodes refer to exact Profile revisions instead of concrete Provider Operations/Triggers. Include intended flow, dependencies and standardized input/output/event connections. A Contract must not be modeled merely as an unordered Profile list.\n- Provide visual Contract authoring, Profile-node selection, standardized data wiring, validation, save/reopen, draft/publish/archive, and inspection. Enforce operation-versus-trigger node/edge semantics using C5 Profile kinds and C6 graph rules.\n- Validate references, required data coverage and compatible edges, with bounded schema handling and explicit cannot-establish diagnostics. Do not equate matching types with intended behavioral compliance.\n- Publish immutable template revisions. Policy instantiation references an exact template/Profile revision set; changes create new revisions and never silently update existing Policies.\n- Do not store universal Provider selections or fulfillment field mappings on the Contract. Concrete fulfillment belongs to each instantiated Policy, including use of multiple Providers. C9 owns instantiation, not a second implementation here.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 58,
+        "step_id": "C7",
+        "title": "[TASK][MVP] Implement Contract Graph Templates with Virtual Profile Nodes",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Persist and reopen a Contract graph with operation/trigger Profile nodes and standardized edges, with no concrete Provider binding.",
+            "verification_id": "c7-contract-graph"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Reject unknown revisions, invalid kind/edge combinations, unresolved data requirements, incompatible edges, and unsupported graph structures with paths to the failing node/edge.",
+            "verification_id": "c7-contract-errors"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Browser and persistence tests for draft/publication/archive; exact revisions remain immutable and template edits do not mutate existing references.",
+            "verification_id": "c7-contract-lifecycle"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c7-quality-docs"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/profile-candidate-matching",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c8-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c8-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [
+          "C5",
+          "C6"
+        ],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nImplement Schema-Based Candidate Matching and Field-Mapping Suggestions in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Match Profile schemas to accepted concrete declaration snapshots without Provider claims. Operation Profiles match Operations; Trigger Profiles match event payloads. Schema inputs/outputs are directional: the implementation must accept Profile-supplied inputs and guarantee required standardized outputs after mapping.\n- Rank candidates: best is complete same-name/path compatible fields; also show different-name compatible candidates, ambiguous multiple mappings, and partial matches. Keep useful partial candidates visible with unresolved requirements. Do not label partial matches fully fulfilled. A same-name incompatible field must not prevent consideration of a differently named compatible field.\n- Preserve structural subtyping: extra result fields are allowed; extra optional inputs are allowed; additional mandatory inputs need explicit supplied values or proven actual default materialization. A JSON Schema default annotation alone is not a supplied value. Do not require schema equality.\n- Analyze nested properties, requiredness, compatible types including integer/number and nullability, enums, arrays/item schemas, bounds and additional-property rules. Publish the supported reasoning subset. Unsupported or excessively complex cases produce cannot-establish results, not success or invented proof of incompatibility. No external schema retrieval, unbounded recursion or combinatorial search.\n- Return deterministic, structured match reports with field paths, suggestions, ambiguity, missing values and reasons. Same-name safe mappings may be automatic; ambiguous suggestions require user confirmation. Type equality never proves identical meaning or behavior.\n- Keep matching read-only and reusable by C9/C10; no arbitrary executable transformations, primitive coercion, automatic composition of unrelated implementations, or live availability/authorization assertions.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 59,
+        "step_id": "C8",
+        "title": "[TASK][MVP] Implement Schema-Based Candidate Matching and Field-Mapping Suggestions",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Tests for same-name automatic matches, different-name suggestions, multiple same-type fields, partial matches, incompatible same-name alternatives, and deterministic ranking.",
+            "verification_id": "c8-matching-matrix"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Positive/negative tests for input acceptance and output guarantees, nested/array mappings, enums/nullability/bounds/additional properties, extras, and real versus annotation-only defaults.",
+            "verification_id": "c8-schema-direction"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Tests for unresolved refs, unsupported constructs, recursion/complexity limits, malicious schemas, secret-safe diagnostics, and no behavioral-compliance claims.",
+            "verification_id": "c8-matching-safety"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c8-quality-docs"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/contract-policy-instantiation",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c9-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c9-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [
+          "C7",
+          "C8"
+        ],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nCreate Concrete Policies from Contracts with Implementation Selection and Mappings in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Add a Contract-to-Policy creation flow: choose a published Contract revision, inspect its virtual Profile graph, select a concrete Operation/Trigger for each required node, resolve suggested field mappings and supplied inputs, and save a concrete Policy. Different Policies from one template may select different implementations across one or multiple Providers.\n- Show C8 candidate ranks and reasons, including differently named fields, ambiguous and partial candidates. Resolve uncertainty interactively rather than silently selecting based on type. Show Profile intent and implementation description for user-reviewed suitability; do not call this a behavioral proof.\n- Store each Policy's concrete selections, input/output/event field mappings, explicitly supplied values, provenance and exact Contract/Profile/declaration revisions. Keep the Contract unchanged. Use directed structured paths and validate duplicate/conflicting destination mappings, nested arrays and missing data explicitly.\n- Implement pure CP adapters for Profile input to operation request, operation result to Profile output, and trigger event to standardized event. Validate source and projected values against their relevant schemas before/after mapping. Allow extra outputs and optional inputs. Materialize only explicitly configured/default-supported values; never assume JSON Schema defaults execute. No arbitrary code or silent coercion.\n- Keep incomplete drafts saveable with visible unresolved requirements; only structurally complete supported bindings are eligible for validation as ready for future execution. User confirmation cannot override a proven schema mismatch.\n- Preserve graph dependencies and standardized inter-node wiring through concretization. A partial candidate cannot be silently supplemented by another implementation unless the template explicitly models separate nodes. Direct Policy authoring remains independent and available.\n- Test adapters locally with realistic data; do not add live Agent dispatch, a substitute Agent daemon, SF-AOP APIs or a claim that full remote orchestration is implemented.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 60,
+        "step_id": "C9",
+        "title": "[TASK][MVP] Create Concrete Policies from Contracts with Implementation Selection and Mappings",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Browser/application tests create two Policies from one Contract with different Providers, confirm mappings and supplied inputs, save/reopen them, and prove the template remains unchanged.",
+            "verification_id": "c9-instantiation"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Tests map differently named nested input/output/event fields, validate both ends, reject collisions/coercions/invalid results, and prevent missing defaults or inputs from becoming executable bindings.",
+            "verification_id": "c9-adapters"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Tests preserve graph edges/dependencies, required-node coverage and revision provenance; partial drafts stay visibly incomplete, and direct Policies still need no Contract/Profile.",
+            "verification_id": "c9-policy-parity"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c9-quality-docs"
+          }
+        ]
+      },
+      {
+        "branch_name": "mvp/policy-fulfillment-revalidation",
+        "context_resources": [
+          {
+            "authority": "canonical",
+            "context_id": "c10-repo",
+            "explanation": "Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions.",
+            "path": "CLAUDE.md",
+            "repository_alias": "control-plane",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "file",
+            "selector_value": null,
+            "sort_order": 0
+          },
+          {
+            "authority": "compatibility",
+            "context_id": "c10-sfp",
+            "explanation": "Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized.",
+            "path": "docs/v0.1.0/procedures",
+            "repository_alias": "protocol",
+            "required": true,
+            "role": "must_understand",
+            "selector_kind": "directory",
+            "selector_value": null,
+            "sort_order": 1
+          }
+        ],
+        "depends_on": [
+          "C6",
+          "C9"
+        ],
+        "release": "MVP",
+        "repository_alias": "control-plane",
+        "required_result": "## Outcome and ownership\n\nValidate Policy Fulfillment and Revalidate Changed Definitions in stateforge-control-plane.\n\n## Shared model and boundaries\n\nProfiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.\n\nCP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.\n\n## Required behavior\n\n- Implement a single CP validation and fulfillment-report pipeline for direct and Contract-derived Policies. Check graph validity, concrete declaration references, configured/mapped required inputs, result/event guarantees, Profile coverage when applicable, pinned revisions, and supported adapters.\n- Keep structural readiness distinct from live Provider health, Capability Assessment, authorization, deployment and execution state. Do not report real-time availability from an offline schema match. Direct Policies bypass Profile/Contract requirements but retain concrete schema and graph validation.\n- Invalidate affected cached reports when Profile/Contract revisions, confirmed mappings, configuration, accepted manifest/declaration revisions or implementation selections change. Recompute against exact referenced snapshots with deterministic content identities; unchanged unrelated declarations should not invalidate everything.\n- Preserve pinned Policy revisions and references. New definitions are available updates, not silent rewrites of saved Policies. Require explicit revision adoption and renewed validation when appropriate. Missing/archived/replaced sources produce actionable stale/unresolved diagnostics; never silently switch Provider or auto-remap a changed field.\n- Prevent incomplete, incompatible, stale or cannot-establish bindings from being classified structurally ready. Display per-node/per-edge coverage, selected implementation, mappings, unresolved obligations and reasons with navigation to repairs.\n- Preserve historical validation evidence and distinguish current definition changes from already-running work. Without remote execution integration do not implement cancellation/retry/remediation or assert an operation failed because its definition changed.\n- Complete shared docs/examples and automated CP regression/CI coverage across C5-C10. Scope is CP validation and adapter evidence, not SF-AOP or full installed-system execution.\n\n## Verification and delivery\n\nAutomate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery.",
+        "sort_order": 61,
+        "step_id": "C10",
+        "title": "[TASK][MVP] Validate Policy Fulfillment and Revalidate Changed Definitions",
+        "verification_requirements": [
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 0,
+            "target": "Tests produce complete/partial/incompatible/stale reports for direct and template-derived Policies; every required Profile node and data obligation must be resolved before structural readiness.",
+            "verification_id": "c10-fulfillment"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 1,
+            "target": "Tests for schema/manifest/Profile/Contract changes, mappings/config edits, archival/removal, Provider replacement, explicit revision adoption, cache invalidation and pinned-history preservation.",
+            "verification_id": "c10-revalidation"
+          },
+          {
+            "explanation": "Automated acceptance evidence for the milestone's required observable behavior.",
+            "kind": "test",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 2,
+            "target": "Full CP application/browser workflows cover both authoring paths, ambiguous/partial repair, multiple Providers, reload/persistence, authorization and secret safety; no silent rebinding or false remote-execution claims.",
+            "verification_id": "c10-workflow-regression"
+          },
+          {
+            "explanation": "Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.",
+            "kind": "command",
+            "repository_alias": "control-plane",
+            "required": true,
+            "sort_order": 3,
+            "target": "Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.",
+            "verification_id": "c10-quality-docs"
+          }
+        ]
       }
     ]
   }
@@ -8359,7 +9077,7 @@ STATEFORGE_DPT_MANIFEST -->
 
 **Project:** StateForge  
 **Release:** MVP  
-**Revision:** 42
+**Revision:** 43
 
 ## Repositories
 
@@ -8414,10 +9132,11 @@ _No cross-repository relationships are registered yet._
 | `A5` | `agent` | **[TASK][MVP] Integrate Operation Admission and Idempotency**<br>## Outcome and ownership  Submit immutable P4/R5 generic operations behind the Agent's local coordination boundary using active declarations, A2 readiness and A3 findings. Do not select policy business actions here.  ## Required behavior  - Allocate an operation ID before contact; keep the versioned identifier, target, schema-valid payload, deadline and authorized execution context immutable for that attempt. Track attempted/accepted/rejected/unresolved state using current Agent persistence patterns where recovery requires it. - Validate manifest declaration and relevant requirements/explicit profiles, current session/generation and readiness before submission. An arbitrary operation remains usable without Backup/DR compliance; an operation identifier is not an arbitrary shell command. - Handle ACCEPTED_NEW and RESOLVED_EXISTING, terminal resolution and structured rejection exactly as P4. Rejection does not create a successful execution; busy retry guidance does not authorize changing the request under the same ID. - A lost response uses the same semantic request/ID to resolve retained Provider state. Do not create a fresh ID because transport failed; retain uncertainty when admission/external effects cannot be established. - Keep delivery deduplication separate from vendor-action idempotency. Document retention/expiry and safe-retry boundaries; unresolved admitted work cannot be automatically repeated after Provider state loss. - Fence stale replies/session replacement and prevent concurrent local submissions from becoming duplicate attempts. Keep an internal authority/context boundary ready for future SF-AOP commands without designing that protocol.  - Extend the reusable A13 installed-Agent scenario catalogue with operation-admission coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused admission, idempotency, concurrency, conflict, deadline, schema, and limit scenarios plus the unchanged full installed-Agent matrix.  Test a generic non-backup invocation, invalid/undeclared input, readiness/requirement rejection, successful new/replayed/terminal admission, changed-request conflict, lost-response resolution, concurrent submission, deadline-before-admission, stale generation and retention/state-loss uncertainty. Prove no new execution identity is silently substituted.  ## Non-goals  No policy engine, vendor code, automatic remediation/new attempt, SF-AOP schema, full lifecycle Watch implementation or BackupEngine invocation.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A2`, `A3`, `P4`, `P9`, `R5` | `COMPLETED` | [Issue #32](https://github.com/stateforge-org/stateforge-agent/issues/32) · [Pull Request #33](https://github.com/stateforge-org/stateforge-agent/pull/33) |
 | `A6` | `agent` | **[TASK][MVP] Integrate Operation Progress Results and Cancellation**<br>## Outcome and ownership  Observe P5/R6 admitted operations, normalize progress/results, and request race-safe operation-scoped cancellation without redispatch.  ## Required behavior  - Attach Watch only to known admitted identities; consume current-state/latest-progress replay, monotonic sequences and contract cursor/gap rules. Bound local buffering and fence stale responses from replaced sessions. - Validate typed terminal results against pinned declaration/profile context and accept one immutable terminal outcome. Preserve structured failure/partial-side-effect/cleanup evidence and sanitized diagnostics. - Request cancellation using the contract, distinguishing accepted/requested, unsupported and already-terminal. Record CANCELLED only after confirmed execution stopped; a successful request or RPC deadline is not confirmation. - Completion/cancellation races resolve to the first valid terminal outcome. Cancelling an observer, disconnecting, health loss or timeout does not fabricate FAILED/CANCELLED or stop unrelated work on the channel. - Persist/retain the evidence needed to reconcile outstanding attempts using current Agent facilities. Resume observation after interruption without resubmitting business work; P8/A11 provide complete state-loss reconciliation later. - Expose normalized local operation status through a clean coordination boundary, not direct vendor hooks or invented Control Plane reporting.  - Extend the reusable A13 installed-Agent scenario catalogue with operation-lifecycle coverage using the exact Agent RPM, Protocol wheel, and Provider wheel in separate real processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must include focused progress, replay, cancellation, terminal-race, interruption, restart-of-observation, and no-redispatch scenarios plus the unchanged full installed-Agent matrix.  Test initial/late/terminal replay, progress coalescing/gaps, slow observer, invalid result/correlation, terminal immutability, cancellation races, unsupported/already-terminal cases, interrupted Watch, stale session, partial effects and Agent restart of observation. Prove Watch and cancellation never cause a second dispatch.  ## Non-goals  No unlimited event-history system, process-wide cancellation, guessed rollback, generic auto-retry of side effects, policy executor or SF-AOP transport.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A5`, `P5`, `P9`, `R6` | `COMPLETED` | [Issue #34](https://github.com/stateforge-org/stateforge-agent/issues/34) · [Pull Request #37](https://github.com/stateforge-org/stateforge-agent/pull/37) |
 | `A13` | `agent` | **[TASK][MVP] Build Reusable Agent RPM CI/CD Pipelines**<br>## Outcome and ownership  Create reusable GitHub Actions building blocks for the StateForge Agent RPM. Build and test logic is written once and reused by pull-request, pre-publication, and future publishing workflows. The implementation may combine YAML with Bash or Python where each is appropriate; it must not introduce a separate scenario framework or duplicate the Agent runtime.  ## Required behavior  - Keep RPM construction in one documented, locally runnable command that uses the canonical RPM spec and produces the binary RPM, source RPM, checksums, and machine-readable build metadata. - Expose that command through a repository-local composite action with typed inputs and outputs, including version, artifact paths, and binary RPM SHA-256. - Provide a reusable `workflow_call` build workflow that builds once and uploads the immutable RPM artifact. Downstream testing and future publication must consume those exact bytes rather than rebuild. - Provide a reusable installed-RPM test action and workflow that download the artifact, verify checksums, install the binary RPM in clean supported Linux, verify package identity, files, ownership, import location, packaged service/configuration surface, and removal, and upload bounded evidence even on failure. - Provide a reusable gate that composes build then installed-package verification, plus thin pull-request/integration and manual release-candidate callers containing no copied setup or build commands. - Keep external actions pinned to immutable commit SHAs, permissions read-only, credentials out of build/test jobs, jobs bounded, and artifact retention explicit. - Keep shell commands independently runnable for local parity and document how later runtime tests and publishers consume the tested RPM artifact. - Be explicit about current packaging boundaries: until runtime dependencies are distributed as system packages, the packaging gate may verify artifact-owned surfaces without claiming the full daemon can start.  ## Acceptance evidence  Run workflow/action validation; build the binary and source RPM on Linux; verify checksums and metadata; install the exact binary RPM in a clean Fedora environment; prove executable, Python package, systemd unit, configuration, sysusers, and tmpfiles content are owned by the RPM and not a checkout; remove the RPM; and retain evidence. Pass shell syntax checks, focused automation contract tests, Ruff, strict mypy, the existing Linux test suite, and strict documentation build.  ## Non-goals  No custom system-test framework, scenario DSL, dummy Provider suite, full runtime/service integration matrix, package signing/publication, organization-wide workflow repository, cloud infrastructure, or new Agent/SFP behavior.  ## Compatibility, discretion, and delivery  Preserve landed Agent behavior, existing repository checks, RPM layout, and human Issue/PR/review/merge authority. Prefer reusable workflows for job topology, composite actions for repeated runner steps, and small shell/Python commands for portable implementation details. | `A1` | `COMPLETED` | [Issue #10](https://github.com/stateforge-org/stateforge-agent/issues/10) · [Pull Request #11](https://github.com/stateforge-org/stateforge-agent/pull/11) |
-| `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  - Extend the reusable A13 installed-Agent scenario catalogue with deterministic disconnection and recovery coverage using exact artifacts and separate real Agent and Provider processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover channel loss, lost replies and acknowledgements, generation replacement, Agent and Provider restart, retained and lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A4`, `A6`, `P8`, `P9`, `R9` | `PENDING` | [Issue #38](https://github.com/stateforge-org/stateforge-agent/issues/38) |
+| `A11` | `agent` | **[TASK][MVP] Complete SFP Disconnection and Recovery**<br>## Outcome and ownership  Complete Agent P8/R9 recovery by composing session replacement, manifest validation, health eligibility, durable triggers and admitted-operation evidence.  ## Required behavior  - Distinguish transport interruption, same-installation new generation/process, and replacement installation. Rediscovers/re-handshakes use current identity/generation; retrieve or validate manifest and establish health before new admission. - Reconcile prior operations with original IDs through existing query/Watch semantics; replay retained progress/terminal evidence without redispatch. Retry pending trigger delivery/ack responsibility with original publication IDs and content. - Agent restart recovers its required journals/evidence and resumes responsibility; stable Provider installation identity alone is not proof the Provider retained execution state. - Missing/expired previously admitted records become explicit indeterminate outcomes. Never mark them failed/cancelled/succeeded by inference, manufacture a new ID, or automatically repeat an action with possibly completed side effects. - Replacement instances cannot inherit earlier executions. Fence stale session responses, old health/watch streams, changed manifest decisions and cursor gaps; preserve bounded backoff/backpressure and shutdown behavior. - Surface pending/indeterminate/cleanup evidence for later authority or human resolution through an internal boundary. Choose durable implementation from current Agent patterns; do not invent SF-AOP remediation messages.  - Extend the reusable A13 installed-Agent scenario catalogue with deterministic disconnection and recovery coverage using exact artifacts and separate real Agent and Provider processes over the Unix socket.  ## Acceptance evidence  CI/CD evidence must cover channel loss, lost replies and acknowledgements, generation replacement, Agent and Provider restart, retained and lost state, stale responses, expiry, and indeterminate outcomes without redispatch.  Automated scenarios cover channel loss with continuing work, lost admission reply/result/trigger ack, generation replacement, Agent restart, Provider restart with/without supported retained state, new installation, stale responses, expiry and workspace ownership. Prove each accepted execution/event is reconciled, not blindly repeated or dropped.  ## Non-goals  No compulsory Provider persistence, automatic business retry/remediation, Control Plane operator workflow, new SF-AOP contract or unrelated connection-manager redesign.  ## Compatibility, discretion, and delivery  Preserve landed contracts, public APIs, and repository boundaries. Current code wins existing disagreements with prose; SFP defines intended behavior not yet implemented. In particular, preserve P1 manifest schema 1, versioned string identifiers, explicit `implements` roles, and its revision rules. New incompatible semantics require explicit versioning, not a silent v1 rewrite.  Choose internal storage, scheduling, helper APIs, and compatible implementation details from the current codebase; document tradeoffs for human review. Loose specifications are guidance, not permission for unrelated redesign. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. SF-AOP and Control Plane are required later MVP phases, not work to invent here. | `A13`, `A4`, `A6`, `P8`, `P9`, `R9` | `COMPLETED` | [Issue #38](https://github.com/stateforge-org/stateforge-agent/issues/38) · [Pull Request #40](https://github.com/stateforge-org/stateforge-agent/pull/40) |
 | `A12` | `agent` | **[TASK][MVP] Verify the Complete Local Agent and Provider Runtime**<br>## Outcome and ownership  Verify the complete local Agent/Provider foundation using separate real processes and the exact installed artifacts. The Agent provides generic local Provider discovery, SFP session management, and policy-authorized operation execution. Backup and restore behavior, when supplied, belongs to ordinary Provider implementations and their declared operations; there is no Agent BackupEngine abstraction.  ## Required behavior  - Exercise discovery/identity/handshake, manifest validation and revision caching, standard health, capability assessment, durable triggers, arbitrary typed operation admission, progress/results/cancellation, and reconnect over one multiplexed channel per active endpoint. - Demonstrate multiple unrelated Provider operations whose payload/result schemas are opaque to SFP. No test may require a predefined backup/DR operation identifier, compliance role, Protocol backup schema, or Agent backup subsystem. - If a backup-oriented Provider fixture is used, exercise it only through its ordinary declared Provider operations over SFP; the Agent test must not perform physical backup/restore or own backup storage, credentials, snapshots, or backup-specific workspaces. - Cover concurrency and failure/crash boundaries: duplicate/conflicting IDs, lost replies/acknowledgements, invalid schemas/results, readiness changes, stale generations, cancellation races, Provider-side storage failures where applicable, process restarts, indeterminate state, and scoped cleanup. Do not automatically repeat unresolved effects. - Keep operation evidence, Provider-owned storage results, and later Control Plane coordination distinct. Do not claim that local Provider operations alone provide a global consistency guarantee or a coordinated Control Plane Snapshot. - Build and clean-install involved distributions, verify packaged contracts, typing, and public docs, and pass all applicable gates on the supported runtime/platform matrix. - Maintain a machine-checked coverage inventory mapping every planned SFP procedure and Agent-owned runtime capability to focused scenarios and the full installed-artifact matrix; missing coverage is a release-blocking failure.  ## Acceptance evidence  A repeatable automated real-process matrix proves generic SFP interoperability using the exact Protocol wheel, Provider wheel, and Agent RPM. It covers the declared operation lifecycle, triggers, runtime failures, restart/recovery boundaries, and exact-artifact installation without an Agent BackupEngine plugin or Agent-owned Restic integration. Record local phase exit evidence and open questions for the later required SF-AOP and Control Plane phases.  ## Non-goals  No Agent BackupEngine, Agent-owned physical backup/restore, Restic engine/plugin integration, Protocol backup/DR profile, fabricated global consistency guarantee, vendor-specific Agent code, SF-AOP/Control Plane implementation, production policy engine, or broad architecture migration.  ## Compatibility, discretion, and delivery  Preserve landed generic contracts and repository boundaries. Current code wins existing disagreements with prose. Implement only the assigned Issue. Add behavioral tests and applicable repository checks/docs. Scoped local commits are allowed; a human pushes, opens the PR, reviews, and merges. Only matching merged GitHub evidence reconciled by DPT completes this step. | `A11`, `A13`, `A2`, `A3`, `A4`, `A5`, `A6`, `P9`, `R10` | `BLOCKED` | — |
 | `P11` | `protocol` | **[TASK][MVP] Add Versioned Provider Presentation to Manifest Exchange**<br>Define the first Provider presentation contract carried by Manifest Exchange as an optional, independently revised declarative component tree for the Provider itself and for its manifest-declared operations and triggers. Operational JSON Schemas remain authoritative and always support complete generated fallback UI. Presentation composes bounded Provider, request, run/progress, result/evidence, trigger policy/event, and audit surfaces without adding capabilities, hidden inputs, required fields, identifiers, authorization, or execution meaning.  Each presentation node names a versioned component, carries validated properties and safe schema/runtime bindings, contains bounded children where its component contract permits them, and provides a portable fallback where needed. Define a versioned core component namespace for layout, schema-bound input, content, data display, visualization, media, progress, status, evidence, and StateForge-semantic actions. Permit versioned third-party component identifiers while reserving StateForge-owned namespaces. Define strict identifier, property, binding, condition/repetition, child, fallback, tree-depth/count/byte, digest, reference, asset, and media rules.  A Provider developer may coordinate the Provider runtime, declarative presentation/assets, and an optional custom renderer extension in one signed logical release bundle, but the artifacts retain separate destinations and trust boundaries. SFP may carry only declarative renderer requirements and digest-bound compatibility metadata such as component namespace, extension/API version, and declared permission needs. It must never carry executable renderer code, HTML, CSS, JavaScript, WebAssembly, binaries, remote modules, secrets, or an instruction that installs or activates an extension. Renderer extensions are separately installed and approved by the Control Plane, run behind a narrow sandboxed renderer API, and cannot replace Control Plane navigation, authentication, authorization, policy logic, approvals, canonical state, evidence, or audit. Missing, incompatible, rejected, crashed, or uninstalled renderers must resolve to portable core-component or schema-derived fallback.  Keep presentation revisioning separate from operational manifest revisioning so visual-only changes do not invalidate capability assessment or operation admission, alter lifecycle or trigger fingerprints, or disrupt streams. Operation Admission and Trigger Publication keep their existing services, RPCs, identifiers, payloads, and semantics; presentation resolves through the accepted declaration snapshot without another SFP endpoint.  Protocol owns only the canonical Provider-to-Agent wire model, validation, limits, revisions, fixtures, and documentation. Later Provider Python milestones compile the Python DSL into this IR and package release metadata/assets. Later Agent and SF-AOP milestones synchronize accepted declarations. Later Control Plane milestones own the component registry, Skin integration, explicit extension installation, signature/provenance policy, sandbox runtime, permission enforcement, and rendering. | `P1`, `P10`, `P3`, `P4`, `P9` | `COMPLETED` | [Issue #47](https://github.com/stateforge-org/stateforge-protocol/issues/47) · [Pull Request #50](https://github.com/stateforge-org/stateforge-protocol/pull/50) |
-| `R12` | `provider` | **[TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL**<br>Provide typed Python authoring constructs for optional Provider-level presentation plus operation request/result and trigger payload presentation overlays. Operational JSON Schemas remain authoritative and generate a complete default UI; the DSL adds only Provider descriptions/branding, optional visual groups, schema-addressed field ordering/grouping, compatible widget/display preferences, and asset references. Groups are optional, ungrouped capabilities remain visible, and presentation cannot hide or redefine capabilities, schemas, required fields, identifiers, or execution semantics. Compile declarations directly into the Protocol-owned presentation model without requiring authors to construct protobuf messages, preserve static typing and inherited declaration behavior, validate references deterministically, and expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, filesystem path, or remote-resource mechanism. | `P11`, `R1`, `R11`, `R4`, `R5` | `PENDING` | [Issue #44](https://github.com/stateforge-org/stateforge-provider-python/issues/44) |
+| `R12` | `provider` | **[TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL**<br>## Outcome and ownership  Provide a developer-facing, typed Python API for Providers to compose custom declarative views from the Control Plane's versioned Provider Views catalog. The API covers a Provider's own overview, operation request/run/result views, and trigger policy/event views. It should feel compositional and SwiftUI-inspired while remaining a bounded catalog DSL, not an embedded web framework.  ## Required behavior  - Let Provider authors compose catalog-defined components into view trees for the Provider and its operations and triggers, targeting only the presentation surfaces declared by the Protocol contract. - Support useful authored experiences such as Markdown explanations, ordered/timeline steps, status, and operation progress percentage, using catalog components and approved bindings/assets. - Generate a complete default presentation from the operation/trigger JSON Schemas, then allow authored views to arrange and enrich that experience. Authored presentation must not hide declared capabilities or required fields, redefine schemas or identifiers, or alter execution semantics. - Expose generated catalog components through an ergonomic views namespace; Provider authors should not construct protobuf messages or low-level catalog identifiers manually in ordinary use. - Compile declarations deterministically into the Protocol-owned generic presentation model. Validate component versions, properties, children, assets, binding slots, sources, and target surfaces against the pinned catalog and Protocol contract. - Preserve static typing and inherited declaration behavior; failures identify the declaration path and invalid contract element. - Expose no arbitrary HTML, CSS, JavaScript, executable frontend extension, arbitrary filesystem path, or remote-resource mechanism.  ## Non-goals  No renderer implementation in Provider Python, no catalog ownership outside the Control Plane, no component-specific registry in SFP, no hiding/redefining operational schemas or capabilities, and no arbitrary web application runtime. | `C3`, `P11`, `PV1`, `R1`, `R11`, `R4`, `R5` | `BLOCKED` | [Issue #44](https://github.com/stateforge-org/stateforge-provider-python/issues/44) |
+| `C3` | `control-plane` | **[TASK][MVP] Define Provider Views Catalog, Renderer, and DSL Architecture**<br>## Outcome and ownership  Define the architecture and cross-repository contract for the Control Plane-owned Provider Views catalog before changing catalog files, implementing renderers, or expanding the Provider Python DSL. The Control Plane catalog remains authoritative. The generated catalog API and documentation belong to stateforge-provider-views; Provider Python supplies the developer-facing Provider/operation/trigger authoring experience; SFP transports the presentation declaration generically.  ## Required behavior  - Treat the complete Control Plane version (currently 0.1.0) as the catalog/API version. Do not create an independent catalog version or bind compatibility only to the Control Plane major. - Specify how a SwiftUI-inspired, declarative component tree composes Provider, operation, and trigger views from catalog-defined components, properties, bindings, assets, and children. - Define ownership and translation boundaries: the Control Plane owns catalog contracts and rendering; stateforge-provider-views generates versioned typed component APIs and matching docs; Provider Python exposes a clean authoring API and compiles declarations to the Protocol-owned presentation model; SFP remains generic and contains no catalog-specific component registry. - Preserve operational semantics: request/result JSON Schemas remain the source of truth for capability fields; views can enrich and arrange presentation but cannot redefine, hide, or change operations, triggers, required fields, or execution behavior. - Prohibit arbitrary HTML, CSS, JavaScript, executable frontend extensions, arbitrary filesystem paths, and remote-resource loading in Provider declarations. Custom experience comes from composition of supported catalog components and approved assets. - Record the frontend stack decision criteria and options. React and TypeScript may be evaluated, but the stack remains explicitly undecided until a separate decision is approved. - Keep the provider-views editor tool as a preview/development aid, not a new runtime entity or catalog owner.  ## Non-goals  No catalog expansion or file restructuring, no renderer implementation, no Provider Python DSL implementation, no generated package or docs changes, no SFP wire-contract change, and no frontend-stack selection in this architecture milestone. | `C1` | `COMPLETED` | [Issue #5](https://github.com/stateforge-org/stateforge-control-plane/issues/5) · [Pull Request #7](https://github.com/stateforge-org/stateforge-control-plane/pull/7) |
 | `R13` | `provider` | **[TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets**<br>Allow Provider packages to ship the icons, logos, banners, illustrations, diagrams, images, SVG resources, and other bounded static visual assets referenced by Provider-level, operation, and trigger presentation overlays. Discover and package assets reproducibly, calculate content digests, validate media types, dimensions and size limits, reject traversal, symlink, malformed, executable, unsafe-vector, and remote-resource hazards, and deduplicate identical content without exposing arbitrary Provider filesystem paths. | `P11`, `R11`, `R12` | `BLOCKED` | — |
 | `R14` | `provider` | **[TASK][MVP] Publish Versioned Provider Presentation through Manifest Exchange**<br>Integrate Provider-authored Provider-level presentation, operation input/result overlays, trigger payload overlays, optional visual groups, and validated asset references into existing manifest construction and GetManifest response handling. Compile the Python DSL directly into the Protocol-owned representation, resolve schema pointers against the authoritative operation and trigger schemas, produce deterministic canonical presentation revisions, and preserve the independent operational manifest revision plus every existing session, schema-negotiation, size, and stale-response fence. Presentation-only changes must be observable without changing execution contracts and must not require another SFP endpoint; absent or invalid presentation must leave the complete schema-derived experience available. | `P11`, `R1`, `R11`, `R12`, `R13` | `BLOCKED` | — |
 | `R15` | `provider` | **[TASK][MVP] Verify Provider Presentation, Assets, and Revision Semantics**<br>Add conformance and installed-package coverage for Provider-level presentation, operation request/result overlays, trigger payload overlays, optional groups, schema-pointer and widget compatibility, complete schema-derived fallback, asset packaging and rejection, deterministic content digests, canonical presentation revisions, and manifest publication. Prove that ungrouped and unmentioned capabilities remain visible, invalid presentation cannot disable valid operations or triggers, and a presentation-only edit changes the presentation revision without changing the operational manifest revision or affecting operation-admission and trigger-publication behavior. Preserve evidence through the reusable Provider CI/CD framework. | `P11`, `R11`, `R12`, `R13`, `R14` | `BLOCKED` | — |
@@ -8430,16 +9149,22 @@ _No cross-repository relationships are registered yet._
 | `O0` | `sf-aop` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge AOP**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge AOP. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the SF-AOP specification, protocol procedures, diagrams, generated contract references, navigation, and repository-specific rendering behavior. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
 | `P12` | `protocol` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Protocol**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Protocol. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve all SFP procedure prose, sequence diagrams, protobuf references, generated Python-contract references, navigation, and repository-specific rendering behavior. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
 | `R16` | `provider` | **[TASK][MVP] Adopt the Shared Documentation System in StateForge Provider Python**<br>## Outcome and ownership  Adopt the shared StateForge documentation theme, consumer contract, and versioned publishing workflow in StateForge Provider Python. This repository owns its configuration, content, CI evidence, and future theme upgrades.  ## Required behavior  - Pin the exact reviewed stateforge-docs-theme artifact and configure the repository's component identity and accent. - Consume the reusable versioned publishing workflow without copying its implementation. - Preserve the Provider authoring guide, runtime architecture, CI documentation, generated Python API references, examples, navigation, and repository-specific plugins. - Retain strict documentation validation, repository links, search, navigation, accessibility, responsive behavior, light/dark presentation, version selection, and historical-version warnings. - Remove superseded local shared branding only after proving functional and visual parity. - Keep repository-specific documentation dependencies and plugins explicit and reproducible. - Document the local build, preview, release, dev-publication, upgrade, and rollback procedures.  ## Acceptance evidence  A clean environment installs the exact pinned documentation dependencies and passes the repository's strict build, link checks, configuration validation, and responsive visual/accessibility checks. Temporary publication evidence verifies component-scoped release, dev, and latest paths without modifying another repository's documentation.  ## Non-goals  No broad technical-prose rewrite, no unrelated runtime or packaging changes, no copied shared theme or publishing implementation, and no Zensical migration in this milestone. | `D2` | `BLOCKED` | — |
-| `C1` | `control-plane` | **[TASK][MVP] Define the Control Plane-Owned Provider Views Catalog**<br>## Outcome and ownership  Establish the machine-readable Provider Views catalog in the Control Plane repository as the authoritative definition of the complete MVP catalog in `STATEFORGE_PROVIDER_VIEWS_MVP_CATALOG.pdf`. The Control Plane owns the catalog; SFP transports presentation data generically, and Provider Python authoring helpers are generated from the catalog rather than maintained as a competing component registry.  ## Required behavior  - Define all 30 catalog components and their versioned identifiers; do not reduce the catalog to a subset. - For each component, define its applicable presentation surfaces, property schema, named binding slots and expected data shapes, asset slots, child structure, fallback guidance, and a representative example, as specified by the catalog. - Store component definitions separately in a machine-readable, reviewable format under the Control Plane repository, with shared definitions for surfaces, data-binding sources, and catalog-wide rules. Validate every descriptor and all cross-references. - Distinguish catalog membership from renderer availability: a catalog entry describes the Control Plane-owned component contract, while each Control Plane build/runtime registry decides which components and surfaces it can render or enable. - Generate the catalog index and human-readable reference from the machine-readable definitions. Provide a versioned machine-readable artifact suitable for Provider Python DSL helper generation; the Control Plane must not depend on Provider code. - Keep SFP generic: do not add component identifiers, property schemas, slots, or renderer applicability rules to Protocol.  ## Acceptance evidence  - Automated catalog validation proves all 30 identifiers are present and unique, each component has its required contract definition, and every surface, binding source, asset slot, and fallback reference resolves. - Tests verify generated documentation and the Provider-consumable catalog artifact are reproducible from the catalog source. - Compatibility checks ensure existing component identifiers retain their meaning; incompatible component-contract changes use a new major identifier. - The Control Plane renderer registry can report unsupported catalog entries without making the catalog itself imply support.  ## Non-goals  No implementation of all 30 renderers, no Provider DSL implementation, no SFP catalog or component-specific validation, and no local-only preview renderer. | `P11` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-control-plane/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-control-plane/pull/2) |
+| `C1` | `control-plane` | **[TASK][MVP] Define the Control Plane-Owned Provider Views Catalog**<br>## Outcome and ownership  Establish the machine-readable Provider Views catalog in the Control Plane repository as the authoritative definition of the complete MVP catalog in `STATEFORGE_PROVIDER_VIEWS_MVP_CATALOG.pdf`. The catalog is part of the Control Plane; it has no independent version. SFP transports presentation data generically, and Provider Python authoring helpers are generated from the catalog rather than maintained as a competing component registry.  ## Required behavior  - Define all 30 catalog components and their identifiers; do not reduce the catalog to a subset. - For each component, define its applicable presentation surfaces, property schema, named binding slots and expected data shapes, asset slots, child structure, fallback guidance, and a representative example, as specified by the catalog. - Store component definitions separately in a machine-readable, reviewable format under the Control Plane repository, with shared definitions for surfaces, data-binding sources, and catalog-wide rules. Validate every descriptor and all cross-references. - Distinguish catalog membership from renderer availability: a catalog entry describes the Control Plane-owned component contract, while each Control Plane build/runtime registry decides which components and surfaces it can render or enable. - Generate the catalog index, human-readable reference, and Provider-consumable machine-readable artifact from the catalog source. Include provenance with the **full Control Plane version**, immutable source commit, and catalog-input SHA-256 digest. The current Control Plane version is `0.1.0`. - Do not assign the catalog an independent version or minimum Control Plane version. Compatibility follows the Control Plane’s versioning policy; a destructive catalog change requires a Control Plane major-version bump. - Keep SFP generic: do not add component identifiers, property schemas, slots, or renderer applicability rules to Protocol.  ## Acceptance evidence  - Automated catalog validation proves all 30 identifiers are present and unique, each component has its required contract definition, and every surface, binding source, asset slot, and fallback reference resolves. - Tests verify the generated documentation and Provider-consumable artifact are reproducible from the catalog source and include accurate Control Plane version, source commit, and digest provenance. - Compatibility checks ensure existing component identifiers retain their meaning. Destructive component-contract changes require a Control Plane major-version bump. - The Control Plane renderer registry can report unsupported catalog entries without making the catalog itself imply support.  ## Non-goals  No implementation of all 30 renderers, no Provider DSL implementation, no SFP catalog or component-specific validation, and no local-only preview renderer.  ## Verifications  - Generated provenance records control_plane_version, control_plane_commit, and catalog_sha256. - The version is the full version from the Control Plane source/release metadata—not inferred from the catalog or manually guessed. - The commit identifies the exact source revision; the digest is reproducible from the catalog input. - No independent catalog version or minimum Control Plane version is introduced. | `P11` | `COMPLETED` | [Issue #1](https://github.com/stateforge-org/stateforge-control-plane/issues/1) · [Pull Request #2](https://github.com/stateforge-org/stateforge-control-plane/pull/2) |
 | `R17` | `provider` | **[TASK][MVP] Verify Provider Capability Assessment Against the Installed Agent**<br>## Outcome After A3 lands, import its real Capability Assessment behavior into Provider CI.  Run the exact Protocol wheel, Provider wheel, and built Agent RPM as separate processes over the Unix socket. Cover every support state, unmet and unknown requirements, readiness, session/generation/manifest fences, transient retry, environment change, reassessment, malformed responses, and recovery. Prove assessment is read-only and the public requirement-check API exposes no transport internals. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A3`, `P2`, `R11`, `R3` | `COMPLETED` | [Issue #34](https://github.com/stateforge-org/stateforge-provider-python/issues/34) · [Pull Request #35](https://github.com/stateforge-org/stateforge-provider-python/pull/35) |
-| `C2` | `control-plane` | **[SUPERSEDED][MVP] Move Provider Views Generation to stateforge-provider-views**<br>This Control Plane milestone is superseded. The catalog generator, generated documentation, CI verification, and generated-library publication are owned by the new stateforge-provider-views milestones PV1, PV2, and PV3. The Control Plane remains the canonical owner of the catalog through C1. No generator implementation is delivered by this milestone. The linked Control Plane issue was closed with a comment explaining the ownership move. | `C1` | `READY` | [Issue #3](https://github.com/stateforge-org/stateforge-control-plane/issues/3) |
+| `C2` | `control-plane` | **[SUPERSEDED][MVP] Move Provider Views Generation to stateforge-provider-views**<br>This Control Plane milestone is superseded. The catalog generator, generated documentation, CI verification, and generated-library publication are owned by the new stateforge-provider-views milestones PV1, PV2, and PV3. The Control Plane remains the canonical owner of the catalog through C1. No generator implementation is delivered by this milestone. The linked Control Plane issue was closed with a comment explaining the ownership move. | `C1` | `CANCELLED` | [Pull Request #8](https://github.com/stateforge-org/stateforge-control-plane/pull/8) · [Issue #3](https://github.com/stateforge-org/stateforge-control-plane/issues/3) |
 | `R18` | `provider` | **[TASK][MVP] Verify Provider Trigger Publication Against the Installed Agent**<br>## Outcome After A4 lands, import its real Trigger Publication behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, accepted-duplicate, lost acknowledgement, replay, conflicting content, retryable and terminal rejection, pressure, reconnect, Agent restart, stale fencing, and shutdown. Preserve trigger identity and payload across retries. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A4`, `P3`, `R11`, `R4` | `COMPLETED` | [Issue #37](https://github.com/stateforge-org/stateforge-provider-python/issues/37) · [Pull Request #39](https://github.com/stateforge-org/stateforge-provider-python/pull/39) · [Issue #36](https://github.com/stateforge-org/stateforge-provider-python/issues/36) |
-| `PV1` | `provider-views` | **[TASK][MVP] Build the Versioned Provider Views Generator and Documentation**<br>## Outcome and ownership Build the catalog renderer/generator in stateforge-provider-views. The Control Plane remains the source of truth for the versioned Provider Views catalog; this repository consumes immutable catalog snapshots and generates language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.  ## Required behavior - Consume a pinned, versioned Control Plane catalog snapshot and record its catalog version, Control Plane major, and content digest in outputs. - Deterministically generate the Python authoring library from that snapshot; provider authors use the generated component APIs rather than hand-maintaining catalog identifiers and schemas. - Generate the library reference documentation from the same catalog snapshot and expose a reproducible documentation build. - Preserve older catalog inputs and generated releases; incompatible component contract changes use a new component identifier version. - Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.  ## Non-goals No Control Plane component catalog authoring, SFP wire-contract changes, provider-specific views, renderer implementation, or runtime network fetch. | `C1` | `PENDING` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-views/issues/1) |
+| `PV1` | `provider-views` | **[TASK][MVP] Build the Versioned Provider Views Generator and Documentation**<br>## Outcome and ownership  Build the catalog generator in stateforge-provider-views. The Control Plane owns the Provider Views catalog as part of its complete product version. This repository consumes immutable catalog snapshots and generates versioned language libraries and matching documentation. Keep the generator architecture language-neutral, with Python as the first generated target.  ## Required behavior  - Consume a pinned Control Plane catalog snapshot and record its full Control Plane version, source commit, and content digest in generated outputs. - Use the full Control Plane version (currently 0.1.0) as the catalog/API version. Do not introduce an independent catalog version or identify compatibility by major version alone. - Deterministically generate the Python authoring library from that snapshot; Provider authors use generated typed components rather than hand-maintaining catalog identifiers and schemas. - Generate the library reference documentation from the same catalog snapshot and provide reproducible documentation builds. - Preserve previously released versioned outputs; a Provider author targeting an older Control Plane uses the matching versioned wheel, as with an ordinary Python library. - Keep generation offline and reproducible after the snapshot is acquired. Do not add renderer/UI implementation or move catalog ownership out of the Control Plane.  ## Non-goals  No Control Plane catalog authoring, SFP wire-contract changes, Provider-specific views, renderer implementation, runtime network fetch, or Python Provider DSL implementation. | `C1` | `PENDING` | [Issue #1](https://github.com/stateforge-org/stateforge-provider-views/issues/1) |
 | `R19` | `provider` | **[TASK][MVP] Verify Provider Operation Admission Against the Installed Agent**<br>## Outcome After A5 lands, import its real Operation Admission behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover accepted-new, resolved-existing, lost response, identical concurrency, changed-content conflict, schema and readiness rejection, deadlines, expiry, stale fencing, restart, and exactly one dispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A5`, `P4`, `R11`, `R5` | `COMPLETED` | [Issue #45](https://github.com/stateforge-org/stateforge-provider-python/issues/45) · [Pull Request #47](https://github.com/stateforge-org/stateforge-provider-python/pull/47) |
 | `PV2` | `provider-views` | **[TASK][MVP] Add CI/CD Verification for Provider Views Generation**<br>## Outcome Make pull-request and protected-branch CI validate the generator, catalog compatibility, generated Python library, and generated documentation.  ## Required behavior - Resolve and pin the Control Plane catalog input once per workflow run; use the same resolved revision for generation, validation, and fixtures. - Validate the catalog snapshot, generate all configured outputs, and fail if committed generated artifacts or docs are stale. - Build and test the generated Python distribution, including a clean-environment install/import smoke test. - Build generated docs strictly and enforce repository workflow-security conventions. - Keep CI read-only with respect to package publishing; publishing belongs to PV3. | `PV1` | `BLOCKED` | — |
 | `R20` | `provider` | **[TASK][MVP] Verify Provider Operation Lifecycle Against the Installed Agent**<br>## Outcome After A6 lands, import its real operation lifecycle behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover initial and late Watch replay, progress sequences, cursor gaps, slow observers, terminal results, invalid results, sanitized failures, cancellation completion and races, Agent restart, stale fencing, shutdown, and no redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A13`, `A6`, `P5`, `R11`, `R19`, `R6` | `COMPLETED` | [Issue #48](https://github.com/stateforge-org/stateforge-provider-python/issues/48) · [Pull Request #49](https://github.com/stateforge-org/stateforge-provider-python/pull/49) |
 | `PV3` | `provider-views` | **[TASK][MVP] Publish the Generated Provider Views Python Package to PyPI**<br>## Outcome Release the generated Provider Views Python library to PyPI from versioned source and catalog inputs.  ## Required behavior - Publish only from an authorized version tag using PyPI Trusted Publishing/OIDC; do not store a long-lived PyPI API token. - Build the exact distribution once, validate it, and publish that artifact rather than rebuilding during publication. - Include the compatible Control Plane major, catalog version, and catalog digest in release metadata or generated package metadata. - Fail clearly for invalid versions, incompatible catalog inputs, or already-published versions. - Keep the generator repository language-neutral; this milestone publishes the first generated Python target, not a Python-only catalog model. | `PV2` | `BLOCKED` | — |
-| `R21` | `provider` | **[TASK][MVP] Verify Provider Recovery Against the Installed Agent**<br>## Outcome After A11 lands, import its real recovery and reconciliation behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover channel loss, lost admission responses and trigger acknowledgements, replay, Agent and Provider restart, retained and lost state, generation and installation replacement, stale responses, expiry, explicit indeterminate outcomes, and no blind redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A11`, `A13`, `P8`, `R11`, `R18`, `R20`, `R9` | `BLOCKED` | — |
+| `R21` | `provider` | **[TASK][MVP] Verify Provider Recovery Against the Installed Agent**<br>## Outcome After A11 lands, import its real recovery and reconciliation behavior into Provider CI.  Run exact artifacts as separate processes over the Unix socket. Cover channel loss, lost admission responses and trigger acknowledgements, replay, Agent and Provider restart, retained and lost state, generation and installation replacement, stale responses, expiry, explicit indeterminate outcomes, and no blind redispatch. Only compatibility corrections are allowed; new semantics require a Protocol change. | `A11`, `A13`, `P8`, `R11`, `R18`, `R20`, `R9` | `PENDING` | [Issue #52](https://github.com/stateforge-org/stateforge-provider-python/issues/52) |
+| `C5` | `control-plane` | **[TASK][MVP] Implement Versioned Profile Definition and Management**<br>## Outcome and ownership  Implement Versioned Profile Definition and Management in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Implement validated, persisted Profile definitions with stable identities, immutable published revisions, descriptions of intended behavior, operation/trigger kind, and standardized data schemas. Operation Profiles have input and successful-result schemas; Trigger Profiles describe event payloads, not invented operation requests/results. Publish explicit revision references; editing a draft does not silently mutate a published definition. - Provide UI and internal interfaces to create, inspect, edit drafts, publish, and archive Profiles, including field/schema validation and readable errors. Define safe archive/delete behavior for referenced definitions. Do not require Provider implementation claims or an external Profile package. - Keep schema authoring bounded and safe: supported dialect, local references, no network schema retrieval, resource limits, and secret-safe examples/errors. Reuse applicable canonical schema mechanics rather than reproducing SFP operational validation. - Define persistence and authorization boundaries within CP: mutations must be validated server-side; browser validation alone is insufficient. Do not invent an enterprise tenant system or authentication transport. - Document lifecycle, version/revision semantics, and that behavioral text is user-reviewed intent rather than an automated proof.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | — | `READY` | — |
+| `C6` | `control-plane` | **[TASK][MVP] Implement Direct Policy Graph Authoring with Operations and Triggers**<br>## Outcome and ownership  Implement Direct Policy Graph Authoring with Operations and Triggers in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Implement persisted Policy drafts and revisioned saved graphs referencing concrete Provider Operations and Triggers directly. A user must be able to create a Policy without any Contract or Profile. - Define a typed internal accepted-declaration snapshot carrying stable Provider/declaration identity, manifest revision, operation input/result schemas and trigger payload schemas. Keep the acquisition mechanism outside this milestone; test fixtures are offline snapshot inputs, not fake Agents. - Build the graph editor with concrete node selection, connections, dependencies and schema-derived configuration. Distinguish trigger event outputs from operation inputs/results. Preserve provider-specific schema names, nested structures, requiredness and schema constraints. - Define explicit supported graph rules: entry/event sources, reachable dependencies, valid edge directions and data references, cycle handling, and no implicit iteration semantics. Reject unsupported graphs with actionable diagnostics. Evaluate only complete supported graph shapes, not a success-looking placeholder. - Save and reopen exact selections, paths, values and declaration revisions. Validate on the CP application boundary; avoid storing plaintext secrets in exported graphs or logs, using existing secret references if available or rejecting unsupported secret configuration clearly. - Provide readable configuration and graph validation in the UI. Do not implement remote execution or describe a locally validated graph as already deployed. Keep graph/data-binding primitives reusable by C7/C9.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | — | `READY` | — |
+| `C7` | `control-plane` | **[TASK][MVP] Implement Contract Graph Templates with Virtual Profile Nodes**<br>## Outcome and ownership  Implement Contract Graph Templates with Virtual Profile Nodes in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Reuse the Policy graph concepts to implement persisted, versioned Contract templates whose nodes refer to exact Profile revisions instead of concrete Provider Operations/Triggers. Include intended flow, dependencies and standardized input/output/event connections. A Contract must not be modeled merely as an unordered Profile list. - Provide visual Contract authoring, Profile-node selection, standardized data wiring, validation, save/reopen, draft/publish/archive, and inspection. Enforce operation-versus-trigger node/edge semantics using C5 Profile kinds and C6 graph rules. - Validate references, required data coverage and compatible edges, with bounded schema handling and explicit cannot-establish diagnostics. Do not equate matching types with intended behavioral compliance. - Publish immutable template revisions. Policy instantiation references an exact template/Profile revision set; changes create new revisions and never silently update existing Policies. - Do not store universal Provider selections or fulfillment field mappings on the Contract. Concrete fulfillment belongs to each instantiated Policy, including use of multiple Providers. C9 owns instantiation, not a second implementation here.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | `C5`, `C6` | `BLOCKED` | — |
+| `C8` | `control-plane` | **[TASK][MVP] Implement Schema-Based Candidate Matching and Field-Mapping Suggestions**<br>## Outcome and ownership  Implement Schema-Based Candidate Matching and Field-Mapping Suggestions in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Match Profile schemas to accepted concrete declaration snapshots without Provider claims. Operation Profiles match Operations; Trigger Profiles match event payloads. Schema inputs/outputs are directional: the implementation must accept Profile-supplied inputs and guarantee required standardized outputs after mapping. - Rank candidates: best is complete same-name/path compatible fields; also show different-name compatible candidates, ambiguous multiple mappings, and partial matches. Keep useful partial candidates visible with unresolved requirements. Do not label partial matches fully fulfilled. A same-name incompatible field must not prevent consideration of a differently named compatible field. - Preserve structural subtyping: extra result fields are allowed; extra optional inputs are allowed; additional mandatory inputs need explicit supplied values or proven actual default materialization. A JSON Schema default annotation alone is not a supplied value. Do not require schema equality. - Analyze nested properties, requiredness, compatible types including integer/number and nullability, enums, arrays/item schemas, bounds and additional-property rules. Publish the supported reasoning subset. Unsupported or excessively complex cases produce cannot-establish results, not success or invented proof of incompatibility. No external schema retrieval, unbounded recursion or combinatorial search. - Return deterministic, structured match reports with field paths, suggestions, ambiguity, missing values and reasons. Same-name safe mappings may be automatic; ambiguous suggestions require user confirmation. Type equality never proves identical meaning or behavior. - Keep matching read-only and reusable by C9/C10; no arbitrary executable transformations, primitive coercion, automatic composition of unrelated implementations, or live availability/authorization assertions.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | `C5`, `C6` | `BLOCKED` | — |
+| `C9` | `control-plane` | **[TASK][MVP] Create Concrete Policies from Contracts with Implementation Selection and Mappings**<br>## Outcome and ownership  Create Concrete Policies from Contracts with Implementation Selection and Mappings in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Add a Contract-to-Policy creation flow: choose a published Contract revision, inspect its virtual Profile graph, select a concrete Operation/Trigger for each required node, resolve suggested field mappings and supplied inputs, and save a concrete Policy. Different Policies from one template may select different implementations across one or multiple Providers. - Show C8 candidate ranks and reasons, including differently named fields, ambiguous and partial candidates. Resolve uncertainty interactively rather than silently selecting based on type. Show Profile intent and implementation description for user-reviewed suitability; do not call this a behavioral proof. - Store each Policy's concrete selections, input/output/event field mappings, explicitly supplied values, provenance and exact Contract/Profile/declaration revisions. Keep the Contract unchanged. Use directed structured paths and validate duplicate/conflicting destination mappings, nested arrays and missing data explicitly. - Implement pure CP adapters for Profile input to operation request, operation result to Profile output, and trigger event to standardized event. Validate source and projected values against their relevant schemas before/after mapping. Allow extra outputs and optional inputs. Materialize only explicitly configured/default-supported values; never assume JSON Schema defaults execute. No arbitrary code or silent coercion. - Keep incomplete drafts saveable with visible unresolved requirements; only structurally complete supported bindings are eligible for validation as ready for future execution. User confirmation cannot override a proven schema mismatch. - Preserve graph dependencies and standardized inter-node wiring through concretization. A partial candidate cannot be silently supplemented by another implementation unless the template explicitly models separate nodes. Direct Policy authoring remains independent and available. - Test adapters locally with realistic data; do not add live Agent dispatch, a substitute Agent daemon, SF-AOP APIs or a claim that full remote orchestration is implemented.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | `C7`, `C8` | `BLOCKED` | — |
+| `C10` | `control-plane` | **[TASK][MVP] Validate Policy Fulfillment and Revalidate Changed Definitions**<br>## Outcome and ownership  Validate Policy Fulfillment and Revalidate Changed Definitions in stateforge-control-plane.  ## Shared model and boundaries  Profiles define versioned vendor-independent schemas and intended behavior; Providers expose concrete Operations/Triggers, not Profile claims. Contracts are reusable Policy-shaped graphs with virtual Profile nodes, dependencies and standardized data connections. Policies can be built directly from concrete nodes without Profiles/Contracts, or instantiated from Contracts. Implementation selections, confirmed field mappings and supplied values belong to each Policy. Structural matching is not behavioral proof; users review intent when selecting implementations.  CP owns models, persistence, internal interfaces, and React/TypeScript/Vite UI. No SF-AOP dependency, transport design, remote dispatch, SFP/Agent/Provider edits, or fake Agent is authorized. Use explicit accepted-declaration snapshots internally; fixture tests prove CP behavior only. Establish missing minimal CP foundations, reuse existing mechanisms and record decisions. Profile matching is separate from the Provider Views catalog.  ## Required behavior  - Implement a single CP validation and fulfillment-report pipeline for direct and Contract-derived Policies. Check graph validity, concrete declaration references, configured/mapped required inputs, result/event guarantees, Profile coverage when applicable, pinned revisions, and supported adapters. - Keep structural readiness distinct from live Provider health, Capability Assessment, authorization, deployment and execution state. Do not report real-time availability from an offline schema match. Direct Policies bypass Profile/Contract requirements but retain concrete schema and graph validation. - Invalidate affected cached reports when Profile/Contract revisions, confirmed mappings, configuration, accepted manifest/declaration revisions or implementation selections change. Recompute against exact referenced snapshots with deterministic content identities; unchanged unrelated declarations should not invalidate everything. - Preserve pinned Policy revisions and references. New definitions are available updates, not silent rewrites of saved Policies. Require explicit revision adoption and renewed validation when appropriate. Missing/archived/replaced sources produce actionable stale/unresolved diagnostics; never silently switch Provider or auto-remap a changed field. - Prevent incomplete, incompatible, stale or cannot-establish bindings from being classified structurally ready. Display per-node/per-edge coverage, selected implementation, mappings, unresolved obligations and reasons with navigation to repairs. - Preserve historical validation evidence and distinguish current definition changes from already-running work. Without remote execution integration do not implement cancellation/retry/remediation or assert an operation failed because its definition changed. - Complete shared docs/examples and automated CP regression/CI coverage across C5-C10. Scope is CP validation and adapter evidence, not SF-AOP or full installed-system execution.  ## Verification and delivery  Automate model/application and browser acceptance tests, persistence, quality/build and docs checks. Reuse existing CP CI and retain reproducible evidence. Fixture-based tests are not live interoperability. Human-reviewed merged PRs, not local code, establish delivery. | `C6`, `C9` | `BLOCKED` | — |
 
 ## Milestone context contracts
 
@@ -9266,7 +9991,7 @@ _No verification evidence has been declared yet._
 | `agent/src/stateforge_agent/_journal` | `expected_to_change` | `canonical` | Yes | Recover durable operation and trigger evidence after Agent restart. |
 | `agent/tests` | `expected_to_change` | `canonical` | Yes | Test recovery outcomes, stale fencing, expiry, and no blind redispatch. |
 | `agent/.github/actions` | `expected_to_change` | `canonical` | Yes | Add deterministic installed-Agent recovery scenarios to reusable CI actions. |
-| `protocol/docs/procedures/disconnection-recovery.md` | `must_preserve` | `canonical` | Yes | Preserve authoritative SFP recovery semantics. |
+| `protocol/docs/v0.1.0/procedures/disconnection-recovery.md` | `must_preserve` | `canonical` | Yes | Preserve authoritative SFP recovery semantics. |
 | `provider/src/stateforge_provider/_services` | `must_verify` | `compatibility` | Yes | Verify Provider recovery interoperability without changing Provider behavior. |
 
 #### Verification contract
@@ -9284,20 +10009,27 @@ _No verification evidence has been declared yet._
 | --- | --- | --- | --- | --- |
 | `agent/.agents/skills/stateforge-dpt-milestone` | `must_understand` | `canonical` | Yes | Cross-repository audit and completion-claim requirements. |
 | `agent/.claude/skills/stateforge-protocol-development` | `must_understand` | `canonical` | Yes | Agent consumer ownership and complete SFP verification rules. |
-| `protocol/docs/reference/responsibility-boundaries.md` | `must_verify` | `canonical` | Yes | Release-wide boundary matrix reconciled against the final installed system. |
-| `protocol/src/stateforge_protocol/sfp` | `must_verify` | `compatibility` | Yes | All authoritative SFP contracts used by the complete runtime. |
+| `protocol/docs/v0.1.0/reference/responsibility-boundaries.md` | `must_verify` | `canonical` | Yes | Release-wide responsibility matrix reconciled against the installed system. |
+| `protocol/src/stateforge_protocol/sfp` | `must_verify` | `compatibility` | Yes | Authoritative SFP contracts consumed by the complete local runtime. |
+| `protocol/.github/workflows/protocol-installed-test.yml` | `must_verify` | `compatibility` | Yes | Protocol's installed-artifact test workflow and published wheel verification. |
 | `provider/src/stateforge_provider` | `must_verify` | `compatibility` | Yes | Complete Provider runtime and author-facing integration surface. |
-| `agent/src/stateforge_agent/_sfp` | `must_verify` | `canonical` | Yes | Complete Agent SFP consumer, availability, recovery, and session surface. |
+| `provider/.github/workflows/provider-installed-test.yml` | `must_verify` | `compatibility` | Yes | Provider's installed-artifact workflow and runtime scenario matrix. |
+| `agent/src/stateforge_agent/_sfp` | `must_verify` | `canonical` | Yes | Agent-owned SFP runtime, lifecycle state, and operation behavior. |
 | `agent/.github/actions` | `must_verify` | `canonical` | Yes | Reusable installed-artifact test framework and complete scenario catalogue. |
-| `provider/.github/actions` | `must_verify` | `compatibility` | Yes | Reusable Provider fixture and runtime scenario actions used by the system matrix. |
+| `agent/.github/workflows/rpm-installed-test.yml` | `must_verify` | `canonical` | Yes | Agent's installed RPM system-test workflow and complete artifact matrix. |
+| `agent/packaging/rpm/SPECS/stateforge-agent.spec` | `must_verify` | `canonical` | Yes | Installed Agent RPM contents, runtime dependencies, and systemd service packaging. |
+| `provider/.github/actions` | `must_verify` | `compatibility` | Yes | Reusable Provider fixtures and runtime scenario actions used by the system matrix. |
 
 #### Verification contract
 
 - **test** · `agent` · `python -m pytest -q` — The complete Agent suite passes.
 - **command** · `agent` · `python -m ruff format --check . && python -m ruff check . && python -m mypy src && python -m mkdocs build --strict` — Formatting, linting, typing, and strict documentation pass.
-- **integration** · `agent` · `Run the complete installed-artifact matrix with the exact Protocol wheel, Provider wheel, Agent RPM, BackupEngine fixture, and Restic integration in separate processes.` — The shipped system exercises every planned SFP procedure, backup capability, failure boundary, and supported Linux runtime.
-- **integration** · `project` · `Run Protocol contract tests and Agent/Provider ownership-delegation suites against the exact artifacts used by the system matrix.` — Equivalent behavior comes from one canonical contract rather than duplicated implementations.
-- **human** · `project` · `Approve the final responsibility and coverage inventories for every SFP procedure and shared endpoint resource.` — No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed.
+- **integration** · `agent` · `Run the installed-artifact matrix with the exact Protocol wheel, Provider wheel, and Agent RPM in separate real processes over Unix sockets; cover every planned SFP procedure and Agent-owned runtime capability without a BackupEngine or Restic requirement.` — Proves generic SFP interoperability and real installed Agent/Provider behavior across the operation lifecycle, triggers, failure/restart/recovery boundaries, and supported Linux runtime. Any backup-oriented fixture uses ordinary Provider operations only.
+- **test** · `protocol` · `python -m pytest -q` — The complete Protocol contract and validation suite passes for the canonical SFP behavior packaged in the tested wheel.
+- **test** · `provider` · `python -m pytest -q` — The complete Provider suite passes, including Provider runtime and fixture behavior used by the installed-artifact scenarios.
+- **test** · `agent` · `Machine-checked coverage inventory: map every planned SFP procedure and Agent-owned runtime capability to focused tests and the complete installed-artifact matrix.` — CI fails if any planned SFP procedure or Agent-owned runtime capability lacks focused test coverage and an exact-artifact scenario mapping.
+- **integration** · `project` · `Reconcile Protocol contract tests, Agent/Provider ownership-delegation tests, and the exact installed-artifact matrix against the responsibility-boundary document.` — The final review confirms each normative rule has one authoritative owner and that installed behavior matches the Protocol responsibility matrix.
+- **human** · `project` · `Approve the final responsibility and coverage inventories for every SFP procedure and shared endpoint resource.` — No unaudited repository, unclassified rule, missing scenario, or duplicate normative implementation remains when local runtime completion is claimed; future SF-AOP and Control Plane phases remain explicitly out of scope.
 
 ### `P11` — [TASK][MVP] Add Versioned Provider Presentation to Manifest Exchange
 
@@ -9350,11 +10082,37 @@ _No verification evidence has been declared yet._
 
 ### `R12` — [TASK][MVP] Add Declarative Provider, Operation, and Trigger Presentation to the Provider Python DSL
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/provider_views/catalog/0.1.0` | `must_understand` | `canonical` | Yes | Canonical catalog component, property, binding, surface, asset, and child contracts consumed by the DSL. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `must_understand` | `canonical` | Yes | Protocol-owned generic ProviderPresentation and surface message contract. |
+| `provider/src/stateforge_provider` | `must_understand` | `canonical` | Yes | Provider Python authoring, operation/trigger declarations, schema generation, and typed API conventions. |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **test** · `provider` · `R12` — Tests prove view declarations compose for Provider, operation, and trigger targets and compile to the intended presentation model.
+- **test** · `provider` · `R12` — Tests validate component identifiers, versions, properties, child relationships, assets, bindings, and surfaces against the pinned catalog.
+- **test** · `provider` · `R12` — Tests prove composition cannot hide capabilities or alter operation/trigger schemas, required fields, identifiers, or execution semantics.
+- **test** · `provider` · `R12` — Tests verify declarations compile to the generic Protocol presentation model without adding catalog-specific concepts to SFP.
+- **test** · `provider` · `R12` — Tests reject arbitrary executable frontend code, filesystem paths, and remote-resource loading.
+
+### `C3` — [TASK][MVP] Define Provider Views Catalog, Renderer, and DSL Architecture
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/provider_views/catalog/0.1.0` | `must_understand` | `canonical` | Yes | Authoritative Provider Views catalog contracts and source structure. |
+| `protocol/proto/stateforge_protocol/sfp/manifest/v1/manifest.proto` | `must_understand` | `canonical` | Yes | Generic Protocol presentation model that the Python authoring API must target. |
+| `provider/src/stateforge_provider` | `must_understand` | `compatibility` | Yes | Current Provider Python API and declaration conventions. |
+
+#### Verification contract
+
+- **human** · `control-plane` · `C3` — The architecture states that the full Control Plane product version owns the catalog/API version and does not create a separate catalog version.
+- **human** · `control-plane` · `C3` — The architecture assigns catalog/rendering, generated language API/docs, Provider authoring/translation, and generic SFP responsibilities to the correct repositories.
+- **human** · `control-plane` · `C3` — The frontend stack remains an explicit open decision with evaluation criteria; no candidate is treated as approved.
 
 ### `R13` — [TASK][MVP] Package Provider-Owned Icons, Images, and Presentation Assets
 
@@ -9454,11 +10212,15 @@ _No verification evidence has been declared yet._
 
 ### `C1` — [TASK][MVP] Define the Control Plane-Owned Provider Views Catalog
 
-_No implementation context has been declared yet._
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/provider_views` | `must_understand` | `canonical` | Yes | Provider Views |
 
 #### Verification contract
 
-_No verification evidence has been declared yet._
+- **test** · `provider-views` · `command` — Generated provenance records control_plane_version, control_plane_commit, and catalog_sha256.
 
 ### `R17` — [TASK][MVP] Verify Provider Capability Assessment Against the Installed Agent
 
@@ -9607,6 +10369,102 @@ _No implementation context has been declared yet._
 - **test** · `provider` · `Retained evidence identifies exact artifacts, invocation identity, runtime fences, observations, and final state` — Make failures diagnosable and success claims reproducible.
 - **test** · `provider` · `Ruff format and lint, strict mypy, full pytest, package verification, strict docs, and workflow-security checks` — Preserve all repository quality, packaging, documentation, and CI security gates.
 
+### `C5` — [TASK][MVP] Implement Versioned Profile Definition and Management
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Profile CRUD/draft/publish/archive and persistence tests; published revisions remain immutable and referenced definitions cannot be silently removed.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Schema, kind, invalid-reference, resource-limit, secret-safety and unauthorized-mutation tests, with no external schema retrieval.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Browser tests for creating and inspecting operation and trigger Profiles, validation errors, revision selection, and archive behavior.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
+### `C6` — [TASK][MVP] Implement Direct Policy Graph Authoring with Operations and Triggers
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Create, persist and reopen a concrete trigger-to-operation Policy without any Profile or Contract; verify identities, schemas and values round-trip.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Tests for missing/unknown nodes, invalid edges, cycles under the chosen graph rules, unavailable data paths, incompatible values, required inputs, and secret disclosure.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Browser tests for selecting implementations, connecting nodes, configuring inputs, displaying diagnostics, and revising a saved direct Policy.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
+### `C7` — [TASK][MVP] Implement Contract Graph Templates with Virtual Profile Nodes
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Persist and reopen a Contract graph with operation/trigger Profile nodes and standardized edges, with no concrete Provider binding.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Reject unknown revisions, invalid kind/edge combinations, unresolved data requirements, incompatible edges, and unsupported graph structures with paths to the failing node/edge.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Browser and persistence tests for draft/publication/archive; exact revisions remain immutable and template edits do not mutate existing references.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
+### `C8` — [TASK][MVP] Implement Schema-Based Candidate Matching and Field-Mapping Suggestions
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Tests for same-name automatic matches, different-name suggestions, multiple same-type fields, partial matches, incompatible same-name alternatives, and deterministic ranking.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Positive/negative tests for input acceptance and output guarantees, nested/array mappings, enums/nullability/bounds/additional properties, extras, and real versus annotation-only defaults.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Tests for unresolved refs, unsupported constructs, recursion/complexity limits, malicious schemas, secret-safe diagnostics, and no behavioral-compliance claims.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
+### `C9` — [TASK][MVP] Create Concrete Policies from Contracts with Implementation Selection and Mappings
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Browser/application tests create two Policies from one Contract with different Providers, confirm mappings and supplied inputs, save/reopen them, and prove the template remains unchanged.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Tests map differently named nested input/output/event fields, validate both ends, reject collisions/coercions/invalid results, and prevent missing defaults or inputs from becoming executable bindings.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Tests preserve graph edges/dependencies, required-node coverage and revision provenance; partial drafts stay visibly incomplete, and direct Policies still need no Contract/Profile.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
+### `C10` — [TASK][MVP] Validate Policy Fulfillment and Revalidate Changed Definitions
+
+#### Required context and protected behavior
+
+| Repository path | Role | Authority | Required | Why |
+| --- | --- | --- | --- | --- |
+| `control-plane/CLAUDE.md` | `must_understand` | `canonical` | Yes | Repository ownership and delivery rules; the milestone's explicit Profile/Contract/Policy context supersedes obsolete Provider-owned Profile assumptions. |
+| `protocol/docs/v0.1.0/procedures` | `must_understand` | `compatibility` | Yes | Read Manifest Exchange, Operation Admission, lifecycle and Triggers for concrete schemas and kind distinctions. Use current contracts, not obsolete implements claims; no SF-AOP or sibling changes are authorized. |
+
+#### Verification contract
+
+- **test** · `control-plane` · `Tests produce complete/partial/incompatible/stale reports for direct and template-derived Policies; every required Profile node and data obligation must be resolved before structural readiness.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Tests for schema/manifest/Profile/Contract changes, mappings/config edits, archival/removal, Provider replacement, explicit revision adoption, cache invalidation and pinned-history preservation.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **test** · `control-plane` · `Full CP application/browser workflows cover both authoring paths, ambiguous/partial repair, multiple Providers, reload/persistence, authorization and secret safety; no silent rebinding or false remote-execution claims.` — Automated acceptance evidence for the milestone's required observable behavior.
+- **command** · `control-plane` · `Run all configured CP frontend/backend quality gates, production build, full regression tests and strict documentation checks; document the new public behavior and limitations.` — Prevent a model-only or UI-only implementation from being declared complete and keep examples usable.
+
 
 ## Delivery rules
 
@@ -9628,11 +10486,11 @@ this generated file manually.
 
 <!-- STATEFORGE_DPT_SECURITY_CACHE
 {
-  "fingerprint": "6c6c0cc48c9d2b8f363f1356fa3eaa6b096690be8c6261dc6268a92fa3315ce1",
+  "fingerprint": "633eba7d2368f61df018307bf8383006d9eef1652c81573a0b827843e2bbc77c",
   "format": "stateforge-dpt-security-cache",
   "format_version": 1,
-  "generated_at": "2026-11-05T09:23:33+00:00",
-  "plan_fingerprint": "6e844b45cc551a189448e288212dac2d9371f3fb40402cbeec85955dfec4cb1f",
+  "generated_at": "2026-11-09T15:10:46+00:00",
+  "plan_fingerprint": "5a327b961bbcb021e4ceb0bfc519c1f9ec246cdbc75bd4a23c02ad030aa529da",
   "repositories": [
     {
       "alias": "agent",
@@ -9640,7 +10498,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "4967b08514f8622b45887bcd7de74c7be45a86a89e3391a5a4035119700c7755",
+        "digest": "659dec9aa118910c509a14e76eb4e309e49d53722c54c703e63b6c5e3832c835",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -9648,8 +10506,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-04T12:25:12+00:00",
-      "observed_commit_sha": "b1506b36344c09bb83ba083041362abd6791a108",
+      "generated_at": "2026-11-09T14:59:49+00:00",
+      "observed_commit_sha": "5ae24c1cc06fd5ab82cee89f1b010cf37d787095",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-agent",
       "sbom": {
@@ -19786,7 +20644,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D9504be252d9cd15ac53fe479bfb09a3007a16aca%239504be252d9cd15ac53fe479bfb09a3007a16aca",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D0dab0576d884ae10f3bef0135b641168234b18b6%230dab0576d884ae10f3bef0135b641168234b18b6",
               "type": "library",
               "version": "0.1.0"
             },
@@ -21040,7 +21898,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "ec7cc9914028cd5c965c4a6091fd17b7aa4b489f57da2f1134bc27f364ddcf5a",
+        "sha256": "0a5f738fc2cfc9c7d08d78aa7b54c2d8bf226239523c5305338154b47213259a",
         "spec_version": "1.5"
       }
     },
@@ -21059,7 +21917,7 @@ this generated file manually.
         "tool_version": "0.13.5"
       },
       "generated_at": "2026-10-27T10:20:39+00:00",
-      "observed_commit_sha": "7db20224a40ce25ecec55dde3e784d9aec425df4",
+      "observed_commit_sha": "0dab0576d884ae10f3bef0135b641168234b18b6",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-protocol",
       "sbom": {
@@ -32591,7 +33449,7 @@ this generated file manually.
         "adapter": "uv-lock-cyclonedx-v1",
         "adapter_version": 1,
         "algorithm": "sha256",
-        "digest": "b9256e6cefe95e8457e7eac8fde48c1e41b9aecc88b0b676699fc78103158172",
+        "digest": "2aec1064e6e56a7e7586f2d1a35af7f6bdabafe14d3ff6d6a1a42053cdd952c3",
         "inputs": [
           "pyproject.toml",
           "uv.lock"
@@ -32599,8 +33457,8 @@ this generated file manually.
         "tool": "uv",
         "tool_version": "0.13.5"
       },
-      "generated_at": "2026-11-02T13:18:39+00:00",
-      "observed_commit_sha": "f7650d382a0e13f5b64bcdbb9e584db28a01676b",
+      "generated_at": "2026-11-09T14:57:00+00:00",
+      "observed_commit_sha": "ed2b71c96974ff3e1cedb9e256419cb1b85bc92b",
       "plan_source_branch": "mvp/implementation",
       "repository": "stateforge-org/stateforge-provider-python",
       "sbom": {
@@ -44017,7 +44875,7 @@ this generated file manually.
                   "value": "python_full_version == '3.13.*'"
                 }
               ],
-              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D64514b35dabfe88d49aabfb63d756e98a97fe5dc%2364514b35dabfe88d49aabfb63d756e98a97fe5dc",
+              "purl": "pkg:pypi/stateforge-protocol@0.1.0?vcs_url=https://github.com/stateforge-org/stateforge-protocol.git%3Frev%3D0dab0576d884ae10f3bef0135b641168234b18b6%230dab0576d884ae10f3bef0135b641168234b18b6",
               "type": "library",
               "version": "0.1.0"
             },
@@ -44972,7 +45830,7 @@ this generated file manually.
           "version": 1
         },
         "format": "cyclonedx-json",
-        "sha256": "300f380f4113d6b45320c2e2fd491d610b84da410ac30211e33fa04dbdd87d73",
+        "sha256": "f49e9606e7a2638f56a29a8a7acf372807623b9c075833f860dbd2240ba4448b",
         "spec_version": "1.5"
       }
     }
